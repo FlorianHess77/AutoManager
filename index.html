@@ -1620,7 +1620,7 @@ const dispName=c=>c?(c.name||[c.make,c.model].filter(Boolean).join(' ')||'Auto')
 const carName=id=>dispName(car(id));
 const defaultCarId=()=>myCars()[0]?.id||activeCars()[0]?.id||'';
 function carOdo(id){const c=car(id);let m=c?.odo??null;const up=v=>{if(v!=null&&(m==null||v>m))m=v};
- S.entries.forEach(e=>{if(e.carId===id)up(e.odo)});S.fuel.forEach(f=>{if(f.carId===id)up(f.odo)});S.odo.forEach(o=>{if(o.carId===id)up(o.odo)});up(c?.sold?.odo);return m}
+ S.entries.forEach(e=>{if(e.carId===id)up(e.odo)});S.fuel.forEach(f=>{if(f.carId===id)up(f.odo)});S.odo.forEach(o=>{if(o.carId===id)up(o.odo)});up(c?.sold?.odo);up(c?.purchaseOdo);return m}
 const partsCost=e=>(e.parts||[]).reduce((s,p)=>s+(p.price||0),0);
 const entryCost=e=>partsCost(e)+(e.labor||0);
 const carEntries=id=>S.entries.filter(e=>e.carId===id).sort((a,b)=>b.date.localeCompare(a.date)||(b.odo??0)-(a.odo??0));
@@ -1811,7 +1811,7 @@ function viewCar(id,tab){const c=car(id);
   fc.list.slice().reverse().map(f=>`<div class="item" data-a="fuelForm" data-id="${f.id}">${ibox('fuel','#5aa9e6')}<div class="grow"><b>${fmtN(f.liters,2)} l${f.full?'':' (Teil)'}${ppl(f)?` <span class="sub" style="font-weight:600">· ${eur3(ppl(f))}/l</span>`:''}</b><div class="sub">${fmtD(f.date)} · ${kmT(f.odo)}${fc.cons[f.id]?` · <b style="color:var(--text)">${fmtN(fc.cons[f.id],1)} l/100</b>`:''}</div>${f.station||f.type?`<div class="sub">${esc([f.type,f.station].filter(Boolean).join(' · '))}${f.photoId?' · 🧾':''}</div>`:''}</div><span class="amt">${eur(f.price)}</span></div>`).join('')+
   (fc.list.length?'<p class="sub">Verbrauch wird zwischen zwei Volltankungen berechnet.</p>':'')}
  if(tab==='odo'){const rows=[...S.entries.filter(e=>e.carId===id&&e.odo!=null).map(e=>({date:e.date,odo:e.odo,src:'Wartung: '+(e.title||e.category)})),
-  ...S.fuel.filter(f=>f.carId===id&&f.odo!=null).map(f=>({date:f.date,odo:f.odo,src:'Tanken'})),...S.odo.filter(o=>o.carId===id).map(o=>({date:o.date,odo:o.odo,src:'Manuell',id:o.id}))]
+  ...S.fuel.filter(f=>f.carId===id&&f.odo!=null).map(f=>({date:f.date,odo:f.odo,src:'Tanken'})),...S.odo.filter(o=>o.carId===id).map(o=>({date:o.date,odo:o.odo,src:'Manuell',id:o.id})),...(c.purchaseOdo!=null?[{date:c.purchase||c.created||'',odo:c.purchaseOdo,src:'Kauf'+(c.purchase?'':' (Datum fehlt)')}]:[]),...(c.sold?.odo!=null?[{date:c.sold.date,odo:c.sold.odo,src:'Verkauf'}]:[])]
   .sort((a,b)=>b.date.localeCompare(a.date)||b.odo-a.odo);
   h+=`<button class="btn primary block" data-a="odoForm" data-car="${id}">+ km-Stand eintragen</button>`+rows.map((r,i)=>{const nx=rows[i+1];const diff=nx?r.odo-nx.odo:null;
    return`<div class="item" ${r.id?`data-a="odoDelete" data-id="${r.id}"`:''}><div class="grow"><b>${kmT(r.odo)}</b><div class="sub">${fmtD(r.date)} · ${esc(r.src)}</div></div>${diff>0?`<span class="sub">+${fmtN(diff)} km</span>`:''}${r.id?'<span class="muted">✕</span>':''}</div>`}).join('')||empty('Noch keine km-Stände.','','')}
