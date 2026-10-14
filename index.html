@@ -77,8 +77,8 @@ input[type=checkbox],input[type=radio]{width:auto;min-height:0}
 .chip.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:700}
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;cursor:pointer}
-.ph{aspect-ratio:16/9;background:var(--surface2);display:grid;place-items:center;color:var(--muted);overflow:hidden}
-.ph img{width:100%;height:100%;object-fit:cover}
+.ph{position:relative;aspect-ratio:16/9;background:var(--surface2);display:grid;place-items:center;color:var(--muted);overflow:hidden}
+.ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .ph svg{width:84px;height:84px;opacity:.5}
 .ph.nophoto{aspect-ratio:auto;height:76px}
 .ph.stretch{touch-action:pan-y}.ph.stretch.anim{transition:height .28s cubic-bezier(.2,.8,.2,1)}.sheet-panel{overscroll-behavior-y:contain}
