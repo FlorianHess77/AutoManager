@@ -1767,7 +1767,7 @@ function viewCar(id,tab){const c=car(id);
   ${oc.months!=null?`<dt>Besitzdauer</dt><dd>${fmtMonths(oc.months)}</dd>`:''}${oc.kmDriven>0?`<dt>Gefahren seit Kauf</dt><dd>${kmT(oc.kmDriven)}</dd>${oc.buy!=null?`<dt>pro km</dt><dd>${eur(oc.total/oc.kmDriven)}</dd>`:''}`:''}</dl>
   ${oc.buy==null?`<p class="sub">Tipp: Kaufpreis unter ✎ eintragen, dann siehst du die Gesamtbilanz.</p>`:''}</div>`;
   const td=sortTodos(S.todos.filter(t=>t.carId===id&&!t.done));if(!c.archived)h+=`<h2>Offene To-dos</h2>${td.map(t=>todoHTML(t,false)).join('')||'<p class="muted">Keine.</p>'}`;
-  h+=`<h2>Export & Verwaltung</h2><button class="btn block" data-a="printBook" data-car="${id}">🖨️ Scheckheft drucken / als PDF</button><button class="btn block" data-a="exportCSV" data-car="${id}">Historie als CSV</button>
+  h+=carDocsHTML(c);h+=`<h2>Export & Verwaltung</h2><button class="btn block" data-a="printBook" data-car="${id}">🖨️ Scheckheft drucken / als PDF</button><button class="btn block" data-a="exportCSV" data-car="${id}">Historie als CSV</button>
   <div class="grid2" style="margin-bottom:8px"><button class="btn" data-a="qrSheet" data-car="${id}">🔳 QR-Aufkleber</button>${c.archived?'':`<button class="btn" data-a="exposeForm" data-car="${id}">📄 Exposé</button>`}</div>
   ${c.archived?`${c.sold?`<button class="btn block" data-a="sellForm" data-car="${id}">Verkaufsdaten bearbeiten</button>`:''}<button class="btn block" data-a="carArchive" data-car="${id}">Zurück in die Garage holen</button>`
    :`<button class="btn primary block" data-a="sellForm" data-car="${id}">💶 Als verkauft markieren</button><button class="btn block" data-a="carArchive" data-car="${id}">Ins Archiv (ohne Verkauf, z. B. abgemeldet)</button>`}
@@ -1893,6 +1893,7 @@ function viewHelp(){return{title:'Installation & Hilfe',tab:'more',back:'#/more'
 <li>Einkaufsliste: oben eintippen und „+“ – abhaken, wenn gekauft. Gekauftes lässt sich direkt ins Lager buchen.</li>
 <li>Werkzeug: Rechnung als Foto oder PDF und „Garantie bis“ hinterlegen – unter Mehr › Garantien siehst du alles auf einen Blick.</li>
 <li>Tanken: „Tankbeleg fotografieren“ liest Liter, Literpreis, Betrag, Sorte, Datum und Tankstelle – du ergänzt nur den km-Stand. Unter Statistik siehst du die Spritpreise für Benzin und Diesel.</li>
+<li>Dokumente pro Auto (Kaufvertrag, Zulassungsschein, Versicherung …) findest du in der Übersicht des Autos. Beim Verkauf kannst du den Verkaufsvertrag gleich mit fotografieren.</li>
 <li>Versehentlich gelöscht? Unten erscheint 10 Sekunden lang „Rückgängig“.</li>
 <li>Beim Tippen eines Teilenamens erscheinen alle bereits verwendeten Artikel mit Hersteller, Nummer, Spezifikation und letztem Preis – antippen füllt alles aus.</li>
 <li>Eigene Wartungsintervalle für jedes Bauteil oder jede Flüssigkeit: Auto › Intervalle › „+ Eigenes Bauteil“.</li>
@@ -1941,7 +1942,7 @@ async function saveCar(f){syncDl();const fd=Object.fromEntries(new FormData(f));
 async function carDelete(id){const c=car(id);if(!confirm(`„${dispName(c)}“ mit ALLEN Einträgen, Intervallen, Tankungen und To-dos endgültig löschen?\n\nTipp: Verkaufte Autos besser archivieren.`))return;
  for(const e of S.entries.filter(e=>e.carId===id)){for(const p of e.photos||[])await del('photos',p.id);await del('entries',e.id)}
  for(const s of['intervals','fuel','odo','todos','tyres','issues','guides'])for(const x of S[s].filter(x=>x.carId===id)){for(const p of x.photos||[])await del('photos',p.id);await del(s,x.id)}
- if(c.photoId)await del('photos',c.photoId);if(c.photoOrigId)await del('photos',c.photoOrigId);await del('cars',id);toast('Gelöscht');nav('#/cars')}
+ if(c.photoId)await del('photos',c.photoId);if(c.photoOrigId)await del('photos',c.photoOrigId);for(const d of c.docs||[])await del('photos',d.id);await del('cars',id);toast('Gelöscht');nav('#/cars')}
 
 function specForm(id){const c=car(id);draft={kind:'spec',carId:id,specs:structuredClone(c.specs||[])};
  openSheet('Technische Daten',`<p class="sub">Freie Liste – z. B. Ölsorte, Füllmengen, Drehmomente, Reifengrößen.</p><form id="fSpec" data-form="spec"><div id="specRows"></div></form>
@@ -1950,13 +1951,13 @@ function renderSpecs(){$('#specRows').innerHTML=draft.specs.map((s,i)=>`<div cla
 function syncSpecs(){draft.specs=$$('#specRows .srow').map(r=>({k:$('[data-k=k]',r).value.trim(),v:$('[data-k=v]',r).value.trim()}))}
 async function saveSpecs(){syncSpecs();const c=car(draft.carId);c.specs=draft.specs.filter(s=>s.k||s.v);await put('cars',c);closeSheet();toast('Gespeichert')}
 
-function sellForm(id){const c=car(id);const s=c.sold||{date:today(),odo:carOdo(id)};draft={kind:'sell',carId:id};
+function sellForm(id){const c=car(id);const s=c.sold||{date:today(),odo:carOdo(id)};draft={kind:'sell',carId:id,files:[]};
  openSheet(c.sold?'Verkaufsdaten':'Als verkauft markieren',`<p class="sub">Das Auto wandert danach ins Archiv (Mehr › Archiv). Die komplette Historie bleibt erhalten.</p><form id="fSell" data-form="sell">
  <div class="grid2"><label class="f"><span>Verkaufsdatum</span><input type="date" name="date" required value="${esc(s.date)}"></label><label class="f"><span>Verkaufspreis (€)</span><input name="price" inputmode="decimal" value="${valN(s.price)}"></label></div>
  <label class="f"><span>km-Stand bei Verkauf</span><input name="odo" inputmode="numeric" value="${valN(s.odo)}"></label><label class="f"><span>Käufer</span><input name="buyer" value="${esc(s.buyer)}"></label>
- <label class="f"><span>Notiz</span><textarea name="note">${esc(s.note)}</textarea></label></form>`,`<button class="btn primary grow" type="submit" form="fSell">${c.sold?'Speichern':'Verkauft – ins Archiv'}</button>`)}
+ <label class="f"><span>Notiz</span><textarea name="note">${esc(s.note)}</textarea></label><h4>Verkaufsvertrag</h4><div id="docFiles"></div><div class="grid2"><label class="btn">${ic('receipt','ico s')} Fotografieren<input type="file" accept="image/*" capture="environment" multiple hidden data-file="carDocFiles"></label><label class="btn">${ic('book','ico s')} Datei / PDF<input type="file" accept="image/*,application/pdf" multiple hidden data-file="carDocFiles"></label></div>${(c.docs||[]).some(d=>d.kind==='Verkaufsvertrag')?'<p class="sub">Ein Verkaufsvertrag ist schon gespeichert – neue Seiten kommen dazu.</p>':''}</form>`,`<button class="btn primary grow" type="submit" form="fSell">${c.sold?'Speichern':'Verkauft – ins Archiv'}</button>`)}
 async function saveSell(f){const fd=Object.fromEntries(new FormData(f));const c=car(draft.carId);const was=!!c.sold;
- c.sold={date:fd.date||today(),price:num(fd.price),odo:num(fd.odo),buyer:fd.buyer.trim(),note:fd.note.trim()};c.archived=true;await put('cars',c);closeSheet();toast(was?'Gespeichert':'Verkauft und ins Archiv verschoben')}
+ c.sold={date:fd.date||today(),price:num(fd.price),odo:num(fd.odo),buyer:fd.buyer.trim(),note:fd.note.trim()};c.docs=c.docs||[];for(const[i,d]of(draft.files||[]).entries()){const id=uid();await put('photos',{id,data:d.data});c.docs.push({id,type:d.type,kind:'Verkaufsvertrag',name:[draft.files.length>1?`Seite ${i+1}`:'',d.type==='pdf'?d.name:''].filter(Boolean).join(' · '),date:c.sold.date})}c.archived=true;await put('cars',c);closeSheet();toast(was?'Gespeichert':'Verkauft und ins Archiv verschoben')}
 function pkOpen(carId){const c=car(carId);const p=pickerlStatus(c);if(!p)return carForm(carId);
  openSheet(p.label,`<div class="item st-${p.st}" style="cursor:default"><span class="dot"></span><div class="grow"><b>${esc(dispName(c))}</b><div class="sub">${esc(p.text)}</div></div></div>
  <div class="card"><dl class="kv"><dt>Erstzulassung</dt><dd>${fmtD(c.firstReg)}</dd><dt>Begutachtungsmonat (Lochung)</dt><dd>${p.lochung}</dd><dt>Nächstes Pickerl</dt><dd>${fmtM(p.due)}</dd><dt>Zeitfenster</dt><dd>${fmtD(p.ws)} – ${fmtD(p.we)}</dd><dt>Letzte Begutachtung</dt><dd>${p.last?fmtD(p.last):'nicht erfasst'}</dd></dl></div>
@@ -2579,7 +2580,7 @@ async function scanPart(row){const c=await openScanner();if(!c)return;const it=i
 
 /* ================= Rückgängig ================= */
 let undoActive=false,undoPhotos=[],undoT=null,undoData=null;
-const UNDO_LABEL={shopDelete:'Eintrag',shopClear:'Gekaufte Einträge',entryDelete:'Eintrag',carDelete:'Auto',ivDelete:'Intervall',todoDelete:'Aufgabe',invDelete:'Lagerteil',fuelDelete:'Tankung',odoDelete:'km-Stand',dlRemove:'Termin',tyreDelete:'Reifensatz',issueDelete:'Fehler',guideDelete:'Anleitung',toolDelete:'Werkzeug'};
+const UNDO_LABEL={carDocDelete:'Dokument',shopDelete:'Eintrag',shopClear:'Gekaufte Einträge',entryDelete:'Eintrag',carDelete:'Auto',ivDelete:'Intervall',todoDelete:'Aufgabe',invDelete:'Lagerteil',fuelDelete:'Tankung',odoDelete:'km-Stand',dlRemove:'Termin',tyreDelete:'Reifensatz',issueDelete:'Fehler',guideDelete:'Anleitung',toolDelete:'Werkzeug'};
 async function withUndo(name,fn){const snap=structuredClone(Object.fromEntries(STORES.filter(s=>s!=='photos').map(s=>[s,S[s]])));const before=JSON.stringify(snap);
  undoPhotos=[];undoActive=true;try{await fn()}finally{undoActive=false}
  const now=JSON.stringify(Object.fromEntries(STORES.filter(s=>s!=='photos').map(s=>[s,S[s]])));if(now===before&&!undoPhotos.length)return;
@@ -2845,6 +2846,25 @@ function fuelPriceStats(){const rows=S.fuel.map(f=>({f,p:ppl(f),g:fuelGroup(f.ty
  <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="lsvg">${lines}</svg></div><div class="xax"><span style="text-align:left">${fmtM(rows[0].f.date)}</span><span style="text-align:right">${fmtM(rows[rows.length-1].f.date)}</span></div></div>${groups.map(card).join('')}`}
 const eur3=v=>v==null?'–':v.toLocaleString('de-AT',{minimumFractionDigits:3,maximumFractionDigits:3})+' €';
 
+/* ================= Dokumente pro Auto ================= */
+const DOC_KINDS=[['Kaufvertrag','receipt'],['Zulassungsschein','clipboard'],['Versicherung','shield'],['Verkaufsvertrag','euro'],['Pickerl-Gutachten','check'],['Rechnung','receipt'],['Sonstiges','book']];
+const docIcon=k=>(DOC_KINDS.find(x=>x[0]===k)||[0,'book'])[1];
+function carDocsHTML(c){const docs=c.docs||[];const order=DOC_KINDS.map(x=>x[0]);
+ const sorted=docs.slice().sort((a,b)=>order.indexOf(a.kind)-order.indexOf(b.kind)||(b.date||'').localeCompare(a.date||''));
+ const missing=['Kaufvertrag','Zulassungsschein','Versicherung'].filter(k=>!docs.some(d=>d.kind===k));if(c.sold&&!docs.some(d=>d.kind==='Verkaufsvertrag'))missing.push('Verkaufsvertrag');
+ return`<h2>Dokumente</h2>${sorted.map(d=>`<div class="doc-row" data-a="carDocOpen" data-car="${c.id}" data-id="${d.id}">${d.type==='pdf'?`<span class="doc-ic">${ic('book','ico ci')}</span>`:`<img data-photo="${d.id}" alt="" class="doc-th">`}<span class="grow"><b>${esc(d.kind)}</b><span class="sub" style="display:block">${esc([d.name,d.date&&fmtD(d.date),d.type==='pdf'?'PDF':''].filter(Boolean).join(' · '))}</span></span><button type="button" class="iconbtn sm" data-a="carDocDelete" data-car="${c.id}" data-id="${d.id}" aria-label="Löschen">✕</button></div>`).join('')}
+ ${missing.length?`<div class="row" style="margin:2px 0 8px">${missing.map(k=>`<button class="chip" data-a="carDocAdd" data-car="${c.id}" data-k="${k}">+ ${k}</button>`).join('')}</div>`:''}
+ <button class="btn block" data-a="carDocAdd" data-car="${c.id}">${ic('plus','ico s')} Dokument hinzufügen</button>`}
+function carDocForm(carId,kind){draft={kind:'carDoc',carId,files:[]};
+ openSheet('Dokument hinzufügen',`<form id="fCarDoc" data-form="carDoc"><label class="f"><span>Art</span><select name="kind">${DOC_KINDS.map(([k])=>`<option ${k===(kind||'Kaufvertrag')?'selected':''}>${k}</option>`).join('')}</select></label>
+ <div class="grid2"><label class="f"><span>Bezeichnung (optional)</span><input name="name" placeholder="z. B. Uniqa Polizze 2027"></label><label class="f"><span>Datum</span><input type="date" name="date" value="${today()}"></label></div>
+ <div id="docFiles"></div><div class="grid2"><label class="btn">${ic('receipt','ico s')} Fotografieren<input type="file" accept="image/*" capture="environment" multiple hidden data-file="carDocFiles"></label><label class="btn">${ic('book','ico s')} Datei / PDF<input type="file" accept="image/*,application/pdf" multiple hidden data-file="carDocFiles"></label></div>
+ <p class="sub">Mehrere Seiten (z. B. Vorder- und Rückseite vom Zulassungsschein) einfach nacheinander hinzufügen.</p></form>`,`<button class="btn primary grow" type="submit" form="fCarDoc">Speichern</button>`)}
+function renderDocFiles(){const b=$('#docFiles');if(!b)return;b.innerHTML=draft.files.map((d,i)=>`<div class="doc-row">${d.type==='pdf'?`<span class="doc-ic">${ic('book','ico ci')}</span>`:`<img src="${d.data}" class="doc-th" alt="">`}<span class="grow">${esc(d.name||('Seite '+(i+1)))}</span><button type="button" class="iconbtn sm" data-a="carDocFileDel" data-i="${i}" aria-label="Entfernen">✕</button></div>`).join('')}
+async function addDocFiles(files){for(const f of files){try{if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)){if(f.size>10e6){toast('PDF ist größer als 10 MB');continue}draft.files.push({type:'pdf',name:f.name,data:await readDataURL(f)})}else draft.files.push({type:'img',name:'',data:await compressImage(f,2000,.8)})}catch(e){toast('Datei konnte nicht gelesen werden')}}renderDocFiles()}
+async function saveCarDoc(f){const fd=Object.fromEntries(new FormData(f));if(!draft.files.length){toast('Bitte ein Foto oder eine Datei hinzufügen');return}const c=car(draft.carId);c.docs=c.docs||[];
+ for(const[i,d]of draft.files.entries()){const id=uid();await put('photos',{id,data:d.data});c.docs.push({id,type:d.type,kind:fd.kind,name:[fd.name.trim(),draft.files.length>1?`Seite ${i+1}`:'',d.type==='pdf'&&!fd.name.trim()?d.name:''].filter(Boolean).join(' · '),date:fd.date||today()})}
+ await put('cars',c);closeSheet();toast(`${fd.kind} gespeichert`);render()}
 /* ================= Artikel-Vorschläge (Autofill) ================= */
 function partCatalog(){const map=new Map();const key=p=>[p.name,p.maker,p.partNo,p.spec].map(x=>String(x||'').trim().toLowerCase()).join('|');
  const add=(p,date,carId)=>{if(!p?.name)return;const k=key(p);const o=map.get(k);
@@ -2950,6 +2970,8 @@ const A={
  scanEan:async()=>{const c=await openScanner();if(c){$('#fInv [name=ean]').value=c;const o=invByCode(c);if(o&&o.id!==draft.id)toast(`Achtung: Code gehört schon zu „${o.name}“`)}},
  scanPart:(d,el)=>scanPart(el.closest('.prow')),
  pickColor:d=>{const f=$('#fCar');f.elements.namedItem('color').value=d.c;f.elements.namedItem('colorAuto').checked=false;$$('#fCar .sw').forEach(b=>b.classList.toggle('on',b.dataset.c===d.c))},
+ carDocAdd:d=>carDocForm(d.car,d.k),carDocOpen:d=>openDoc(d.id),carDocFileDel:d=>{draft.files.splice(+d.i,1);renderDocFiles()},
+ carDocDelete:async d=>{const c=car(d.car);const x=(c.docs||[]).find(y=>y.id===d.id);if(!x||!confirm(`„${x.kind}“ löschen?`))return;c.docs=c.docs.filter(y=>y.id!==d.id);await del('photos',d.id);await put('cars',c);render()},
  homeTab:d=>{homeTab=d.t;lsSet('garage.homeTab',d.t);render();window.scrollTo(0,0)},logCar:d=>{logCar=d.c;logLimit=60;render()},logCat:d=>{logCat=d.c;logLimit=60;render()},logMore:()=>{logLimit+=60;renderLog()},
  fuelForm:d=>fuelForm(d.id,d.car),fuelDelete:async d=>{if(!confirm('Diese Tankung löschen?'))return;const f=S.fuel.find(x=>x.id===d.id);if(f?.photoId)await del('photos',f.photoId);await del('fuel',d.id);closeSheet()},
  fuelRcptView:async()=>{const r=draft.receipt;if(!r)return;openDoc(r.id,r.data)},fuelRcptDel:()=>{draft.receipt=null;renderFuelReceipt()},
@@ -2965,7 +2987,7 @@ const A={
  wipe:async()=>{if(!confirm('Wirklich ALLE Daten löschen? Das kann nicht rückgängig gemacht werden.\n\nTipp: Vorher ein Backup speichern.'))return;await clearAll();toast('Alle Daten gelöscht');nav('#/home')},
 };
 document.addEventListener('click',e=>{if(e.target.id==='sheet'){closeSheet();return}const el=e.target.closest('[data-a]');if(!el)return;const f=A[el.dataset.a];if(f){e.preventDefault();const n=el.dataset.a;if(UNDO_LABEL[n])withUndo(n,()=>f(el.dataset,el,e));else f(el.dataset,el,e)}});
-const FORMS={shopAdd,shopEdit:saveShopEdit,restock:saveRestock,pk:savePk,tool:saveTool,tyre:saveTyre,issue:saveIssue,guide:saveGuide,receipt:saveReceipt,expose:saveExpose,ivTpl:saveIvTpl,sell:saveSell,car:saveCar,entry:saveEntry,todo:saveTodo,inv:saveInv,fuel:saveFuel,odo:saveOdo,iv:saveIv,spec:saveSpecs,dl:saveDl};
+const FORMS={carDoc:saveCarDoc,shopAdd,shopEdit:saveShopEdit,restock:saveRestock,pk:savePk,tool:saveTool,tyre:saveTyre,issue:saveIssue,guide:saveGuide,receipt:saveReceipt,expose:saveExpose,ivTpl:saveIvTpl,sell:saveSell,car:saveCar,entry:saveEntry,todo:saveTodo,inv:saveInv,fuel:saveFuel,odo:saveOdo,iv:saveIv,spec:saveSpecs,dl:saveDl};
 let saving=false;
 document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target;const fn=FORMS[f.dataset.form];if(!fn||saving)return;saving=true;try{await fn(f)}catch(err){console.error(err);toast('Fehler beim Speichern: '+err.message)}finally{saving=false}});
 const CHANGES={
@@ -2990,6 +3012,7 @@ const FILES={
  entryPhotos:async fl=>{for(const f of fl){try{draft.photos.push({id:uid(),tag:'Foto',data:await compressImage(f)})}catch(e){toast('Bild konnte nicht gelesen werden')}}renderPhotos()},
  importJSON,
  toolDocs:addToolDocs,
+ carDocFiles:addDocFiles,
  fuelReceipt:async fl=>{if(fl[0])await scanFuelReceipt(fl[0])},
  fuelReceiptOnly:async fl=>{if(!fl[0])return;try{draft.receipt={id:uid(),data:await compressImage(fl[0],2000,.85)};renderFuelReceipt()}catch(e){toast('Bild konnte nicht gelesen werden')}},
  toolPhoto:async fl=>{if(!fl[0])return;try{draft.photoData=await compressImage(fl[0],1000);draft.photoChanged=true;$('#toolPh').innerHTML=`<img src="${draft.photoData}" alt="">`}catch(e){toast('Bild konnte nicht gelesen werden')}},
