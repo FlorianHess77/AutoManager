@@ -2673,12 +2673,13 @@ function renderToolDocs(){const box=$('#toolDocs');if(!box)return;box.innerHTML=
 function readDataURL(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})}
 async function addToolDocs(files){for(const f of files){try{if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)){if(f.size>8e6){toast('PDF ist größer als 8 MB – bitte als Foto aufnehmen');continue}draft.docs.push({id:uid(),type:'pdf',name:f.name,data:await readDataURL(f)})}
  else draft.docs.push({id:uid(),type:'img',name:f.name||'Rechnung',data:await compressImage(f,1800,.8)})}catch(e){toast('Datei konnte nicht gelesen werden')}}renderToolDocs()}
-function docFileName(id,fallback){const clean=x=>String(x||'').replace(/\.pdf$/i,'').replace(/[^\wäöüÄÖÜß-]+/g,'_').replace(/^_+|_+$/g,'').slice(0,50);let base='';
- for(const e of S.entries){const p=(e.photos||[]).find(x=>x.id===id);if(p){base=[p.name?clean(p.name):clean(e.title),e.date].filter(Boolean).join('_');break}}
- if(!base)for(const t of S.tools){const d=(t.docs||[]).find(x=>x.id===id);if(d){base=[clean(t.name),clean(d.name)].filter(Boolean).join('_');break}}
- if(!base)for(const c of S.cars){const d=(c.docs||[]).find(x=>x.id===id);if(d){base=[clean(dispName(c)),clean(d.kind),clean(d.name),d.date].filter(Boolean).join('_');break}}
- if(!base){const f=S.fuel.find(x=>x.photoId===id);if(f)base=['Tankbeleg',f.date].join('_')}
- return(base||clean(fallback)||'Dokument')+'_'+String(id).slice(-6)+'.pdf'}
+function docFileName(id,fallback){const clean=x=>String(x||'').replace(/\.pdf$/i,'').replace(/[^\wäöüÄÖÜß-]+/g,'_').replace(/^_+|_+$/g,'').slice(0,60);
+ const num=(list,base)=>{const pdfs=list.filter(x=>x.type==='pdf');const i=pdfs.findIndex(x=>x.id===id);return pdfs.length>1&&i>=0?base+'_'+(i+1):base};
+ for(const e of S.entries){const ps=e.photos||[];if(ps.some(x=>x.id===id))return num(ps,[clean(e.title||e.category),e.date].filter(Boolean).join('_'))+'.pdf'}
+ for(const t of S.tools){const ds=t.docs||[];if(ds.some(x=>x.id===id))return num(ds,clean(t.name)+'_Rechnung')+'.pdf'}
+ for(const c of S.cars){const ds=c.docs||[];const d=ds.find(x=>x.id===id);if(d)return num(ds.filter(x=>x.kind===d.kind),[clean(dispName(c)),clean(d.kind)].join('_'))+'.pdf'}
+ const f=S.fuel.find(x=>x.photoId===id);if(f)return['Tankbeleg',clean(carName(f.carId)),f.date].join('_')+'.pdf';
+ return(clean(fallback)||'Dokument')+'.pdf'}
 async function openDoc(id,local,name){const data=local||await getPhoto(id);if(!data){toast('Datei nicht gefunden');return}
  if(data.startsWith('data:application/pdf')){const b=await(await fetch(data)).blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.target='_blank';a.rel='noopener';a.download=docFileName(id,name);document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
  else{$('#lightbox img').src=data;$('#lightbox').classList.remove('hidden')}}
