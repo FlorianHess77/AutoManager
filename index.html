@@ -1875,7 +1875,11 @@ function viewCar(id,tab){const c=car(id);const G0=CAR_GROUPS.find(g=>g.k===tab);
   ${oc.buy==null?`<p class="sub">Tipp: Kaufpreis unter ✎ eintragen, dann siehst du die Gesamtbilanz.</p>`:!c.insYear&&!c.archived?`<p class="sub">Tipp: Versicherung + Steuer pro Jahr unter ✎ eintragen, dann ist die Rechnung vollständig.</p>`:''}</details>`}`;
   const td=sortTodos(S.todos.filter(t=>t.carId===id&&!t.done));if(!c.archived)h+=`<details class="fold"><summary><b>Offene To-dos</b><span>${td.length||'keine'}</span></summary>${td.map(t=>todoHTML(t,false)).join('')}<button class="btn block" data-a="todoForm" data-car="${id}">+ To-do</button></details>`;
   h+=`<button class="btn block" style="margin-top:6px" data-a="carMenu" data-car="${id}">⋯ Drucken, Export, Verkauf, Archiv …</button>`}
- if(tab==='docs')h+=carDocsHTML(c).replace('<h2>Dokumente</h2>','');
+ if(tab==='docs'){h+=carDocsHTML(c).replace('<h2>Dokumente</h2>','');
+  const pks=S.entries.filter(e=>e.carId===id&&isPk(e)).sort((a,b)=>b.date.localeCompare(a.date));
+  if(pks.length)h+=`<h2>Pickerl-Gutachten</h2>`+pks.map(e=>{const r=pkRes(e),fs=e.photos||[];const head=`Pickerl ${fmtD(e.date)}`,res=r.l.split(' – ')[0];
+   return fs.length?fs.map((p,i)=>`<div class="doc-row" data-a="docOpenId" data-id="${p.id}">${p.type==='pdf'?`<span class="doc-ic">${ic('receipt','ico ci')}</span>`:`<img data-photo="${p.id}" alt="" class="doc-th">`}<span class="grow"><b>${head}${fs.length>1?` (${i+1}/${fs.length})`:''}</b><span class="sub" style="display:block">${esc([p.tag||'Gutachten',res,e.workshop,p.type==='pdf'?'PDF':''].filter(Boolean).join(' · '))}</span></span><span class="muted">öffnen ›</span></div>`).join('')
+    :`<div class="doc-row" data-a="pkEdit" data-id="${e.id}"><span class="doc-ic" style="opacity:.5">${ic('shield','ico ci')}</span><span class="grow"><b>${head}</b><span class="sub" style="display:block">${esc(res)} · kein Gutachten hinterlegt</span></span><span class="muted">+ hinzufügen</span></div>`}).join('')+`<p class="sub">Gutachten werden beim Pickerl-Eintrag hochgeladen und erscheinen hier automatisch.</p>`}
  if(tab==='hist'){h+=`<label class="f"><input id="histQ" type="search" placeholder="Suchen: Bremsflüssigkeit, Mann, 5W-30 …" value="${esc(histQ)}"></label>
   <div class="chips"><button class="chip ${!histCat?'on':''}" data-a="histCat" data-c="">Alle</button>${MAIN_CATS.map(k=>`<button class="chip ${histCat===k?'on':''}" data-a="histCat" data-c="${k}">${k}</button>`).join('')}</div><div id="histList"></div>
   <button class="btn primary block" data-a="entryForm" data-car="${id}">+ Wartung / Reparatur</button>`;after=()=>renderHistList(id)}
@@ -2113,13 +2117,13 @@ function pkForm(o={}){const old=o.id?S.entries.find(e=>e.id===o.id):null;if(!S.c
  <label class="f" style="margin-top:8px"><span>Mängel / Hinweise – einer pro Zeile</span><textarea name="defects" placeholder="z. B. Querlenkerlager vorne ausgeschlagen">${esc(pk.defects)}</textarea></label>
  ${old?'':`<label class="checkline" id="pkTodoLine"><input type="checkbox" name="mkTodo" ${pk.result!=='ok'?'checked':''}> Mängel als To-dos anlegen</label>`}
  <label class="f"><span>Notizen</span><textarea name="notes">${esc(e.notes)}</textarea></label>
- <h4>Gutachten & Beleg</h4><div id="photos" class="thumbs"></div><label class="btn block">📷 Gutachten fotografieren<input type="file" accept="image/*" multiple hidden data-file="entryPhotos"></label>${datalists()}</form>
+ <h4>Gutachten & Beleg</h4><div id="photos" class="thumbs"></div><label class="btn block">📷 Gutachten fotografieren / PDF<input type="file" accept="application/pdf,image/*" multiple hidden data-file="entryPhotos"></label>${datalists()}</form>
  <p class="sub">PKW: erste Begutachtung 3 Jahre nach der Erstzulassung, dann nach 2 Jahren, danach jährlich. Bei schweren Mängeln gibt es kein Pickerl – nach der Reparatur ist eine Nachprüfung nötig.</p>`;
  openSheet(old?'Pickerl bearbeiten':'🛡️ Pickerl eintragen',body,`${old?`<button class="btn danger" data-a="entryDelete" data-id="${old.id}">Löschen</button>`:''}<button class="btn primary grow" type="submit" form="fPk">Speichern</button>`);renderPhotos()}
 async function savePk(f){const fd=Object.fromEntries(new FormData(f));const old=draft.id?S.entries.find(e=>e.id===draft.id):null;if(!fd.date){toast('Bitte ein Datum angeben');return}
  const res=fd.result||'ok';const defects=fd.defects.trim();
  const e={...(old||{}),id:draft.id||uid(),carId:fd.carId,date:fd.date,odo:num(fd.odo),category:'Pickerl',title:old?.title||'Pickerl-Begutachtung §57a',desc:'',diy:false,workshop:fd.workshop.trim(),hours:null,labor:num(fd.fee),
-  notes:fd.notes.trim(),parts:[],photos:draft.photos.map(({id,tag})=>({id,tag:tag==='Foto'?'Gutachten':tag})),intervalIds:[],toolIds:[],pk:{result:res,defects},created:old?.created||new Date().toISOString()};
+  notes:fd.notes.trim(),parts:[],photos:draft.photos.map(({id,tag,type,name})=>type==='pdf'?{id,tag:tag==='Beleg'||tag==='Foto'||!tag?'Gutachten':tag,type,name}:{id,tag:tag==='Foto'?'Gutachten':tag}),intervalIds:[],toolIds:[],pk:{result:res,defects},created:old?.created||new Date().toISOString()};
  for(const p of draft.photos)if(p.data)await put('photos',{id:p.id,data:p.data});for(const p of old?.photos||[])if(!e.photos.some(x=>x.id===p.id))await del('photos',p.id);
  await put('entries',e);let n=0;
  if(fd.mkTodo&&defects)for(const line of defects.split('\n').map(x=>x.trim()).filter(Boolean)){await put('todos',{id:uid(),carId:e.carId,title:line,prio:PK_RES[res].pass?2:1,due:PK_RES[res].pass?null:addMonths(e.date,1),tools:'',note:`Mangel aus der Pickerl-Begutachtung vom ${fmtD(e.date)}`,parts:[],toolIds:[],done:false,created:new Date().toISOString()});n++}
@@ -2129,7 +2133,7 @@ function pkView(id){const e=S.entries.find(x=>x.id===id);const r=pkRes(e);const 
  <div class="card"><dl class="kv"><dt>Prüfstelle</dt><dd>${esc(e.workshop||'–')}</dd><dt>Kosten</dt><dd>${eur(entryCost(e))}</dd></dl></div>
  ${ds.length?`<h4>Mängel / Hinweise</h4><ul style="padding-left:20px;margin:0 0 8px">${ds.map(d=>`<li>${esc(d)}</li>`).join('')}</ul>`:''}
  ${e.notes?`<h4>Notizen</h4><p class="pre">${esc(e.notes)}</p>`:''}
- ${e.photos?.length?`<h4>Gutachten & Beleg</h4><div class="thumbs">${e.photos.map(p=>`<div class="thumb"><img data-photo="${p.id}" alt="" data-a="photoView"><span class="tag">${esc(p.tag||'Foto')}</span></div>`).join('')}</div>`:''}`,
+ ${e.photos?.length?`<h4>Gutachten & Beleg</h4><div class="thumbs">${e.photos.map(p=>p.type==='pdf'?`<div class="thumb thumb-pdf" data-a="docOpenId" data-id="${p.id}"><span class="pdf-ic">${ic('receipt','ico')}<b>PDF</b><small>${esc((p.name||'Gutachten.pdf').replace(/\.pdf$/i,''))}</small></span><span class="tag">${esc(p.tag||'Gutachten')}</span></div>`:`<div class="thumb"><img data-photo="${p.id}" alt="" data-a="photoView"><span class="tag">${esc(p.tag||'Foto')}</span></div>`).join('')}</div>`:''}`,
  `<button class="btn primary grow" data-a="entryForm" data-id="${id}">Bearbeiten</button>`)}
 
 /* ================= Foto zuschneiden ================= */
@@ -3126,7 +3130,7 @@ const A={
   else{if(!confirm('Auto ohne Verkauf ins Archiv verschieben?'))return;c.archived=true;await put('cars',c);toast('Ins Archiv verschoben');render()}},
  sellForm:d=>sellForm(d.car),pkOpen:d=>pkOpen(d.car),
  pkDone:d=>pkForm({carId:d.car}),
- quickWs:()=>openSheet('Werkzeug / Lager',`<div class="qgrid"><button class="qbtn" data-a="toolForm">${ic('wrench')}Neues Werkzeug</button><button class="qbtn" data-a="invForm">${ic('box')}Teil ins Lager</button><button class="qbtn" data-a="scanInv">${ic('scan')}Barcode scannen</button><button class="qbtn" data-a="shopOpen">${ic('cart')}Einkaufsliste</button></div>`),pkView:d=>pkView(d.id),
+ quickWs:()=>openSheet('Werkzeug / Lager',`<div class="qgrid"><button class="qbtn" data-a="toolForm">${ic('wrench')}Neues Werkzeug</button><button class="qbtn" data-a="invForm">${ic('box')}Teil ins Lager</button><button class="qbtn" data-a="scanInv">${ic('scan')}Barcode scannen</button><button class="qbtn" data-a="shopOpen">${ic('cart')}Einkaufsliste</button></div>`),pkView:d=>pkView(d.id),pkEdit:d=>pkForm({id:d.id}),
  carPhotoCrop:async()=>{let src=draft.photoSrc;
   if(!src&&!draft.photoChanged){if(draft.photoOrigId)src=await getPhoto(draft.photoOrigId);if(!src&&draft.photoId)src=await getPhoto(draft.photoId)}
   if(!src)src=draft.photoData;if(!src){toast('Zuerst ein Foto wählen');return}
