@@ -121,6 +121,11 @@ input[type=checkbox],input[type=radio]{width:auto;min-height:0}
 #toast.show{transform:none;opacity:1;pointer-events:auto}
 #toast .tbtn{background:none;border:0;color:var(--accent);font-weight:800;font-size:15px;min-height:40px;font-family:inherit}
 #print{display:none}
+.scanbig{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:58px;border-radius:14px;border:2px dashed color-mix(in srgb,var(--accent) 60%,transparent);background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent);font-weight:800;font-size:16px;cursor:pointer;margin-bottom:10px}
+.scanbig .ico{width:24px;height:24px}
+#ocrState{background:var(--surface2);border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:14px}
+.ocr-bar{height:6px;background:var(--surface);border-radius:3px;overflow:hidden;margin-bottom:6px}.ocr-bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+input.ocr-hit,select.ocr-hit{border-color:var(--green);box-shadow:0 0 0 1px var(--green)}
 .ico.s{width:15px;height:15px}.ico.ci{width:21px;height:21px}
 .cat .ico{color:var(--c)}
 .cbar{width:4px;align-self:stretch;min-height:30px;border-radius:3px;flex:none;margin:-2px 0}
@@ -1791,7 +1796,7 @@ function viewCar(id,tab){const c=car(id);
  if(tab==='fuel'){const fc=fuelCalc(id);
   h+=`<div class="card"><dl class="kv"><dt>Ø Verbrauch</dt><dd><b>${fc.avg?fmtN(fc.avg,1)+' l/100 km':'–'}</b></dd><dt>Getankt gesamt</dt><dd>${fmtN(fc.liters,1)} l</dd><dt>Kosten gesamt</dt><dd>${eur(fc.cost)}</dd><dt>Ø Literpreis</dt><dd>${fc.liters?eur(fc.cost/fc.liters):'–'}</dd></dl></div>
   ${consChart(id)}<button class="btn primary block" data-a="fuelForm" data-car="${id}">+ Tankung</button>`+
-  fc.list.slice().reverse().map(f=>`<div class="item" data-a="fuelForm" data-id="${f.id}">${ibox('fuel','#5aa9e6')}<div class="grow"><b>${fmtN(f.liters,2)} l${f.full?'':' (Teil)'}</b><div class="sub">${fmtD(f.date)} · ${kmT(f.odo)}${fc.cons[f.id]?` · <b style="color:var(--text)">${fmtN(fc.cons[f.id],1)} l/100</b>`:''}</div></div><span class="amt">${eur(f.price)}</span></div>`).join('')+
+  fc.list.slice().reverse().map(f=>`<div class="item" data-a="fuelForm" data-id="${f.id}">${ibox('fuel','#5aa9e6')}<div class="grow"><b>${fmtN(f.liters,2)} l${f.full?'':' (Teil)'}${ppl(f)?` <span class="sub" style="font-weight:600">· ${eur3(ppl(f))}/l</span>`:''}</b><div class="sub">${fmtD(f.date)} · ${kmT(f.odo)}${fc.cons[f.id]?` · <b style="color:var(--text)">${fmtN(fc.cons[f.id],1)} l/100</b>`:''}</div>${f.station||f.type?`<div class="sub">${esc([f.type,f.station].filter(Boolean).join(' · '))}${f.photoId?' · 🧾':''}</div>`:''}</div><span class="amt">${eur(f.price)}</span></div>`).join('')+
   (fc.list.length?'<p class="sub">Verbrauch wird zwischen zwei Volltankungen berechnet.</p>':'')}
  if(tab==='odo'){const rows=[...S.entries.filter(e=>e.carId===id&&e.odo!=null).map(e=>({date:e.date,odo:e.odo,src:'Wartung: '+(e.title||e.category)})),
   ...S.fuel.filter(f=>f.carId===id&&f.odo!=null).map(f=>({date:f.date,odo:f.odo,src:'Tanken'})),...S.odo.filter(o=>o.carId===id).map(o=>({date:o.date,odo:o.odo,src:'Manuell',id:o.id}))]
@@ -1845,7 +1850,7 @@ function viewStats(){const years=[...new Set([...S.entries.map(e=>e.date.slice(0
  <div class="card"><dl class="kv"><dt>Arbeiten</dt><dd>${work.length}</dd><dt>Selbst gemacht</dt><dd>${diy.length} (${work.length?Math.round(diy.length/work.length*100):0} %)</dd><dt>In der Werkstatt</dt><dd>${work.length-diy.length}</dd><dt>Schrauberstunden</dt><dd>${fmtN(diy.reduce((s,e)=>s+(e.hours||0),0),1)} h</dd><dt>Davon Teilekosten</dt><dd>${eur(ents.reduce((s,e)=>s+partsCost(e),0))}</dd><dt>Davon Arbeitslohn</dt><dd>${eur(work.reduce((s,e)=>s+(e.labor||0),0))}</dd>${pks.length?`<dt>Pickerl-Gebühren</dt><dd>${eur(pks.reduce((s,e)=>s+entryCost(e),0))}<div class="sub">${pks.length} Begutachtung${pks.length>1?'en':''}</div></dd>`:''}</dl>
  <p class="sub" style="margin-bottom:0">Das Pickerl zählt nicht zu „selbst“ oder „Werkstatt“ – es darf nur eine Prüfstelle machen.</p></div>`;
  const cars=S.cars.slice().sort(byName);
- h+=`<h2>Pro Auto (Wartung + Kraftstoff)</h2><div class="card">${barsHTML(cars.map(c=>({l:dispName(c),v:ents.filter(e=>e.carId===c.id).reduce((s,e)=>s+entryCost(e),0)+fuel.filter(f=>f.carId===c.id).reduce((s,f)=>s+(f.price||0),0)})).filter(r=>r.v>0))}</div>`;
+ h+=fuelPriceStats();h+=`<h2>Pro Auto (Wartung + Kraftstoff)</h2><div class="card">${barsHTML(cars.map(c=>({l:dispName(c),v:ents.filter(e=>e.carId===c.id).reduce((s,e)=>s+entryCost(e),0)+fuel.filter(f=>f.carId===c.id).reduce((s,f)=>s+(f.price||0),0)})).filter(r=>r.v>0))}</div>`;
  h+=`<h2>Nach Kategorie</h2><div class="card">${barsHTML(MAIN_CATS.map(k=>({l:k,v:ents.filter(e=>mainCat(e.category)===k).reduce((s,e)=>s+entryCost(e),0)})).filter(r=>r.v>0).sort((a,b)=>b.v-a.v))}</div>`;
  const wr=['Wartung',...WARTUNG_SUB].map(k=>({l:k==='Wartung'?'Allgemein':k,v:ents.filter(e=>e.category===k).reduce((s,e)=>s+entryCost(e),0)})).filter(r=>r.v>0).sort((a,b)=>b.v-a.v);
  if(wr.length>1)h+=`<h2>Wartung im Detail</h2><div class="card">${barsHTML(wr)}</div>`;
@@ -1865,7 +1870,7 @@ function viewBackup(){const l=lsGet('garage.lastBackup');
  return{title:'Backup & Export',html:h,tab:'more',back:'#/more',after:async()=>{try{const e=await navigator.storage.estimate();const p=await navigator.storage.persisted?.();const el=$('#storeInfo');if(el)el.textContent=`Belegt: ${fmtN((e.usage||0)/1048576,1)} MB · Dauerhafter Speicher: ${p?'ja':'nicht garantiert'}`}catch(x){}}}}
 
 function viewSettings(){const th=lsGet('garage.theme')||'dark';
- let h=`<h2>Darstellung</h2><div class="seg">${[['dark','Dunkel'],['light','Hell'],['system','System']].map(([k,l])=>`<label><input type="radio" name="theme" value="${k}" ${th===k?'checked':''} data-change="theme"><span>${l}</span></label>`).join('')}</div>`;
+ let h=`<h2>Tankbelege lesen</h2><div class="card"><p class="sub" style="margin-top:0">Die Texterkennung läuft direkt am Handy, deine Belege werden nirgends hochgeladen. Sie braucht einmalig ca. 15 MB Download, danach geht es auch offline.</p><button class="btn block" id="ocrPre" data-a="ocrPreload">${lsGet('garage.ocrReady')?'✓ Bereit – erneut laden':'Jetzt herunterladen'}</button></div><h2>Darstellung</h2><div class="seg">${[['dark','Dunkel'],['light','Hell'],['system','System']].map(([k,l])=>`<label><input type="radio" name="theme" value="${k}" ${th===k?'checked':''} data-change="theme"><span>${l}</span></label>`).join('')}</div>`;
  if(hasDemo())h+=`<h2>Beispieldaten</h2><div class="card"><p class="sub">Beim ersten Start wurden dein Audi A3 und dein BMW E36 mit Beispiel-Einträgen, To-dos, Lagerteilen und Tankungen angelegt.</p>
  <button class="btn primary block" data-a="demoKeepCars">Beispiele löschen, Autos behalten</button><p class="sub">Entfernt Einträge, Intervalle, To-dos, Lager, Tankungen, km-Stand und Termine. Die Technik-Liste bleibt zum Kontrollieren stehen.</p>
  <button class="btn block" data-a="demoAll">Alles Beispielhafte löschen (auch Autos)</button></div>`;
@@ -1887,6 +1892,7 @@ function viewHelp(){return{title:'Installation & Hilfe',tab:'more',back:'#/more'
 <li>Lager: Preis so eintragen wie bezahlt (z. B. 12 € für 250 g). Barcode scannen mit 📷 – der Code wird dem Artikel zugeordnet.</li>
 <li>Einkaufsliste: oben eintippen und „+“ – abhaken, wenn gekauft. Gekauftes lässt sich direkt ins Lager buchen.</li>
 <li>Werkzeug: Rechnung als Foto oder PDF und „Garantie bis“ hinterlegen – unter Mehr › Garantien siehst du alles auf einen Blick.</li>
+<li>Tanken: „Tankbeleg fotografieren“ liest Liter, Literpreis, Betrag, Sorte, Datum und Tankstelle – du ergänzt nur den km-Stand. Unter Statistik siehst du die Spritpreise für Benzin und Diesel.</li>
 <li>Versehentlich gelöscht? Unten erscheint 10 Sekunden lang „Rückgängig“.</li>
 <li>Beim Tippen eines Teilenamens erscheinen alle bereits verwendeten Artikel mit Hersteller, Nummer, Spezifikation und letztem Preis – antippen füllt alles aus.</li>
 <li>Eigene Wartungsintervalle für jedes Bauteil oder jede Flüssigkeit: Auto › Intervalle › „+ Eigenes Bauteil“.</li>
@@ -2202,15 +2208,24 @@ async function saveInv(f){const fdo=new FormData(f);const fd=Object.fromEntries(
  if(!it.name){toast('Bitte Bezeichnung angeben');return}
  if(!old&&pp!=null)it.buys=[{id:uid(),date:today(),qty:pq,unit:pu,price:pp,shop:''}];
  await put('inventory',it);invPqTouched=false;closeSheet();toast('Gespeichert');render()}
-function fuelForm(id,carId){const f=id?S.fuel.find(x=>x.id===id):{carId:carId||defaultCarId(),date:today(),full:true};if(!S.cars.length){toast('Lege zuerst ein Auto an');return carForm()}draft={kind:'fuel',id:id||null};
- openSheet(id?'Tankung bearbeiten':'Tankung',`<form id="fFuel" data-form="fuel"><label class="f"><span>Auto</span><select name="carId">${carOptions(f.carId)}</select></label>
+function fuelForm(id,carId){const f=id?S.fuel.find(x=>x.id===id):{carId:carId||defaultCarId(),date:today(),full:true};if(!S.cars.length){toast('Lege zuerst ein Auto an');return carForm()}
+ draft={kind:'fuel',id:id||null,receipt:f.photoId?{id:f.photoId}:null};const type=f.type||defaultFuelType(f.carId);const pp=f.ppl??(f.price&&f.liters?Math.round(f.price/f.liters*1000)/1000:null);
+ openSheet(id?'Tankung bearbeiten':'Tankung',`${id?'':`<label class="scanbig">${ic('receipt')} Tankbeleg fotografieren<input type="file" accept="image/*" capture="environment" hidden data-file="fuelReceipt"></label>`}<div id="ocrState" hidden></div>
+ <form id="fFuel" data-form="fuel"><label class="f"><span>Auto</span><select name="carId" data-change="fuelCar">${carOptions(f.carId)}</select></label>
  <div class="grid2"><label class="f"><span>Datum</span><input type="date" name="date" value="${esc(f.date)}"></label><label class="f"><span>km-Stand</span><input name="odo" inputmode="numeric" value="${valN(f.odo)}" placeholder="${esc(fmtN(carOdo(f.carId)))}"></label></div>
- <div class="grid2"><label class="f"><span>Liter</span><input name="liters" inputmode="decimal" value="${valN(f.liters)}"></label><label class="f"><span>Betrag €</span><input name="price" inputmode="decimal" value="${valN(f.price)}"></label></div>
- <label class="checkline"><input type="checkbox" name="full" ${f.full?'checked':''}> Vollgetankt</label><label class="f"><span>Notiz</span><input name="note" value="${esc(f.note)}"></label></form>`,
- `${id?`<button class="btn danger" data-a="fuelDelete" data-id="${id}">Löschen</button>`:''}<button class="btn primary grow" type="submit" form="fFuel">Speichern</button>`)}
+ <div class="grid3"><label class="f"><span>Liter</span><input name="liters" inputmode="decimal" value="${valN(f.liters)}" data-fuel="l"></label><label class="f"><span>€ / Liter</span><input name="ppl" inputmode="decimal" value="${valN(pp)}" data-fuel="ppl"></label><label class="f"><span>Betrag €</span><input name="price" inputmode="decimal" value="${valN(f.price)}" data-fuel="p"></label></div>
+ <div class="grid2"><label class="f"><span>Sorte</span><select name="type">${FUEL_TYPES.map(t=>`<option ${t===type?'selected':''}>${t}</option>`).join('')}</select></label><label class="f"><span>Tankstelle</span><input name="station" list="dl-stations" value="${esc(f.station)}"></label></div>
+ <datalist id="dl-stations">${[...new Set([...S.fuel.map(x=>x.station).filter(Boolean),...STATIONS.slice(0,12)])].map(v=>`<option value="${esc(v)}">`).join('')}</datalist>
+ <label class="checkline"><input type="checkbox" name="full" ${f.full?'checked':''}> Vollgetankt</label><label class="f"><span>Notiz</span><input name="note" value="${esc(f.note)}"></label><div id="fuelRcpt"></div>
+ ${id?`<label class="btn block">${ic('receipt','ico s')} Beleg ${f.photoId?'ersetzen':'hinzufügen'}<input type="file" accept="image/*" hidden data-file="fuelReceiptOnly"></label>`:''}</form>`,
+ `${id?`<button class="btn danger" data-a="fuelDelete" data-id="${id}">Löschen</button>`:''}<button class="btn primary grow" type="submit" form="fFuel">Speichern</button>`);renderFuelReceipt()}
 async function saveFuel(fm){const fd=Object.fromEntries(new FormData(fm));const old=draft.id?S.fuel.find(x=>x.id===draft.id):null;
- const f={...(old||{}),id:draft.id||uid(),carId:fd.carId,date:fd.date||today(),odo:num(fd.odo),liters:num(fd.liters),price:num(fd.price),full:!!fd.full,note:fd.note.trim()};
- if(!f.liters){toast('Bitte Liter angeben');return}await put('fuel',f);closeSheet();toast('Gespeichert')}
+ const f={...(old||{}),id:draft.id||uid(),carId:fd.carId,date:fd.date||today(),odo:num(fd.odo),liters:num(fd.liters),price:num(fd.price),ppl:num(fd.ppl),type:fd.type,station:fd.station.trim(),full:!!fd.full,note:fd.note.trim()};
+ if(!f.liters){toast('Bitte Liter angeben');return}if(f.ppl==null&&f.price)f.ppl=Math.round(f.price/f.liters*1000)/1000;
+ const cur=carOdo(f.carId);if(!old&&f.odo==null&&!confirm('Ohne km-Stand kann der Verbrauch nicht berechnet werden. Trotzdem speichern?'))return;
+ if(draft.receipt?.data){await put('photos',{id:draft.receipt.id,data:draft.receipt.data});if(old?.photoId&&old.photoId!==draft.receipt.id)await del('photos',old.photoId);f.photoId=draft.receipt.id}
+ else if(!draft.receipt&&old?.photoId){await del('photos',old.photoId);f.photoId=null}
+ await put('fuel',f);closeSheet();toast(f.ppl?`Gespeichert · ${eur3(f.ppl)} / l`:'Gespeichert')}
 function odoForm(carId){if(!S.cars.length){toast('Lege zuerst ein Auto an');return carForm()}const cid=carId||defaultCarId();draft={kind:'odo'};
  openSheet('km-Stand eintragen',`<form id="fOdo" data-form="odo"><label class="f"><span>Auto</span><select name="carId">${carOptions(cid)}</select></label>
  <div class="grid2"><label class="f"><span>Datum</span><input type="date" name="date" value="${today()}"></label><label class="f"><span>km-Stand</span><input name="odo" inputmode="numeric" required placeholder="${esc(fmtN(carOdo(cid)))}" autofocus></label></div></form>`,
@@ -2584,7 +2599,7 @@ function activityItems(){const out=[];const add=o=>out.push(o);
  for(const e of S.entries)add({date:e.date,cat:mainCat(e.category),carId:e.carId,icon:catBadge(e.category),title:e.title||e.category,
   sub:[catLabel(e.category)!==(e.title||e.category)?catLabel(e.category):'',e.odo!=null?kmT(e.odo):'',isPk(e)?pkRes(e).i+' '+(e.workshop||'Prüfstelle'):e.diy?'selbst':'Werkstatt'].filter(Boolean).join(' · '),amount:entryCost(e)||null,act:`data-a="entryView" data-id="${e.id}"`});
  const cons={};for(const c of S.cars)Object.assign(cons,fuelCalc(c.id).cons);
- for(const f of S.fuel)add({date:f.date,cat:'Tanken',carId:f.carId,icon:ibox('fuel','#5aa9e6'),title:`Getankt ${fmtN(f.liters,1)} l`,sub:[kmT(f.odo),cons[f.id]?fmtN(cons[f.id],1)+' l/100 km':''].filter(Boolean).join(' · '),amount:f.price,act:`data-a="fuelForm" data-id="${f.id}"`});
+ for(const f of S.fuel)add({date:f.date,cat:'Tanken',carId:f.carId,icon:ibox('fuel','#5aa9e6'),title:`Getankt ${fmtN(f.liters,1)} l${f.type?' '+f.type:''}`,sub:[f.station,ppl(f)?eur3(ppl(f))+'/l':'',kmT(f.odo),cons[f.id]?fmtN(cons[f.id],1)+' l/100 km':''].filter(Boolean).join(' · '),amount:f.price,act:`data-a="fuelForm" data-id="${f.id}"`});
  for(const o of S.odo)add({date:o.date,cat:'km-Stand',carId:o.carId,icon:ibox('gauge'),title:`km-Stand ${kmT(o.odo)}`,sub:'manuell eingetragen',act:`data-a="go" data-h="#/car/${o.carId}/odo"`});
  for(const x of S.issues)add({date:x.date,cat:'Fehler',carId:x.carId,icon:ibox(x.status==='solved'?'check':'alert',x.status==='solved'?'var(--green)':'var(--yellow)'),title:x.title,sub:['Fehler erfasst',x.codes,x.status==='solved'?'gelöst':'offen'].filter(Boolean).join(' · '),act:`data-a="issueForm" data-id="${x.id}" data-car="${x.carId}"`});
  for(const t of S.todos)if(t.done&&t.doneAt&&!t.entryId)add({date:t.doneAt,cat:'To-do',carId:t.carId,icon:ibox('check','var(--green)'),title:t.title,sub:'Aufgabe erledigt',act:`data-a="todoForm" data-id="${t.id}"`});
@@ -2746,6 +2761,85 @@ function consChart(carId){const fc=fuelCalc(carId);const pts=fc.list.filter(f=>f
  <polyline fill="none" stroke="${col}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" points="${pts.map((p,i)=>x(i)+','+y(p.v)).join(' ')}"/></svg></div>
  <div class="xax"><span style="text-align:left">${fmtD(pts[0].d)}</span><span style="text-align:right">${fmtD(pts[pts.length-1].d)}</span></div></div>`}
 
+/* ================= Tankbeleg lesen ================= */
+const FUEL_TYPES=['Diesel','Super 95','Super Plus','Normal / E10','Autogas (LPG)','Erdgas (CNG)','Sonstiges'];
+const fuelGroup=t=>!t?null:/diesel/i.test(t)?'Diesel':/super|normal|benzin|e10|e5/i.test(t)?'Benzin':/lpg|autogas/i.test(t)?'LPG':/cng|erdgas/i.test(t)?'CNG':null;
+const defaultFuelType=carId=>{const c=car(carId);const last=S.fuel.filter(f=>f.carId===carId&&f.type).sort((a,b)=>b.date.localeCompare(a.date))[0];if(last)return last.type;
+ const f=(c?.fuel||'');return/diesel/i.test(f)?'Diesel':/lpg/i.test(f)?'Autogas (LPG)':/cng|erdgas/i.test(f)?'Erdgas (CNG)':'Super 95'};
+const ppl=f=>f.ppl??(f.price&&f.liters?f.price/f.liters:null);
+const STATIONS=['OMV','BP','Shell','Eni','Agip','JET','Avanti','Turmöl','Turmoel','Genol','Lagerhaus','IQ','Avia','Esso','Aral','HEM','Westfalen','Total','TotalEnergies','SOCAR','Doppler','A1','Diskont','Gutmann','Star','Q1','Orlen','Tamoil','MOL','Petrom','Ruhl','Landi','Migrol','Coop','Socar'];
+function parseFuelReceipt(raw){
+ const text=raw.replace(/\r/g,'');const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
+ const NUM=/(\d{1,4})[,.](\d{1,3})(?!\d)/g;const nums=l=>[...l.matchAll(NUM)].map(m=>({v:parseFloat(m[1]+'.'+m[2]),dec:m[2].length,raw:m[0],i:m.index}));
+ const r={liters:null,ppl:null,total:null,date:null,type:null,station:null,unit:'l',raw:text};
+ // Gesamtbetrag: Zahlen in Summen-Zeilen, häufigster Wert gewinnt
+ const tot={};for(const l of lines){if(/summe|total|bezahlt|betrag|brutto|zu zahlen|gesamt|bar\b|karte|girocard|mastercard|visa|maestro/i.test(l)&&!/netto|mwst|ust|steuer/i.test(l))
+  for(const n of nums(l))if(n.dec===2&&n.v>=1&&n.v<1000)tot[n.v]=(tot[n.v]||0)+1}
+ const tv=Object.entries(tot).sort((a,b)=>b[1]-a[1]||b[0]-a[0]);if(tv.length)r.total=parseFloat(tv[0][0]);
+ if(r.total==null){const t2={};for(const l of lines){if(/netto|mwst|ust|steuer|\//i.test(l))continue;for(const m of l.matchAll(/(\d{1,3})[,.](\d{2})\s*(?:eur|€)/gi)){const v=parseFloat(m[1]+'.'+m[2]);if(v>=1)t2[v]=(t2[v]||0)+1}}
+  const t2v=Object.entries(t2).sort((a,b)=>b[1]-a[1]||b[0]-a[0]);if(t2v.length&&t2v[0][1]>=2)r.total=parseFloat(t2v[0][0])}
+ // Preis pro Liter: Zahl vor "/l", "EUR/Liter", "€/l", "/kg"
+ for(const l of lines){const m=/(\d)[,.](\d{2,3})\s*(?:eur|€|e€|e|¢)?\s*\/\s*(l|1|liter|ltr|kg|k)/i.exec(l)||/(\d)[,.](\d{3})\s*(?:eur|€)?\s*(?:pro|je)\s*(?:l|liter)/i.exec(l);
+  if(m){const v=parseFloat(m[1]+'.'+m[2]);if(v>=.4&&v<=3.9){r.ppl=v;r.pplDec=m[2].length;if(/kg|k$/i.test(m[3]||''))r.unit='kg';break}}}
+ // Liter: Zahl mit Einheit l/Liter/kg, meist in der Zeile mit Stern
+ for(const l of lines){const m=/(\d{1,3})[,.](\d{2,3})\s*(?:l|1|liter|ltr|kg)\b/i.exec(l);if(m&&!/\/\s*(l|1|liter)/i.test(l.slice(m.index,m.index+m[0].length+3))){const v=parseFloat(m[1]+'.'+m[2]);if(v>=1&&v<=200){r.liters=v;if(/kg/i.test(m[0]))r.unit='kg';break}}}
+ if(r.liters==null)for(const l of lines)if(/^\*/.test(l)){const n=nums(l).find(n=>n.v>=1&&n.v<=200&&n.dec>=2);if(n){r.liters=n.v;break}}
+ // Plausibilität: Liter × Preis ≈ Betrag
+ const ok=(a,b,c)=>a&&b&&c&&Math.abs(a*b-c)<=.05;
+ if(r.total&&r.liters&&r.ppl&&!ok(r.liters,r.ppl,r.total)){
+  if(r.pplDec===3&&r.total/r.ppl>=1&&r.total/r.ppl<=200)r.liters=Math.round(r.total/r.ppl*100)/100;else r.ppl=Math.round(r.total/r.liters*1000)/1000;r.fixed=true}
+ else if(r.total&&r.liters&&!r.ppl)r.ppl=Math.round(r.total/r.liters*1000)/1000;
+ else if(r.total&&r.ppl&&!r.liters)r.liters=Math.round(r.total/r.ppl*100)/100;
+ else if(r.liters&&r.ppl&&!r.total)r.total=Math.round(r.liters*r.ppl*100)/100;
+ if(r.ppl&&(r.ppl<.4||r.ppl>3.9))r.ppl=null;
+ // Sorte
+ const t=text.toLowerCase();
+ r.type=/diese[l1i\]\|]|diesel|\bdsl\b/.test(t)?'Diesel':/super\s*plus|super\s*100|\b100\s*oktan|v-?power|ultimate|maxx?motion|98\b/.test(t)?'Super Plus':/super|\b95\b|bleifrei|benzin|e5\b/.test(t)?'Super 95':/normal|e10\b/.test(t)?'Normal / E10':/autogas|lpg/.test(t)?'Autogas (LPG)':/erdgas|cng/.test(t)||r.unit==='kg'?'Erdgas (CNG)':null;
+ // Datum
+ const td=today();for(const m of text.matchAll(/\b(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4}|\d{2})\b/g)){let y=+m[3];if(y<100)y+=2000;const d=`${y}-${String(+m[2]).padStart(2,'0')}-${String(+m[1]).padStart(2,'0')}`;
+  if(+m[2]>=1&&+m[2]<=12&&+m[1]>=1&&+m[1]<=31&&y>=2000&&d<=td){r.date=d;break}}
+ // Tankstelle
+ const head=lines.slice(0,6).join(' ');const st=STATIONS.find(s=>new RegExp('(^|[^a-zäöü])'+s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^a-zäöü]|$)','i').test(head));
+ r.station=st?(st==='Turmoel'?'Turmöl':st):(lines[0]&&lines[0].length<40?lines[0].replace(/[^\wäöüÄÖÜß .&-]/g,'').trim():null);
+ return r}
+
+let ocrWorker=null;
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('load'));document.head.appendChild(s)})}
+async function ocrImage(dataUrl,onProg){
+ if(!window.Tesseract){if(!navigator.onLine)throw new Error('offline');await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js')}
+ if(!ocrWorker)ocrWorker=await Tesseract.createWorker('deu',1,{logger:m=>{if(m.status&&onProg)onProg(m.status,m.progress||0)}});
+ const img=await prepOcr(dataUrl);const {data}=await ocrWorker.recognize(img);return data.text}
+async function prepOcr(dataUrl){const im=await loadImg(dataUrl);const sc=Math.min(2,1800/Math.max(im.width,im.height))||1;const c=document.createElement('canvas');c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);
+ const g=c.getContext('2d');g.filter='grayscale(1) contrast(1.35)';g.drawImage(im,0,0,c.width,c.height);return c}
+const OCR_STEP={'loading tesseract core':'Texterkennung wird geladen','initializing tesseract':'Texterkennung startet','loading language traineddata':'Sprachpaket wird geladen (nur beim ersten Mal)','initializing api':'Texterkennung startet','recognizing text':'Beleg wird gelesen'};
+async function scanFuelReceipt(file){let data;try{data=await compressImage(file,2000,.85)}catch(e){toast('Bild konnte nicht gelesen werden');return}
+ const f=$('#fFuel');if(!f)return;draft.receipt={id:uid(),data};const st=$('#ocrState');st.hidden=false;st.innerHTML=`<div class="ocr-bar"><i style="width:5%"></i></div><span>Beleg wird vorbereitet …</span>`;
+ let r;try{const txt=await ocrImage(data,(s,p)=>{const el=$('#ocrState');if(!el)return;el.querySelector('span').textContent=(OCR_STEP[s]||'Bitte warten')+(s==='recognizing text'?` … ${Math.round(p*100)} %`:' …');el.querySelector('i').style.width=(s==='recognizing text'?30+p*70:10+p*20)+'%'});r=parseFuelReceipt(txt)}
+ catch(e){console.warn(e);st.innerHTML=`<span class="low">${e.message==='offline'?'Für die erste Erkennung braucht die App einmal Internet. Das Foto ist als Beleg gespeichert – bitte Werte eintippen.':'Erkennung hat nicht geklappt – bitte Werte eintippen. Das Foto bleibt als Beleg gespeichert.'}</span>`;renderFuelReceipt();return}
+ const F=n=>f.elements.namedItem(n),set=(n,v)=>{if(v!=null&&v!==''){F(n).value=v;F(n).classList.add('ocr-hit')}};
+ set('liters',r.liters!=null?valN(r.liters):null);set('price',r.total!=null?valN(r.total.toFixed(2)):null);set('ppl',r.ppl!=null?valN(r.ppl.toFixed(3)):null);set('date',r.date);set('station',r.station);if(r.type){F('type').value=r.type;F('type').classList.add('ocr-hit')}
+ const found=[r.liters&&'Liter',r.total&&'Betrag',r.ppl&&'Literpreis',r.date&&'Datum',r.type&&'Sorte',r.station&&'Tankstelle'].filter(Boolean);
+ st.innerHTML=found.length?`<span>✓ Erkannt: <b>${found.join(', ')}</b>. Bitte kurz prüfen${r.fixed?' – ein Wert war schwer lesbar und wurde aus den anderen berechnet':''}.</span>`:`<span class="low">Nichts erkannt – bitte Werte eintippen. Das Foto bleibt als Beleg gespeichert.</span>`;
+ renderFuelReceipt();setTimeout(()=>{const o=F('odo');o.focus();o.scrollIntoView({block:'center',behavior:'smooth'})},200)}
+function renderFuelReceipt(){const b=$('#fuelRcpt');if(!b)return;const r=draft.receipt;b.innerHTML=r?`<div class="doc-row" data-a="fuelRcptView"><img ${r.data?`src="${r.data}"`:`data-photo="${r.id}"`} class="doc-th" alt=""><span class="grow">Tankbeleg</span><button type="button" class="iconbtn sm" data-a="fuelRcptDel" aria-label="Entfernen">✕</button></div>`:'';hydratePhotos(b)}
+function fuelTriple(changed){const f=$('#fFuel');if(!f)return;const F=n=>f.elements.namedItem(n);const l=num(F('liters').value),p=num(F('price').value),u=num(F('ppl').value);
+ if(changed!=='ppl'&&l&&p)F('ppl').value=valN((p/l).toFixed(3));else if(changed==='ppl'&&l&&u)F('price').value=valN((l*u).toFixed(2))}
+
+/* ================= Spritpreis-Statistik ================= */
+function fuelPriceStats(){const rows=S.fuel.map(f=>({f,p:ppl(f),g:fuelGroup(f.type||defaultFuelType(f.carId))})).filter(x=>x.p&&x.g&&(x.g==='Diesel'||x.g==='Benzin')&&x.p>.4&&x.p<4).sort((a,b)=>a.f.date.localeCompare(b.f.date));
+ if(!rows.length)return'';const G={Benzin:'#f5a524',Diesel:'#5aa9e6'};const groups=['Benzin','Diesel'].filter(g=>rows.some(r=>r.g===g));
+ const ps=rows.map(r=>r.p),lo=Math.floor(Math.min(...ps)*10)/10-.05,hi=Math.ceil(Math.max(...ps)*10)/10+.05,rng=hi-lo||1;const t0=new Date(rows[0].f.date).getTime(),t1=new Date(rows[rows.length-1].f.date).getTime(),span=t1-t0||1;
+ const W=300,H=110,x=d=>rows.length===1?W/2:(new Date(d).getTime()-t0)/span*W,y=v=>H-(v-lo)/rng*H;
+ const lines=groups.map(g=>{const pts=rows.filter(r=>r.g===g);return`<polyline fill="none" stroke="${G[g]}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" points="${pts.map(r=>x(r.f.date)+','+y(r.p)).join(' ')}"/>`+pts.map(r=>`<circle cx="${x(r.f.date)}" cy="${y(r.p)}" r="2.6" fill="${G[g]}" vector-effect="non-scaling-stroke"/>`).join('')}).join('');
+ const card=g=>{const v=rows.filter(r=>r.g===g);if(!v.length)return'';const pv=v.map(r=>r.p),avg=pv.reduce((s,a)=>s+a,0)/pv.length,last=v[v.length-1],mn=v.reduce((a,b)=>b.p<a.p?b:a),mx=v.reduce((a,b)=>b.p>a.p?b:a);
+  const st={};v.forEach(r=>{const k=r.f.station||'';if(!k)return;(st[k]=st[k]||[]).push(r.p)});const sl=Object.entries(st).map(([k,a])=>({k,a:a.reduce((s,x)=>s+x,0)/a.length,n:a.length})).sort((a,b)=>a.a-b.a);
+  return`<div class="card"><div class="row between" style="margin-bottom:6px"><b><span class="cdot" style="background:${G[g]}"></span>${g}</b><span class="sub">${v.length} Tankungen</span></div><dl class="kv"><dt>Zuletzt</dt><dd><b>${eur3(last.p)}</b> / l<div class="sub">${fmtD(last.f.date)}${last.f.station?' · '+esc(last.f.station):''}</div></dd><dt>Durchschnitt</dt><dd>${eur3(avg)} / l</dd><dt>Günstigste</dt><dd>${eur3(mn.p)}<div class="sub">${fmtD(mn.f.date)}${mn.f.station?' · '+esc(mn.f.station):''}</div></dd><dt>Teuerste</dt><dd>${eur3(mx.p)}<div class="sub">${fmtD(mx.f.date)}${mx.f.station?' · '+esc(mx.f.station):''}</div></dd></dl>
+  ${sl.length>1?`<div class="sub" style="margin-top:8px"><b>Tankstellen</b> (Ø pro Liter): ${sl.map(s=>`${esc(s.k)} ${eur3(s.a)}`).join(' · ')}</div>`:''}</div>`};
+ return`<h2>Spritpreise</h2><div class="chart"><div class="chart-head"><span>Preis pro Liter</span><span class="legend">${groups.map(g=>`<i style="background:${G[g]}"></i>${g}`).join('')}</span></div>
+ <div class="plot"><div class="yax">${[hi,(hi+lo)/2,lo].map((v,i)=>`<span style="bottom:${(1-i/2)*100}%">${fmtN(v,2)}</span>`).join('')}</div><div class="grid-l">${[1,.5,0].map(f=>`<i style="bottom:${f*100}%"></i>`).join('')}</div>
+ <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="lsvg">${lines}</svg></div><div class="xax"><span style="text-align:left">${fmtM(rows[0].f.date)}</span><span style="text-align:right">${fmtM(rows[rows.length-1].f.date)}</span></div></div>${groups.map(card).join('')}`}
+const eur3=v=>v==null?'–':v.toLocaleString('de-AT',{minimumFractionDigits:3,maximumFractionDigits:3})+' €';
+
 /* ================= Artikel-Vorschläge (Autofill) ================= */
 function partCatalog(){const map=new Map();const key=p=>[p.name,p.maker,p.partNo,p.spec].map(x=>String(x||'').trim().toLowerCase()).join('|');
  const add=(p,date,carId)=>{if(!p?.name)return;const k=key(p);const o=map.get(k);
@@ -2852,7 +2946,9 @@ const A={
  scanPart:(d,el)=>scanPart(el.closest('.prow')),
  pickColor:d=>{const f=$('#fCar');f.elements.namedItem('color').value=d.c;f.elements.namedItem('colorAuto').checked=false;$$('#fCar .sw').forEach(b=>b.classList.toggle('on',b.dataset.c===d.c))},
  homeTab:d=>{homeTab=d.t;lsSet('garage.homeTab',d.t);render();window.scrollTo(0,0)},logCar:d=>{logCar=d.c;logLimit=60;render()},logCat:d=>{logCat=d.c;logLimit=60;render()},logMore:()=>{logLimit+=60;renderLog()},
- fuelForm:d=>fuelForm(d.id,d.car),fuelDelete:async d=>{if(!confirm('Diese Tankung löschen?'))return;await del('fuel',d.id);closeSheet()},
+ fuelForm:d=>fuelForm(d.id,d.car),fuelDelete:async d=>{if(!confirm('Diese Tankung löschen?'))return;const f=S.fuel.find(x=>x.id===d.id);if(f?.photoId)await del('photos',f.photoId);await del('fuel',d.id);closeSheet()},
+ fuelRcptView:async()=>{const r=draft.receipt;if(!r)return;openDoc(r.id,r.data)},fuelRcptDel:()=>{draft.receipt=null;renderFuelReceipt()},
+ ocrPreload:async()=>{const b=$('#ocrPre');b.disabled=true;b.textContent='Wird geladen …';try{const c=document.createElement('canvas');c.width=200;c.height=60;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,200,60);g.fillStyle='#000';g.font='28px sans-serif';g.fillText('12,34 EUR',10,40);await ocrImage(c.toDataURL());b.textContent='✓ Bereit – funktioniert jetzt auch offline';lsSet('garage.ocrReady','1')}catch(e){b.disabled=false;b.textContent='Fehlgeschlagen – Internet prüfen und nochmal versuchen'}},
  odoForm:d=>odoForm(d.car),odoDelete:async d=>{if(!confirm('Diesen km-Stand löschen?'))return;await del('odo',d.id);render()},
  statsYear:d=>{statsYear=d.y;render()},
  exportJSON,importJSON:()=>$('#importFile').click(),exportCSV:d=>exportCSV(d.car),printBook:d=>printBook(d.car),doPrint:d=>doPrint(d.car),
@@ -2881,6 +2977,7 @@ const CHANGES={
  pkRes:t=>{const c=$('#pkTodoLine input');if(c)c.checked=t.value!=='ok'},
  pickColorCustom:t=>{const f=$('#fCar');f.elements.namedItem('color').value=t.value;f.elements.namedItem('colorAuto').checked=false;$$('#fCar .sw').forEach(b=>b.classList.remove('on'));t.parentElement.style.background=t.value;t.parentElement.classList.add('on')},
  colorAutoToggle:async t=>{if(!t.checked)return;let d=draft.photoData;if(!d&&draft.photoId&&!draft.photoChanged)d=await getPhoto(draft.photoId);if(!d){toast('Kein Foto – Farbe bitte auswählen');return}const col=await colorFromPhoto(d);if(col){$('#fCar').elements.namedItem('color').value=col;$$('#fCar .sw').forEach(b=>b.classList.toggle('on',b.dataset.c===col));toast('Farbe aus dem Foto übernommen')}},
+ fuelCar:t=>{const f=$('#fFuel');f.elements.namedItem('odo').placeholder=fmtN(carOdo(t.value));if(!f.elements.namedItem('type').classList.contains('ocr-hit'))f.elements.namedItem('type').value=defaultFuelType(t.value)},
  backupDays:t=>{lsSet('garage.backupDays',t.value);toast('Gespeichert')},
 };
 const FILES={
@@ -2888,6 +2985,8 @@ const FILES={
  entryPhotos:async fl=>{for(const f of fl){try{draft.photos.push({id:uid(),tag:'Foto',data:await compressImage(f)})}catch(e){toast('Bild konnte nicht gelesen werden')}}renderPhotos()},
  importJSON,
  toolDocs:addToolDocs,
+ fuelReceipt:async fl=>{if(fl[0])await scanFuelReceipt(fl[0])},
+ fuelReceiptOnly:async fl=>{if(!fl[0])return;try{draft.receipt={id:uid(),data:await compressImage(fl[0],2000,.85)};renderFuelReceipt()}catch(e){toast('Bild konnte nicht gelesen werden')}},
  toolPhoto:async fl=>{if(!fl[0])return;try{draft.photoData=await compressImage(fl[0],1000);draft.photoChanged=true;$('#toolPh').innerHTML=`<img src="${draft.photoData}" alt="">`}catch(e){toast('Bild konnte nicht gelesen werden')}},
  receipt:async fl=>{if(!fl[0])return;try{receiptForm(await compressImage(fl[0],1600,.75))}catch(e){toast('Bild konnte nicht gelesen werden')}},
 };
@@ -2904,7 +3003,8 @@ document.addEventListener('input',e=>{const t=e.target;
  else if(t.id==='toolPickQ'){const q=t.value.toLowerCase();$$('#toolPick .chip').forEach(b=>b.hidden=!!q&&!b.textContent.toLowerCase().includes(q))}
  if(t.matches('[data-ac]'))acRender(t);
  else if(t.closest('#fEntry')){if(t.dataset.k==='qty'){const r=t.closest('.prow');const inv=$('[data-k=invId]',r)?.value;const it=inv&&S.inventory.find(i=>i.id===inv);const q=num(t.value);const pr=invPriceFor(it,q,$('[data-k=unit]',r).value);if(pr!=null)$('[data-k=price]',r).value=valN(pr)}updateTotal()}
- if(t.closest('#fInv')&&t.dataset.inv){if(t.dataset.inv==='pq')invPqTouched=true;invPreview()}});
+ if(t.closest('#fInv')&&t.dataset.inv){if(t.dataset.inv==='pq')invPqTouched=true;invPreview()}
+ if(t.closest('#fFuel')&&t.dataset.fuel){t.classList.remove('ocr-hit');fuelTriple(t.dataset.fuel)}});
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',applyTheme);
 
 /* ================= Beispieldaten ================= */
@@ -2969,7 +3069,7 @@ async function seed(){const P=(name,maker,qty,unit,price,o={})=>({name,maker,par
   T(null,'Drehmomentschlüssel prüfen lassen',3,{}),T(a.id,'Scheibenwischer vorne erneuern',3,{done:true,doneAt:'2026-08-01'})])await put('todos',x);
  const I=(name,maker,qty,unit,price,location,fits,o={})=>({id:uid(),demo:true,name,maker,partNo:'',qty,unit,price,spec:'',location,fits,note:'',...o});
  for(const x of[I('Motoröl 5W-40','Liqui Moly',5,'l',8.5,'Regal 1',[a.id],{spec:'VW 505.01',minQty:6,packPrice:42.5,packQty:5,packUnitQty:5,packUnit:'l',buys:[{id:uid(),date:'2026-09-02',qty:5,unit:'l',price:42.5,shop:'Autoteile Online'}]}),I('Ölfilter','Mann-Filter',1,'Stk',7.5,'Regal 1',[a.id],{minQty:1,packPrice:7.5,packQty:1,packUnitQty:1,packUnit:'Stk'}),I('Bremsenreiniger','',3,'Dose',4.99,'Werkbank',[],{minQty:2,packPrice:14.97,packQty:3,packUnitQty:3,packUnit:'Dose',buys:[{id:uid(),date:'2026-06-28',qty:3,unit:'Dose',price:14.97,shop:'Baumarkt'}]}),I('Kupferpaste','',100,'g',.069,'Werkbank',[],{packPrice:6.9,packQty:100,packUnitQty:100,packUnit:'g'}),I('Allzweck-Fett','',250,'g',.048,'Werkbank',[],{packPrice:12,packQty:250,packUnitQty:250,packUnit:'g',buys:[{id:uid(),date:'2026-10-05',qty:250,unit:'g',price:12,shop:'Baumarkt'}]})])await put('inventory',x);
- const F=(carId,date,odo,liters,price)=>({id:uid(),demo:true,carId,date,odo,liters,price,full:true,note:''});
+ const F=(carId,date,odo,liters,price)=>{const isA=carId===a.id;return{id:uid(),demo:true,carId,date,odo,liters,price,ppl:Math.round(price/liters*1000)/1000,type:isA?'Diesel':'Super 95',station:['OMV','JET','BP','Turmöl'][Math.floor(liters)%4],full:true,note:''}};
  for(const x of[F(a.id,'2026-08-20',247210,46,78.2),F(a.id,'2026-09-12',247980,44.8,75.3),F(a.id,'2026-10-03',248480,29.1,49.1),F(b.id,'2026-09-01',188900,52,93.6),F(b.id,'2026-10-01',189350,40.5,72.9)])await put('fuel',x)}
 
 /* ================= Start ================= */
