@@ -2589,7 +2589,7 @@ function toolView(id){const t=S.tools.find(x=>x.id===id);if(!t)return;const r=to
  `<button class="btn" data-a="toolLend" data-id="${id}">${t.lentTo?'Zurückbekommen':'Verleihen'}</button><button class="btn primary grow" data-a="toolForm" data-id="${id}">Bearbeiten</button>`)}
 function toolForm(id){const t=id?S.tools.find(x=>x.id===id):{category:'Handwerkzeug',purchaseDate:today()};draft={kind:'tool',id:id||null,photoId:t.photoId||null,photoData:null,photoChanged:false,docs:(t.docs||[]).map(d=>({...d}))};
  const body=`<form id="fTool" data-form="tool"><div class="ph" id="toolPh" style="border-radius:var(--radius);margin-bottom:8px">${t.photoId?`<img data-photo="${t.photoId}" alt="">`:'<span style="font-size:42px">🔧</span>'}</div>
- <div class="grid2" style="margin-bottom:12px"><label class="btn">📷 Foto<input type="file" accept="image/*" data-file="toolPhoto" hidden></label><button type="button" class="btn" data-a="toolPhotoDel">Entfernen</button></div>
+ <div class="grid3" style="margin-bottom:12px"><label class="btn">📷 Foto<input type="file" accept="image/*" data-file="toolPhoto" hidden></label><button type="button" class="btn" data-a="toolPhotoCrop">✂️ Zuschnitt</button><button type="button" class="btn" data-a="toolPhotoDel">Entfernen</button></div>
  <label class="f"><span>Bezeichnung</span><input name="name" required value="${esc(t.name)}" placeholder="z. B. Drehmomentschlüssel 40–200 Nm"></label>
  <div class="grid2"><label class="f"><span>Marke</span><input name="brand" value="${esc(t.brand)}"></label><label class="f"><span>Kategorie</span><select name="category">${TOOL_CATS.map(c=>`<option ${t.category===c?'selected':''}>${esc(c)}</option>`).join('')}</select></label></div>
  <div class="grid2"><label class="f"><span>Wert / Neupreis (€)</span><input name="price" inputmode="decimal" value="${valN(t.price)}"></label><label class="f"><span>Bezahlt (€)</span><input name="paid" inputmode="decimal" value="${valN(t.paid)}" placeholder="wie Wert"></label></div>
@@ -2891,7 +2891,7 @@ async function doUndo(){const d=undoData;if(!d)return;undoData=null;clearTimeout
 
 /* ================= Verlauf ================= */
 let homeTab='ov',logCar='',logCat='',logQ='',logLimit=60;
-const LOG_CATS=[...MAIN_CATS,'Tanken','Lager','Fehler','To-do','km-Stand','Auto'];
+const LOG_CATS=[...MAIN_CATS,'Tanken','Lager','Werkzeug','Fehler','To-do','km-Stand','Auto'];
 function activityItems(){const out=[];const add=o=>out.push(o);
  for(const e of S.entries)add({date:e.date,cat:mainCat(e.category),carId:e.carId,icon:catBadge(e.category),title:e.title||e.category,
   sub:[catLabel(e.category)!==(e.title||e.category)?catLabel(e.category):'',e.odo!=null?kmT(e.odo):'',isPk(e)?pkRes(e).i+' '+(e.workshop||'Prüfstelle'):e.diy?'selbst':'Werkstatt'].filter(Boolean).join(' · '),amount:entryCost(e)||null,act:`data-a="entryView" data-id="${e.id}"`});
@@ -2901,6 +2901,7 @@ function activityItems(){const out=[];const add=o=>out.push(o);
  for(const x of S.issues)add({date:x.date,cat:'Fehler',carId:x.carId,icon:ibox(x.status==='solved'?'check':'alert',x.status==='solved'?'var(--green)':'var(--yellow)'),title:x.title,sub:['Fehler erfasst',x.codes,x.status==='solved'?'gelöst':'offen'].filter(Boolean).join(' · '),act:`data-a="issueForm" data-id="${x.id}" data-car="${x.carId}"`});
  for(const t of S.todos)if(t.done&&t.doneAt&&!t.entryId)add({date:t.doneAt,cat:'To-do',carId:t.carId,icon:ibox('check','var(--green)'),title:t.title,sub:'Aufgabe erledigt',act:`data-a="todoForm" data-id="${t.id}"`});
  for(const i of S.inventory)for(const b of i.buys||[])add({date:b.date,cat:'Lager',carId:null,icon:ibox('box','#b07cf0'),title:`${i.name} gekauft`,sub:[`+${fmtQ(b.qty)} ${b.unit}`,i.maker,b.shop].filter(Boolean).join(' · '),amount:b.price,act:`data-a="invForm" data-id="${i.id}"`});
+ for(const t of S.tools)if(t.purchaseDate)add({date:t.purchaseDate,cat:'Werkzeug',carId:null,icon:ibox('wrench','var(--accent)'),title:`${t.name} gekauft`,sub:[t.brand,t.paid!=null&&t.price!=null&&t.paid!==t.price?'Wert '+eur(t.price):''].filter(Boolean).join(' · '),amount:toolPaid(t),act:`data-a="toolView" data-id="${t.id}"`});
  for(const c of S.cars){if(c.purchase)add({date:c.purchase,cat:'Auto',carId:c.id,icon:ibox('car',carColor(c.id)),title:`${dispName(c)} gekauft`,sub:c.purchaseOdo!=null?kmT(c.purchaseOdo):'',amount:c.purchasePrice,noSum:true,act:`data-a="go" data-h="#/car/${c.id}"`});
   if(c.sold)add({date:c.sold.date,cat:'Auto',carId:c.id,icon:ibox('euro','var(--green)'),title:`${dispName(c)} verkauft`,sub:[c.sold.odo!=null?kmT(c.sold.odo):'',c.sold.buyer].filter(Boolean).join(' · '),amount:c.sold.price,plus:true,noSum:true,act:`data-a="go" data-h="#/car/${c.id}"`})}
  return out.sort((a,b)=>b.date.localeCompare(a.date))}
@@ -3229,7 +3230,9 @@ const A={
  toolLend:async d=>{const t=S.tools.find(x=>x.id===d.id);if(t.lentTo){t.lentTo='';t.lentDate=null;await put('tools',t);toast('Zurück in der Werkstatt');toolView(t.id);return}
   const who=prompt('An wen verleihst du „'+t.name+'“?','');if(!who||!who.trim())return;t.lentTo=who.trim();t.lentDate=today();await put('tools',t);toast('Verliehen an '+t.lentTo);toolView(t.id)},
  toolDelete:async d=>{const t=S.tools.find(x=>x.id===d.id);if(!confirm(`„${t.name}“ löschen?`))return;if(t.photoId)await del('photos',t.photoId);for(const x of t.docs||[])await del('photos',x.id);await del('tools',t.id);closeSheet()},
- toolPhotoDel:()=>{draft.photoChanged=true;draft.photoData=null;$('#toolPh').innerHTML='<span style="font-size:42px">🔧</span>'},
+ toolPhotoCrop:async()=>{let src=draft.photoSrc||draft.photoData;if(!src&&draft.photoId&&!draft.photoChanged)src=await getPhoto(draft.photoId);if(!src){toast('Zuerst ein Foto wählen');return}
+  const d=await openCropper(src);if(!d)return;draft.photoSrc=src;draft.photoData=d;draft.photoChanged=true;$('#toolPh').innerHTML=`<img src="${d}" alt="">`},
+ toolPhotoDel:()=>{draft.photoSrc=null;draft.photoChanged=true;draft.photoData=null;$('#toolPh').innerHTML='<span style="font-size:42px">🔧</span>'},
  toolPick:(d,el)=>{const a=draft.toolIds||(draft.toolIds=[]);const i=a.indexOf(d.id);if(i>=0)a.splice(i,1);else{a.push(d.id);const t=S.tools.find(x=>x.id===d.id);if(t?.lentTo)toast(`Achtung: ${t.name} ist an ${t.lentTo} verliehen`)}el.classList.toggle('on',i<0)},
  tyreForm:d=>tyreForm(d.car,d.id),tyreMount:d=>tyreMount(d.id),tyreUnmount:d=>tyreUnmount(d.id),
  tyreDelete:async d=>{if(!confirm('Diesen Reifensatz löschen?'))return;await del('tyres',d.id);closeSheet()},
@@ -3358,7 +3361,7 @@ const FILES={
  carDocFiles:addDocFiles,
  fuelReceipt:async fl=>{if(fl[0])await scanFuelReceipt(fl[0])},
  fuelReceiptOnly:async fl=>{if(!fl[0])return;try{draft.receipt={id:uid(),data:await compressImage(fl[0],2000,.85)};renderFuelReceipt()}catch(e){toast('Bild konnte nicht gelesen werden')}},
- toolPhoto:async fl=>{if(!fl[0])return;try{draft.photoData=await compressImage(fl[0],1000);draft.photoChanged=true;$('#toolPh').innerHTML=`<img src="${draft.photoData}" alt="">`}catch(e){toast('Bild konnte nicht gelesen werden')}},
+ toolPhoto:async fl=>{if(!fl[0])return;let big;try{big=await compressImage(fl[0],2000,.9)}catch(e){toast('Bild konnte nicht gelesen werden');return}const d=await openCropper(big);if(!d)return;draft.photoSrc=big;draft.photoData=d;draft.photoChanged=true;$('#toolPh').innerHTML=`<img src="${d}" alt="">`},
  receipt:async fl=>{if(!fl[0])return;try{receiptForm(await compressImage(fl[0],1600,.75))}catch(e){toast('Bild konnte nicht gelesen werden')}},
 };
 document.addEventListener('change',async e=>{const t=e.target;
