@@ -114,7 +114,8 @@ input[type=checkbox],input[type=radio]{width:auto;min-height:0}
 .sheet{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
 .sheet.hidden,#lightbox.hidden{display:none}
 .sheet-panel{background:var(--bg);width:100%;max-width:760px;max-height:94vh;overflow:auto;border-radius:20px 20px 0 0;padding:0 16px calc(16px + env(safe-area-inset-bottom))}
-.sheet-head{position:sticky;top:0;background:var(--bg);display:flex;align-items:center;gap:8px;padding:14px 0;z-index:2;border-bottom:1px solid var(--line);margin-bottom:12px}
+.sheet-head{touch-action:none;position:sticky;top:0;background:var(--bg);display:flex;align-items:center;gap:8px;padding:14px 0;z-index:2;border-bottom:1px solid var(--line);margin-bottom:12px}
+.sheet-head::before{content:'';position:absolute;top:5px;left:50%;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:var(--line)}
 .sheet-head h3{flex:1;margin:0;font-size:18px}
 .sheet-foot{position:sticky;bottom:calc(-16px - env(safe-area-inset-bottom));background:var(--bg);padding:12px 0 calc(16px + env(safe-area-inset-bottom));margin-bottom:calc(-16px - env(safe-area-inset-bottom));display:flex;gap:8px;border-top:1px solid var(--line);margin-top:12px}
 #lightbox{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.92);display:grid;place-items:center}
@@ -1695,7 +1696,7 @@ let sheetOpen=false,ignorePop=false,pendingNav=null,draft=null;
  const scroller=el=>el.closest('.sheet-panel')||document.scrollingElement;
  const fullH=(ph)=>{const im=ph.querySelector('img'),w=ph.clientWidth;const r=im&&im.naturalWidth?im.naturalHeight/im.naturalWidth:.75;return Math.min(Math.max(w*r,w*9/16+60),innerHeight*.78)};
  const visible=()=>{const sh=$('#sheet');const root=sh&&!sh.classList.contains('hidden')?sh:$('#view');return root?.querySelector('.ph.stretch')};
- addEventListener('touchstart',e=>{const ph=visible();if(!ph||e.touches.length>1){st=null;return}const sc=scroller(ph);if(sc.scrollTop>2){st=null;return}
+ addEventListener('touchstart',e=>{const ph=visible();if(!ph||e.touches.length>1||e.target.closest?.('.sheet-head')){st=null;return}const sc=scroller(ph);if(sc.scrollTop>2){st=null;return}
   const base=ph.dataset.base?+ph.dataset.base:ph.getBoundingClientRect().height;if(!ph.dataset.base)ph.dataset.base=base;
   st={ph,sc,y0:e.touches[0].clientY,h0:ph.getBoundingClientRect().height,base,max:fullH(ph),moved:false};ph.classList.remove('anim')},{passive:true});
  addEventListener('touchmove',e=>{if(!st)return;const dy=e.touches[0].clientY-st.y0;
@@ -1705,6 +1706,17 @@ let sheetOpen=false,ignorePop=false,pendingNav=null,draft=null;
  const end=()=>{if(!st)return;const {ph,base,max,moved,h0}=st;st=null;if(!moved)return;const h=ph.getBoundingClientRect().height;
   const open=h0>base+4?h>max-(max-base)*.4:h>base+(max-base)*.3;ph.classList.add('anim');
   if(open){ph.style.height=max+'px';ph.classList.add('big')}else{ph.style.height=base+'px';ph.classList.remove('big');setTimeout(()=>{if(!ph.classList.contains('big')){ph.style.height='';ph.style.aspectRatio=''}},300)}};
+ addEventListener('touchend',end);addEventListener('touchcancel',end)})();
+
+/* ===== Fenster am Titel nach unten wegziehen ===== */
+(()=>{let d=null;
+ addEventListener('touchstart',e=>{const hd=e.target.closest?.('.sheet-head');if(!hd||e.touches.length>1){d=null;return}const pn=hd.closest('.sheet-panel');d={pn,y0:e.touches[0].clientY,t0:Date.now(),dy:0,on:false};pn.style.transition='none'},{passive:true});
+ addEventListener('touchmove',e=>{if(!d)return;const dy=e.touches[0].clientY-d.y0;if(!d.on){if(Math.abs(dy)<6)return;d.on=true}
+  d.dy=Math.max(0,dy);d.pn.style.transform=`translateY(${d.dy}px)`;$('#sheet').style.background=`rgba(0,0,0,${.6*Math.max(0,1-d.dy/d.pn.offsetHeight)})`;if(e.cancelable)e.preventDefault()},{passive:false});
+ const end=()=>{if(!d)return;const {pn,dy,t0,on}=d;d=null;if(!on){pn.style.transition='';return}const v=dy/Math.max(1,Date.now()-t0);
+  pn.style.transition='transform .22s ease-out';const sh=$('#sheet');sh.style.transition='background .22s';
+  if(dy>Math.min(140,pn.offsetHeight*.25)||(v>.4&&dy>50)){pn.style.transform=`translateY(${pn.offsetHeight+20}px)`;sh.style.background='rgba(0,0,0,0)';setTimeout(()=>{closeSheet();sh.style.background='';sh.style.transition=''},220)}
+  else{pn.style.transform='';sh.style.background='';setTimeout(()=>{pn.style.transition='';sh.style.transition=''},230)}};
  addEventListener('touchend',end);addEventListener('touchcancel',end)})();
 function openSheet(title,body,foot=''){const s=$('#sheet');
  s.innerHTML=`<div class="sheet-panel" role="dialog" aria-modal="true"><div class="sheet-head"><h3>${esc(title)}</h3><button type="button" class="iconbtn" data-a="closeSheet" aria-label="Schließen">✕</button></div><div class="sheet-body">${body}</div>${foot?`<div class="sheet-foot">${foot}</div>`:''}</div>`;
