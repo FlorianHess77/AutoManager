@@ -165,6 +165,25 @@ details.fold[open]{padding-bottom:12px}details.fold .kv{margin-bottom:10px}
 .mitem:last-child{border-bottom:0}.mitem span{width:26px;text-align:center;font-size:18px}.mitem.red{color:var(--red)}
 .hchips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.hchip{background:var(--surface);border:1px solid var(--line);color:var(--text);border-radius:999px;padding:7px 12px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .hchip.g{border-color:color-mix(in srgb,var(--green) 45%,transparent);color:var(--green)}.hchip.y{border-color:color-mix(in srgb,var(--yellow) 45%,transparent);color:var(--yellow)}
+.thumb .pen{position:absolute;left:4px;top:4px;background:rgba(0,0,0,.7);border:0;border-radius:8px;width:30px;height:30px;font-size:14px;padding:0}
+#anno{position:fixed;inset:0;z-index:60;background:#000;display:flex;flex-direction:column}
+.anno-stage{flex:1;display:grid;place-items:center;overflow:hidden;padding:8px}.anno-stage canvas{max-width:100%;max-height:100%;touch-action:none;border-radius:6px}
+.anno-bar{background:#15171b;padding:8px 10px calc(10px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px}
+.anno-row{display:flex;gap:6px;align-items:center;justify-content:center}
+.anno-row{gap:5px}.anno-row button{background:#262a31;color:#fff;border:0;border-radius:12px;min-width:44px;height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;font:inherit;font-size:11px;gap:1px;padding:0 6px}
+.anno-row button b{font-size:19px;line-height:1}.anno-row button.on{background:var(--accent);color:var(--on)}
+.anno-row button.sw{min-width:30px;width:30px;height:30px;border-radius:50%;border:3px solid transparent}.anno-row button.sw.on{border-color:var(--accent);background-clip:padding-box}
+.anno-row .wide{flex:1;font-size:16px;font-weight:700}.anno-row .primary{background:var(--accent);color:var(--on)}.anno-sep{width:8px}
+.save-card{border-color:color-mix(in srgb,var(--green) 40%,var(--line))}.save-card .big{color:var(--green)}
+.wr-open{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font:inherit;color:var(--text);background:linear-gradient(120deg,color-mix(in srgb,var(--accent) 22%,var(--surface)),var(--surface) 70%);border:1px solid color-mix(in srgb,var(--accent) 45%,var(--line));border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;cursor:pointer}
+.wr-open>span:first-child{font-size:28px}
+.wr{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;margin:0 -16px;padding:0 16px;scrollbar-width:none}.wr::-webkit-scrollbar{display:none}
+.wr-card{flex:0 0 100%;scroll-snap-align:center;min-height:52vh;border-radius:22px;background:var(--bg);color:#fff;padding:26px 22px;display:flex;flex-direction:column;justify-content:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.wr-ic{font-size:52px}.wr-t{font-size:30px;font-weight:900;line-height:1.1}.wr-b{font-size:16px;line-height:1.5;opacity:.95}.wr-big{font-size:44px;font-weight:900;line-height:1.1;margin:4px 0}
+.wr-row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.2)}.wr-row:last-child{border:0}
+.wr-dots{display:flex;justify-content:center;gap:6px;margin:14px 0 4px}.wr-dots i{width:7px;height:7px;border-radius:50%;background:var(--line)}.wr-dots i.on{background:var(--accent);width:18px;border-radius:4px}
+.badges{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}.badge-i{background:var(--surface);border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));border-radius:12px;padding:8px 4px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text);font:inherit;cursor:pointer}
+.badge-i span{font-size:24px}.badge-i b{font-size:11px;line-height:1.2}
 .searchbar{display:flex;align-items:center;gap:10px;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;color:var(--muted);font:inherit;font-size:15px;margin-bottom:6px;cursor:pointer;text-align:left}
 .mtile .mi{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,transparent)}
 .mtile .mi .ico{width:25px;height:25px}.mtile small{color:var(--muted);font-weight:500;font-size:11px;margin-top:-4px}
@@ -1790,6 +1809,93 @@ function navCfgHTML(){const pins=navPinned();const row=(x,pi)=>`<div class="item
  <button class="btn ${pi>=0?'':'primary'}" data-a="navPin" data-k="${x.k}" style="flex:none;min-width:92px">${pi>=0?'Lösen':'Anpinnen'}</button></div>`;
  return`<div class="navcfg">${pins.map((k,i)=>row(NAV_ITEMS.find(x=>x.k===k),i)).join('')}<h4>Nicht angepinnt – unter „Mehr“</h4>${NAV_ITEMS.filter(x=>!pins.includes(x.k)).map(x=>row(x,-1)).join('')}
  <p class="sub">Bis zu ${NAV_MAX} Menüs plus „Mehr“. „Mehr“ bleibt immer ganz rechts.</p><button class="btn block" data-a="navReset" ${pins.join()===NAV_DEFAULT.join()?'disabled':''}>Auf Standard zurücksetzen</button></div>`}
+
+/* ================= Foto beschriften ================= */
+async function annotate(src){const img=await loadImg(src);const max=1600,sc=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));const W=Math.round(img.naturalWidth*sc),H=Math.round(img.naturalHeight*sc);
+ return new Promise(res=>{const ov=document.createElement('div');ov.id='anno';
+  const COLS=['#ff3b30','#ffd60a','#ffffff'];let tool='arrow',col=COLS[0],shapes=[],cur=null;
+  ov.innerHTML=`<div class="anno-stage"><canvas width="${W}" height="${H}"></canvas></div>
+  <div class="anno-bar"><div class="anno-row">${[['arrow','➚','Pfeil'],['circle','◯','Kreis'],['pen','✎','Stift'],['text','T','Text']].map(([k,i,l])=>`<button data-t="${k}" class="${k===tool?'on':''}"><b>${i}</b><span>${l}</span></button>`).join('')}
+  <span class="anno-sep"></span>${COLS.map(c=>`<button data-c="${c}" class="sw ${c===col?'on':''}" style="background:${c}" aria-label="Farbe"></button>`).join('')}<button data-x="undo" aria-label="Rückgängig"><b>↶</b></button></div>
+  <div class="anno-row"><button data-x="cancel" class="wide">Abbrechen</button><button data-x="ok" class="wide primary">Fertig</button></div></div>`;
+  document.body.appendChild(ov);const cv=ov.querySelector('canvas'),g=cv.getContext('2d');const lw=Math.max(4,Math.round(Math.max(W,H)/180));
+  const draw=()=>{g.drawImage(img,0,0,W,H);for(const s of[...shapes,...(cur?[cur]:[])]){g.strokeStyle=g.fillStyle=s.c;g.lineWidth=lw;g.lineCap=g.lineJoin='round';
+   if(s.t==='pen'){g.beginPath();s.p.forEach((q,i)=>i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]));g.stroke()}
+   else if(s.t==='circle'){g.beginPath();g.ellipse((s.a[0]+s.b[0])/2,(s.a[1]+s.b[1])/2,Math.abs(s.b[0]-s.a[0])/2+1,Math.abs(s.b[1]-s.a[1])/2+1,0,0,Math.PI*2);g.stroke()}
+   else if(s.t==='arrow'){const[x1,y1]=s.a,[x2,y2]=s.b,an=Math.atan2(y2-y1,x2-x1),hl=lw*4.5;g.beginPath();g.moveTo(x1,y1);g.lineTo(x2,y2);g.stroke();g.beginPath();g.moveTo(x2,y2);g.lineTo(x2-hl*Math.cos(an-.45),y2-hl*Math.sin(an-.45));g.lineTo(x2-hl*Math.cos(an+.45),y2-hl*Math.sin(an+.45));g.closePath();g.fill()}
+   else if(s.t==='text'){const fs=Math.round(lw*6);g.font=`800 ${fs}px system-ui,sans-serif`;g.textBaseline='middle';g.lineWidth=Math.max(3,fs/6);g.strokeStyle=s.c==='#ffffff'?'#000':'rgba(0,0,0,.85)';g.strokeText(s.s,s.a[0],s.a[1]);g.fillStyle=s.c;g.fillText(s.s,s.a[0],s.a[1])}}};
+  draw();const pt=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left)/r.width*W,(e.clientY-r.top)/r.height*H]};
+  cv.addEventListener('pointerdown',e=>{e.preventDefault();cv.setPointerCapture(e.pointerId);const q=pt(e);
+   if(tool==='text'){const t=prompt('Text eingeben (z. B. „lange Schraube“)','');if(t&&t.trim()){shapes.push({t:'text',c:col,a:q,s:t.trim()});draw()}return}
+   cur=tool==='pen'?{t:'pen',c:col,p:[q]}:{t:tool,c:col,a:q,b:q}});
+  cv.addEventListener('pointermove',e=>{if(!cur)return;const q=pt(e);if(cur.t==='pen')cur.p.push(q);else cur.b=q;draw()});
+  const up=()=>{if(!cur)return;const ok=cur.t==='pen'?cur.p.length>1:Math.hypot(cur.b[0]-cur.a[0],cur.b[1]-cur.a[1])>lw*2;if(ok)shapes.push(cur);cur=null;draw()};
+  cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+  ov.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+   if(b.dataset.t){tool=b.dataset.t;ov.querySelectorAll('[data-t]').forEach(x=>x.classList.toggle('on',x===b))}
+   else if(b.dataset.c){col=b.dataset.c;ov.querySelectorAll('[data-c]').forEach(x=>x.classList.toggle('on',x===b))}
+   else if(b.dataset.x==='undo'){shapes.pop();draw()}
+   else if(b.dataset.x==='cancel'){ov.remove();res(null)}
+   else if(b.dataset.x==='ok'){const out=shapes.length?cv.toDataURL('image/jpeg',.86):null;ov.remove();res(out)}})})}
+
+/* ================= Gespart · Abzeichen · Jahresrückblick ================= */
+const shopRate=()=>{const v=num(lsGet('garage.rate'));return v>0?v:null};
+function savedDIY(ents){const r=shopRate();const w=ents.filter(e=>e.diy&&!isPk(e)&&!isForeign(e.carId));const h=w.reduce((s,e)=>s+(e.hours||0),0);
+ return{rate:r,hours:h,saved:r?h*r:null,noHours:w.filter(e=>!e.hours).length,count:w.length}}
+function savedCard(ents){const x=savedDIY(ents);if(!x.count)return'';
+ return`<div class="card save-card"><div class="row between"><div><div class="sub">Durch Selbermachen gespart</div><div class="big">${x.rate?eur(x.saved):'–'}</div></div><span style="font-size:30px">💪</span></div>
+ <div class="sub">${x.rate?`${fmtN(x.hours,1)} Schrauberstunden × ${eur(x.rate)} Werkstatt-Stundensatz${x.noHours?` · ${x.noHours} Arbeit${x.noHours>1?'en':''} ohne Zeitangabe zählen nicht`:''} · <button class="linkbtn" data-a="rateSet">ändern</button>`:`Leg einen Werkstatt-Stundensatz fest, dann rechnet die App mit deinen Schrauberstunden. <button class="linkbtn" data-a="rateSet">Festlegen</button>`}</div></div>`}
+const BADGES=[
+ ['first','🔧','Erster Schritt','Ersten Eintrag angelegt',D=>D.ents.length>=1],
+ ['e10','📒','Dokumentar','10 Einträge',D=>D.ents.length>=10],
+ ['e50','📚','Chronist','50 Einträge',D=>D.ents.length>=50],
+ ['e100','🏛️','Archivar','100 Einträge',D=>D.ents.length>=100],
+ ['diy10','💪','Selbermacher','10 Arbeiten selbst gemacht',D=>D.diy.length>=10],
+ ['oil','🛢️','Ölwechsel-Profi','5 Ölwechsel selbst gemacht',D=>D.diy.filter(e=>e.category==='Ölwechsel'||/öl ?wechsel|ölwechsel/i.test(e.title||'')).length>=5],
+ ['brake','🛑','Bremsen-Meister','Bremsen selbst gemacht',D=>D.diy.some(e=>e.category==='Bremsen'||/brems/i.test(e.title||''))],
+ ['belt','⚙️','Zahnriemen-Held','Zahnriemen selbst gewechselt',D=>D.diy.some(e=>/zahnriemen/i.test(e.title||''))],
+ ['pk','✅','Ohne Mängel','Ein Pickerl ohne Mängel bestanden',D=>D.ents.some(e=>isPk(e)&&e.pk?.result==='ok')],
+ ['save500','🐷','Sparfuchs','500 € durch Selbermachen gespart',D=>(D.saved||0)>=500],
+ ['save2k','💰','Großer Sparfuchs','2.000 € durch Selbermachen gespart',D=>(D.saved||0)>=2000],
+ ['amort','🧰','Hat sich bezahlt','Ein Werkzeug hat sich amortisiert',D=>S.tools.some(t=>toolCalc(t).amort)],
+ ['tools20','🗄️','Sammler','20 Werkzeuge in der Werkstatt',D=>S.tools.length>=20],
+ ['fuel25','⛽','Stammkunde','25 Tankungen erfasst',D=>D.fuel.length>=25],
+ ['rcpt','🧾','Belegsammler','10 Belege oder Rechnungen hinterlegt',D=>D.ents.reduce((n,e)=>n+(e.photos||[]).filter(p=>p.type==='pdf'||p.tag==='Beleg').length,0)+S.fuel.filter(f=>f.photoId).length>=10],
+ ['docs','📁','Alles griffbereit','Kaufvertrag, Zulassungsschein und Versicherung bei einem Auto',D=>S.cars.some(c=>['Kaufvertrag','Zulassungsschein','Versicherung'].every(k=>(c.docs||[]).some(d=>d.kind===k)))],
+ ['km10k','🛣️','Unterwegs','10.000 km seit dem Kauf eines Autos',D=>S.cars.some(c=>(ownCost(c).kmDriven||0)>=10000)],
+ ['km50k','🌍','Vielfahrer','50.000 km seit dem Kauf eines Autos',D=>S.cars.some(c=>(ownCost(c).kmDriven||0)>=50000)],
+ ['loyal','🤝','Treue Seele','Ein Auto seit 5 Jahren',D=>S.cars.some(c=>c.purchase&&!c.sold&&daysUntil(c.purchase)<=-1826)],
+ ['help','🫶','Hilfsbereit','An einem fremden Auto geschraubt',D=>S.entries.some(e=>isForeign(e.carId))],
+ ['backup','💾','Auf Nummer sicher','Ein Backup gemacht',D=>!!lsGet('garage.lastBackup')]];
+function badgeData(){const ents=S.entries.filter(e=>!isForeign(e.carId)&&!e.demo);const diy=ents.filter(e=>e.diy&&!isPk(e));return{ents,diy,fuel:S.fuel.filter(f=>!isForeign(f.carId)&&!f.demo),saved:savedDIY(ents).saved}}
+function earnedBadges(){const D=badgeData();return BADGES.filter(b=>{try{return b[4](D)}catch(e){return false}}).map(b=>b[0])}
+function badgesHTML(){const got=new Set(earnedBadges());const on=BADGES.filter(b=>got.has(b[0])),off=BADGES.filter(b=>!got.has(b[0]));
+ return`<h2>Abzeichen <span class="h2n">${on.length} / ${BADGES.length}</span></h2>${on.length?`<div class="badges">${on.map(b=>`<button class="badge-i" data-a="badgeInfo" data-k="${b[0]}"><span>${b[1]}</span><b>${esc(b[2])}</b></button>`).join('')}</div>`:'<p class="muted">Noch keine – das erste gibt es für den ersten Eintrag.</p>'}
+ ${off.length?`<details class="fold"><summary><b>Noch offen</b><span>${off.length}</span></summary>${off.map(b=>`<div class="row" style="padding:7px 0;gap:10px;opacity:.75"><span style="font-size:18px">🔒</span><div class="grow"><b style="font-size:14px">${esc(b[2])}</b><div class="sub">${esc(b[3])}</div></div></div>`).join('')}</details>`:''}`}
+let badgeTimer=null;
+function badgeCheck(){clearTimeout(badgeTimer);badgeTimer=setTimeout(()=>{if(hasDemo())return;const now=earnedBadges();let seen;try{seen=JSON.parse(lsGet('garage.badges')||'null')}catch(e){seen=null}
+ if(!seen){lsSet('garage.badges',JSON.stringify(now));return}const nw=now.filter(k=>!seen.includes(k));if(nw.length){lsSet('garage.badges',JSON.stringify([...new Set([...seen,...now])]));const b=BADGES.find(x=>x[0]===nw[0]);toast(`${b[1]} Neues Abzeichen: ${b[2]}${nw.length>1?` (+${nw.length-1})`:''}`)}},600)}
+function yearKm(carId,y){const pts=[...S.entries.filter(e=>e.carId===carId&&e.odo!=null).map(e=>[e.date,e.odo]),...S.fuel.filter(f=>f.carId===carId&&f.odo!=null).map(f=>[f.date,f.odo]),...S.odo.filter(o=>o.carId===carId).map(o=>[o.date,o.odo])];const c=car(carId);if(c?.purchaseOdo!=null&&c.purchase)pts.push([c.purchase,c.purchaseOdo]);
+ const inY=pts.filter(p=>p[0].startsWith(y)).map(p=>p[1]);if(!inY.length)return null;const before=pts.filter(p=>p[0]<y+'-01-01').map(p=>p[1]);const start=before.length?Math.max(...before):Math.min(...inY);const d=Math.max(...inY)-start;return d>0?d:null}
+function wrappedSheet(y){y=y||today().slice(0,4);const inY=d=>(d||'').startsWith(y);const own=c=>!isForeign(c);
+ const ents=S.entries.filter(e=>inY(e.date)&&own(e.carId)),work=ents.filter(e=>!isPk(e)),diy=work.filter(e=>e.diy),fuel=S.fuel.filter(f=>inY(f.date)&&own(f.carId));
+ const cars=S.cars.filter(c=>!c.foreign&&(!c.archived||inY(c.sold?.date)));const km=cars.map(c=>({c,k:yearKm(c.id,y)})).filter(x=>x.k);
+ const maint=ents.reduce((s,e)=>s+entryCost(e),0),fc=fuel.reduce((s,f)=>s+(f.price||0),0),tl=S.tools.filter(t=>inY(t.purchaseDate)).reduce((s,t)=>s+(toolPaid(t)||0),0),inv=S.inventory.reduce((s,i)=>s+(i.buys||[]).filter(b=>inY(b.date)).reduce((z,b)=>z+(b.price||0),0),0);
+ const sv=savedDIY(ents),big=work.slice().sort((a,b)=>entryCost(b)-entryCost(a))[0];
+ const tu={};ents.forEach(e=>(e.toolIds||[]).forEach(id=>tu[id]=(tu[id]||0)+1));const topT=Object.entries(tu).sort((a,b)=>b[1]-a[1])[0];const tool=topT&&S.tools.find(t=>t.id===topT[0]);
+ const lit=fuel.reduce((s,f)=>s+(f.liters||0),0),pp=fuel.filter(f=>ppl(f)).sort((a,b)=>ppl(a)-ppl(b))[0],st={};fuel.forEach(f=>{if(f.station)st[f.station]=(st[f.station]||0)+1});const fav=Object.entries(st).sort((a,b)=>b[1]-a[1])[0];
+ const C=[];const card=(bg,ic,title,body)=>C.push(`<div class="wr-card" style="--bg:${bg}"><div class="wr-ic">${ic}</div><div class="wr-t">${title}</div><div class="wr-b">${body}</div></div>`);
+ card('linear-gradient(160deg,#f5a524,#c2410c)','🏁',`Dein Garagenjahr ${y}`,`Wisch nach links und schau, was in deiner Garage los war.`);
+ if(km.length)card('linear-gradient(160deg,#2563eb,#1e3a8a)','🛣️',`${fmtN(km.reduce((s,x)=>s+x.k,0))} km`,km.map(x=>`<div class="wr-row"><span><span class="cdot" style="background:${carColor(x.c.id)}"></span>${esc(dispName(x.c))}</span><b>${fmtN(x.k)} km</b></div>`).join(''));
+ if(work.length)card('linear-gradient(160deg,#16a34a,#14532d)','🔧',`${work.length} Arbeit${work.length>1?'en':''}`,`<div class="wr-big">${work.length?Math.round(diy.length/work.length*100):0} %</div>davon selbst gemacht${sv.hours?`<br>${fmtN(sv.hours,1)} Stunden in der Garage`:''}`);
+ if(sv.saved)card('linear-gradient(160deg,#db2777,#831843)','🐷','Gespart',`<div class="wr-big">${eur(sv.saved)}</div>weil du selbst geschraubt hast statt in die Werkstatt zu fahren`);
+ if(maint+fc+tl>0)card('linear-gradient(160deg,#7c3aed,#3b0764)','💶',`${eur(maint+fc+tl)} ausgegeben`,[['Wartung & Reparatur',maint],['Kraftstoff',fc],['Werkzeug',tl]].filter(x=>x[1]>0).map(([l,v])=>`<div class="wr-row"><span>${l}</span><b>${eur(v)}</b></div>`).join(''));
+ if(big&&entryCost(big)>0)card('linear-gradient(160deg,#dc2626,#7f1d1d)','🏆','Größte Arbeit',`<div class="wr-big" style="font-size:26px">${esc(big.title||big.category)}</div>${carTag(big.carId)} ${fmtD(big.date)} · ${eur(entryCost(big))}`);
+ if(tool)card('linear-gradient(160deg,#0891b2,#164e63)','🧰','Lieblingswerkzeug',`<div class="wr-big" style="font-size:26px">${esc(tool.name)}</div>${topT[1]}× im Einsatz`);
+ if(fuel.length)card('linear-gradient(160deg,#0d9488,#134e4a)','⛽',`${fuel.length}× getankt`,`<div class="wr-big">${fmtN(lit)} l</div>${pp?`Günstigster Liter: <b>${eur3(ppl(pp))}</b>${pp.station?' bei '+esc(pp.station):''}`:''}${fav?`<br>Stammtankstelle: <b>${esc(fav[0])}</b>`:''}`);
+ const got=earnedBadges().length;card('linear-gradient(160deg,#f59e0b,#78350f)','🏅','Abzeichen',`<div class="wr-big">${got} / ${BADGES.length}</div>${got>=BADGES.length?'Alle gesammelt – Respekt!':'Weiter so – unter Statistik siehst du, was noch fehlt.'}`);
+ openSheet(`Jahresrückblick ${y}`,`<div class="wr">${C.join('')}</div><div class="wr-dots">${C.map((_,i)=>`<i class="${i?'':'on'}"></i>`).join('')}</div>`);
+ const sc=$('#sheet .wr');sc?.addEventListener('scroll',()=>{const i=Math.round(sc.scrollLeft/sc.clientWidth);$$('#sheet .wr-dots i').forEach((d,j)=>d.classList.toggle('on',i===j))},{passive:true})}
 /* ================= Router & Ansichten ================= */
 function parseHash(){const p=(location.hash||'#/home').replace(/^#\/?/,'').split('/');return{v:p[0]||'home',id:p[1],tab:p[2]}}
 function render(){const r=parseHash();let o;
@@ -1801,7 +1907,7 @@ function render(){const r=parseHash();let o;
  $('#hdrActions').innerHTML=o.actions||'';$('header.top').classList.toggle('with-tabs',!!o.hdrTabs);
  renderNav(r,o);
  $('#view').innerHTML=o.html;hydratePhotos($('#view'));
- if(o.after)o.after();$('#view .chips .chip.on')?.scrollIntoView({inline:'center',block:'nearest'})}
+ badgeCheck();if(o.after)o.after();$('#view .chips .chip.on')?.scrollIntoView({inline:'center',block:'nearest'})}
 
 function tileHTML(c){const nd=nextDue(c.id);
  return`<div class="tile" data-a="go" data-h="#/car/${c.id}"><div class="ph ${c.photoId?'':'nophoto'}">${c.photoId?`<img data-photo="${c.photoId}" alt="">`:CAR_SVG}</div><div class="body">
@@ -1828,6 +1934,7 @@ function viewHome(){if(homeTab==='log')return{title:'Garage',html:viewLog(),tab:
  if(memOnly)h+=`<div class="note warn"><b>Vorschau-Modus:</b> Der Browser erlaubt hier keinen dauerhaften Speicher. Änderungen gehen beim Schließen verloren. Installiere die App wie unter „Mehr › Installation“ beschrieben.</div>`;
  if(hasDemo())h+=`<div class="note">Beispieldaten aktiv (Werte zum Ausprobieren). Entfernen unter <button class="linkbtn" data-a="go" data-h="#/settings">Mehr › Einstellungen</button>.</div>`;
  else if(backupDue())h+=`<div class="note warn">Letzte Sicherung: ${lsGet('garage.lastBackup')?fmtD(lsGet('garage.lastBackup').slice(0,10)):'noch nie'}. <button class="linkbtn" data-a="go" data-h="#/backup">Jetzt sichern</button></div>`;
+ {const md=today().slice(5),yy=md>='12'?today().slice(0,4):String(+today().slice(0,4)-1);if((md>='12-01'||md<='01-31')&&lsGet('garage.wrSeen')!==yy&&S.entries.some(e=>e.date.startsWith(yy)))h+=`<button class="wr-open" data-a="wrapped" data-y="${yy}"><span>🎁</span><div class="grow"><b>Dein Jahresrückblick ${yy} ist da</b><div class="sub">km, Arbeiten, Ausgaben, Abzeichen …</div></div><span class="muted">›</span></button>`}
  h+=cars.length?`<h2>Meine Autos <button class="h2a" data-a="go" data-h="#/cars">Alle ›</button></h2>${cars.map(carCard).join('')}`:empty('Noch keine Autos in der Garage.','Auto hinzufügen','carForm');
  const due=[...dueItems().filter(d=>d.st==='over'||d.st==='soon'),...kmReminders()];
  const grp=dueGroups(due);homeDueGroups=grp;const shown=homeDueAll?grp:grp.slice(0,4);
@@ -1966,7 +2073,7 @@ function viewArchive(){const arch=S.cars.filter(c=>c.archived).sort((a,b)=>(b.so
  return{title:'Archiv',tab:'more',back:'#/more',html:h||empty('Noch keine verkauften Autos.<br><span class="sub">Ein Auto verkaufst du in seiner Übersicht unter „Als verkauft markieren“.</span>','','')}}
 function viewMore(){const t=(h,i,l,sub)=>`<div class="mtile" data-a="go" data-h="${h}"><span class="mi">${ic(i)}</span>${l}${sub?`<small>${sub}</small>`:''}</div>`;const arch=S.cars.filter(c=>c.archived).length;
  const tw=S.tools.filter(x=>{const w=toolWarranty(x);return w&&w.st!=='exp'}).length+S.entries.reduce((n,e)=>n+(e.parts||[]).filter(p=>p.warranty&&addMonths(e.date,p.warranty)>=today()).length,0);
- const subs={warranty:tw?tw+' aktiv':'',archive:arch?arch+' Autos':'',backup:backupDue()?'fällig':''};const pins=navPinned();
+ const subs={stats:`🏅 ${earnedBadges().length}/${BADGES.length}`,warranty:tw?tw+' aktiv':'',archive:arch?arch+' Autos':'',backup:backupDue()?'fällig':''};const pins=navPinned();
  const skip=['inv','shop'];// über Werkstatt erreichbar – nur zeigen, wenn Werkstatt nicht angepinnt ist
  let h=`<div class="mgrid">${NAV_ITEMS.filter(x=>!pins.includes(x.k)&&!(skip.includes(x.k)&&pins.includes('tools'))).map(x=>t(x.h,x.i,x.l,subs[x.k])).join('')}<div class="mtile" data-a="go" data-h="#/settings/nav"><span class="mi">${ic('dots')}</span>Leiste anpassen</div></div>`;
  const cs=myCars().map(c=>`<h2><span class="cdot" style="background:${carColor(c.id)}"></span>Verbrauch ${esc(dispName(c))}</h2>${consChart(c.id)||consHint(c.id,true)}`).join('');if(cs)h+=cs;
@@ -1977,10 +2084,10 @@ function barsHTML(rows,fmt=eur){const max=Math.max(0,...rows.map(r=>r.v));return
 function viewStats(){const years=[...new Set([...S.entries.map(e=>e.date.slice(0,4)),...S.fuel.map(f=>f.date.slice(0,4))])].sort().reverse();
  const inY=d=>!statsYear||d.startsWith(statsYear);const ents=S.entries.filter(e=>inY(e.date)&&!isForeign(e.carId)),fuel=S.fuel.filter(f=>inY(f.date)&&!isForeign(f.carId)),fents=S.entries.filter(e=>inY(e.date)&&isForeign(e.carId));
  const tot=ents.reduce((s,e)=>s+entryCost(e),0),ftot=fuel.reduce((s,f)=>s+(f.price||0),0),work=ents.filter(e=>!isPk(e)),diy=work.filter(e=>e.diy),pks=ents.filter(isPk);
- let h=`<div class="chips"><button class="chip ${!statsYear?'on':''}" data-a="statsYear" data-y="">Gesamt</button>${years.map(y=>`<button class="chip ${statsYear===y?'on':''}" data-a="statsYear" data-y="${y}">${y}</button>`).join('')}</div>
+ let h=`<button class="wr-open" data-a="wrapped" data-y="${statsYear||today().slice(0,4)}"><span>🎁</span><div class="grow"><b>Jahresrückblick ${statsYear||today().slice(0,4)}</b><div class="sub">Dein Garagenjahr in ein paar Karten</div></div><span class="muted">›</span></button><div class="chips"><button class="chip ${!statsYear?'on':''}" data-a="statsYear" data-y="">Gesamt</button>${years.map(y=>`<button class="chip ${statsYear===y?'on':''}" data-a="statsYear" data-y="${y}">${y}</button>`).join('')}</div>
  <div class="grid2"><div class="card"><div class="sub">Wartung & Reparatur</div><div class="big">${eur(tot)}</div></div><div class="card"><div class="sub">Kraftstoff</div><div class="big">${eur(ftot)}</div></div></div>
  <div class="card"><dl class="kv"><dt>Arbeiten</dt><dd>${work.length}</dd><dt>Selbst gemacht</dt><dd>${diy.length} (${work.length?Math.round(diy.length/work.length*100):0} %)</dd><dt>In der Werkstatt</dt><dd>${work.length-diy.length}</dd><dt>Schrauberstunden</dt><dd>${fmtN(diy.reduce((s,e)=>s+(e.hours||0),0),1)} h</dd><dt>Davon Teilekosten</dt><dd>${eur(ents.reduce((s,e)=>s+partsCost(e),0))}</dd><dt>Davon Arbeitslohn</dt><dd>${eur(work.reduce((s,e)=>s+(e.labor||0),0))}</dd>${pks.length?`<dt>Pickerl-Gebühren</dt><dd>${eur(pks.reduce((s,e)=>s+entryCost(e),0))}<div class="sub">${pks.length} Begutachtung${pks.length>1?'en':''}</div></dd>`:''}</dl>
- <p class="sub" style="margin-bottom:0">Das Pickerl zählt nicht zu „selbst“ oder „Werkstatt“ – es darf nur eine Prüfstelle machen.</p></div>`;
+ <p class="sub" style="margin-bottom:0">Das Pickerl zählt nicht zu „selbst“ oder „Werkstatt“ – es darf nur eine Prüfstelle machen.</p></div>`+savedCard(ents);
  const cars=S.cars.filter(c=>!c.foreign).sort(byName);
  h+=fuelPriceStats();h+=`<h2>Pro Auto (Wartung + Kraftstoff)</h2><div class="card">${barsHTML(cars.map(c=>({l:dispName(c),v:ents.filter(e=>e.carId===c.id).reduce((s,e)=>s+entryCost(e),0)+fuel.filter(f=>f.carId===c.id).reduce((s,f)=>s+(f.price||0),0)})).filter(r=>r.v>0))}</div>`;
  h+=`<h2>Nach Kategorie</h2><div class="card">${barsHTML(MAIN_CATS.map(k=>({l:k,v:ents.filter(e=>mainCat(e.category)===k).reduce((s,e)=>s+entryCost(e),0)})).filter(r=>r.v>0).sort((a,b)=>b.v-a.v))}</div>`;
@@ -1995,6 +2102,7 @@ function viewStats(){const years=[...new Set([...S.entries.map(e=>e.date.slice(0
  if(fents.length){const fc=S.cars.filter(c=>c.foreign&&fents.some(e=>e.carId===c.id)).sort(byName);
   h+=`<h2>Fremde Autos</h2><p class="sub" style="margin-top:-4px">Getrennt von deinen eigenen Kosten.</p><div class="card"><dl class="kv"><dt>Arbeiten</dt><dd>${fents.length}</dd><dt>Teile & Material</dt><dd>${eur(fents.reduce((s,e)=>s+partsCost(e),0))}</dd><dt>Arbeitszeit</dt><dd>${fmtN(fents.reduce((s,e)=>s+(e.hours||0),0),1)} h</dd></dl></div>
   <div class="card">${fc.map(c=>{const l=fents.filter(e=>e.carId===c.id);return`<div class="row between" style="padding:6px 0"><span><span class="cdot" style="background:${carColor(c.id)}"></span>${esc(dispName(c))}${c.owner?.name?' <span class="sub">('+esc(c.owner.name)+')</span>':''}</span><span class="sub">${l.length}× · ${fmtN(l.reduce((s,e)=>s+(e.hours||0),0),1)} h · <b style="color:var(--text)">${eur(l.reduce((s,e)=>s+partsCost(e),0))}</b></span></div>`}).join('')}</div>`}
+ h+=badgesHTML();
  return{title:'Statistik',html:h,tab:'more',back:'#/more'}}
 
 function viewBackup(){const l=lsGet('garage.lastBackup');
@@ -2009,6 +2117,7 @@ function viewSettings(){const th=lsGet('garage.theme')||'dark';
  if(hasDemo())h+=`<h2>Beispieldaten</h2><div class="card"><p class="sub">Beim ersten Start wurden dein Audi A3 und dein BMW E36 mit Beispiel-Einträgen, To-dos, Lagerteilen und Tankungen angelegt.</p>
  <button class="btn primary block" data-a="demoKeepCars">Beispiele löschen, Autos behalten</button><p class="sub">Entfernt Einträge, Intervalle, To-dos, Lager, Tankungen, km-Stand und Termine. Die Technik-Liste bleibt zum Kontrollieren stehen.</p>
  <button class="btn block" data-a="demoAll">Alles Beispielhafte löschen (auch Autos)</button></div>`;
+ h+=`<h2>Werkstatt-Stundensatz</h2><div class="card row between"><div><b>${shopRate()?eur(shopRate())+' / Stunde':'nicht festgelegt'}</b><div class="sub">Für „Durch Selbermachen gespart“ in der Statistik</div></div><button class="btn" data-a="rateSet">Ändern</button></div>`;
  const bd=lsGet('garage.backupDays')??'14';h+=`<h2>Backup-Erinnerung</h2><div class="seg">${[['7','7 Tage'],['14','14 Tage'],['30','30 Tage'],['0','Nie']].map(([k,l])=>`<label><input type="radio" name="bd" value="${k}" ${bd===k?'checked':''} data-change="backupDays"><span>${l}</span></label>`).join('')}</div>`;
  h+=`<h2>Gefahrenzone</h2><button class="btn danger block" data-a="wipe">Alle Daten löschen</button>`;
  return{title:'Einstellungen',html:h,tab:'more',back:'#/more'}}
@@ -2211,7 +2320,7 @@ function ivAutoMatch(silent){if(!$('#ivChecks')||draft?.kind!=='entry')return;co
   if(cb&&!cb.checked&&ivKeywords(iv).some(k=>txt.includes(k))){cb.checked=true;n.push(iv.name)}}
  if(n.length&&!silent)toast('Intervall angehakt: '+n.join(', '))}
 const checkedIv=()=>$$('#ivChecks input:checked').map(i=>i.value);
-function renderPhotos(){const box=$('#photos');if(!box)return;box.innerHTML=draft.photos.map((p,i)=>p.type==='pdf'?`<div class="thumb thumb-pdf" data-a="photoPdf" data-i="${i}"><span class="pdf-ic">${ic('receipt','ico')}<b>PDF</b><small>${esc((p.name||'Rechnung.pdf').replace(/\.pdf$/i,''))}</small></span><button type="button" class="tag" data-a="photoTag" data-i="${i}">${esc(p.tag||'Beleg')}</button><button type="button" class="x" data-a="photoDel" data-i="${i}" aria-label="Entfernen">✕</button></div>`:`<div class="thumb"><img ${p.data?`src="${p.data}"`:`data-photo="${p.id}"`} alt="" data-a="photoView"><button type="button" class="tag" data-a="photoTag" data-i="${i}">${esc(p.tag||'Foto')}</button><button type="button" class="x" data-a="photoDel" data-i="${i}" aria-label="Entfernen">✕</button></div>`).join('');hydratePhotos(box)}
+function renderPhotos(){const box=$('#photos');if(!box)return;box.innerHTML=draft.photos.map((p,i)=>p.type==='pdf'?`<div class="thumb thumb-pdf" data-a="photoPdf" data-i="${i}"><span class="pdf-ic">${ic('receipt','ico')}<b>PDF</b><small>${esc((p.name||'Rechnung.pdf').replace(/\.pdf$/i,''))}</small></span><button type="button" class="tag" data-a="photoTag" data-i="${i}">${esc(p.tag||'Beleg')}</button><button type="button" class="x" data-a="photoDel" data-i="${i}" aria-label="Entfernen">✕</button></div>`:`<div class="thumb"><img ${p.data?`src="${p.data}"`:`data-photo="${p.id}"`} alt="" data-a="photoView"><button type="button" class="pen" data-a="photoAnno" data-i="${i}" aria-label="Beschriften">✏️</button><button type="button" class="tag" data-a="photoTag" data-i="${i}">${esc(p.tag||'Foto')}</button><button type="button" class="x" data-a="photoDel" data-i="${i}" aria-label="Entfernen">✕</button></div>`).join('');hydratePhotos(box)}
 async function saveEntry(f){const fd=Object.fromEntries(new FormData(f));const old=draft.id?S.entries.find(e=>e.id===draft.id):null;
  {const bad=readParts().find(p=>{const it=p.invId&&S.inventory.find(i=>i.id===p.invId);return it&&!sameDim(p.unit,it.unit)});if(bad){toast(`„${bad.name}“: Einheit ${bad.unit} passt nicht zum Lager (${S.inventory.find(i=>i.id===bad.invId).unit})`);return}}
  if(!fd.carId){toast('Bitte ein Auto wählen');return}if(!fd.date){toast('Bitte ein Datum angeben');return}
@@ -2407,7 +2516,7 @@ async function exportJSON(){download(`garage-backup-${today()}.json`,await backu
 async function importJSON(files){const file=files[0];if(!file)return;try{const d=JSON.parse(await file.text());if(d.app!=='garage-wartung'||!d.data)throw new Error('format');
  const n=(d.data.cars||[]).length,m=(d.data.entries||[]).length;if(!confirm(`Backup vom ${fmtD((d.exported||'').slice(0,10))} mit ${n} Autos und ${m} Einträgen wiederherstellen?\n\nAlle aktuellen Daten werden ERSETZT.`))return;
  await clearAll();for(const s of STORES){if(s==='photos')continue;for(const x of d.data[s]||[])await put(s,x)}for(const p of d.photos||[])await put('photos',p);
- if(d.prefs)for(const[k,v]of Object.entries(d.prefs))if(['garage.nav','garage.theme','garage.backupDays'].includes(k))lsSet(k,v);navSig='';applyTheme();lsSet('garage.seeded','1');toast('Backup wiederhergestellt');nav('#/home')}catch(e){console.error(e);toast('Datei ist kein gültiges Garage-Backup')}}
+ if(d.prefs)for(const[k,v]of Object.entries(d.prefs))if(['garage.nav','garage.theme','garage.backupDays','garage.rate','garage.badges'].includes(k))lsSet(k,v);navSig='';applyTheme();lsSet('garage.seeded','1');toast('Backup wiederhergestellt');nav('#/home')}catch(e){console.error(e);toast('Datei ist kein gültiges Garage-Backup')}}
 function applyTheme(){const t=lsGet('garage.theme')||'dark';const dark=t==='system'?matchMedia('(prefers-color-scheme: dark)').matches:t==='dark';
  document.documentElement.dataset.theme=dark?'dark':'light';$('meta[name=theme-color]').content=dark?'#121417':'#f2f3f5'}
 
@@ -2663,7 +2772,7 @@ async function saveReceipt(f){const fd=Object.fromEntries(new FormData(f));const
  await put('entries',e);closeSheet();toast('Beleg gespeichert');nav(`#/car/${e.carId}/hist`)}
 
 /* ================= Backup teilen ================= */
-async function backupJSON(){const photos=await allPhotos();const prefs={};['garage.nav','garage.theme','garage.backupDays'].forEach(k=>{const v=lsGet(k);if(v!=null)prefs[k]=v});return JSON.stringify({app:'garage-wartung',version:2,exported:new Date().toISOString(),prefs,data:Object.fromEntries(STORES.filter(s=>s!=='photos').map(s=>[s,S[s]])),photos})}
+async function backupJSON(){const photos=await allPhotos();const prefs={};['garage.nav','garage.theme','garage.backupDays','garage.rate','garage.badges'].forEach(k=>{const v=lsGet(k);if(v!=null)prefs[k]=v});return JSON.stringify({app:'garage-wartung',version:2,exported:new Date().toISOString(),prefs,data:Object.fromEntries(STORES.filter(s=>s!=='photos').map(s=>[s,S[s]])),photos})}
 async function shareBackup(){const json=await backupJSON(),base=`garage-backup-${today()}`;
  const tries=[new File([json],base+'.json',{type:'application/json'}),new File([json],base+'.txt',{type:'text/plain'})];
  const file=tries.find(f=>{try{return navigator.canShare?.({files:[f]})}catch(e){return false}});
@@ -3122,6 +3231,9 @@ const A={
  dueGroup:d=>{const g=homeDueGroups[+d.i];if(!g)return;openSheet(g.items[0].label,`<p class="sub">Für welches Auto?</p>`+g.items.map(x=>dueItemHTML(x)).join(''))},
  toolInfo:d=>{const all=S.tools;if(d.k==='lent'){const l=all.filter(t=>t.lentTo);openSheet('Verliehen',l.map(t=>`<div class="item" data-a="toolView" data-id="${t.id}">${ibox('wrench','var(--yellow)')}<div class="grow"><b>${esc(t.name)}</b><div class="sub">an ${esc(t.lentTo)}${t.lentDate?' seit '+fmtD(t.lentDate):''}</div></div><span class="muted">›</span></div>`).join(''))}
   else{const r=all.filter(t=>t.rentPrice&&toolPaid(t)!=null),val=r.reduce((s,t)=>s+toolPaid(t),0),sv=r.reduce((s,t)=>s+toolUses(t)*t.rentPrice,0);openSheet('Durch eigenes Werkzeug gespart',`<p>Statt Leihen oder Werkstatt: <b>${eur(sv)}</b> – ${sv>=val?'die Anschaffung hat sich <b>bezahlt gemacht</b> ✓':`zu ${Math.round(sv/val*100)} % bezahlt gemacht`}.</p>`+r.sort((a,b)=>toolUses(b)*b.rentPrice-toolUses(a)*a.rentPrice).map(t=>`<div class="row between sub" style="padding:5px 0"><span>${esc(t.name)} · ${toolUses(t)}× à ${eur(t.rentPrice)}</span><b style="color:var(--text)">${eur(toolUses(t)*t.rentPrice)}</b></div>`).join('')+`<p class="sub">Gerechnet mit dem Leih-/Werkstattpreis pro Einsatz, den du beim Werkzeug eingetragen hast.</p>`)}},
+ wrapped:d=>{lsSet('garage.wrSeen',d.y);wrappedSheet(d.y)},
+ rateSet:()=>{const v=prompt('Werkstatt-Stundensatz in € (so viel würde eine Werkstatt pro Stunde verlangen):',lsGet('garage.rate')||'');if(v==null)return;const n=num(v);if(v.trim()&&!(n>0)){toast('Bitte eine Zahl eingeben');return}if(n>0)lsSet('garage.rate',String(n));else try{localStorage.removeItem('garage.rate')}catch(e){}render();toast('Stundensatz gespeichert')},
+ badgeInfo:d=>{const b=BADGES.find(x=>x[0]===d.k);if(b)toast(`${b[1]} ${b[2]}: ${b[3]}`)},
  closeLightbox:()=>{$('#lightbox').classList.add('hidden')},
  photoView:(d,el)=>{if(!el.src)return;$('#lightbox img').src=el.src;$('#lightbox').classList.remove('hidden')},
  toggleArchived:()=>{showArchived=!showArchived;render()},
@@ -3147,6 +3259,7 @@ const A={
  entryForm:d=>entryForm({id:d.id,carId:d.car}),entryView:d=>entryView(d.id),entryDelete:d=>entryDelete(d.id),entryCopy:d=>entryForm({copyOf:d.id}),
  partAdd:()=>{draft.parts=readParts();draft.parts.push({unit:'Stk'});renderParts();const p=$$('#parts .prow').pop();p.scrollIntoView({block:'center',behavior:'smooth'});$('[data-k=name]',p).focus()},
  partDel:d=>{draft.parts=readParts();draft.parts.splice(+d.i,1);renderParts()},
+ photoAnno:async d=>{const p=draft.photos[+d.i];if(!p)return;const src=p.data||await getPhoto(p.id);if(!src)return;const out=await annotate(src);if(out){p.data=out;renderPhotos();toast('Beschriftung übernommen – mit Speichern sichern')}},
  photoDel:d=>{draft.photos.splice(+d.i,1);renderPhotos()},
  photoPdf:d=>{const p=draft.photos[+d.i];if(p)openDoc(p.id,p.data)},docOpenId:d=>openDoc(d.id),
  photoTag:d=>{const p=draft.photos[+d.i];p.tag=PHOTO_TAGS[(PHOTO_TAGS.indexOf(p.tag||'Foto')+1)%PHOTO_TAGS.length];renderPhotos()},
