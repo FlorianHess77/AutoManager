@@ -121,6 +121,39 @@ input[type=checkbox],input[type=radio]{width:auto;min-height:0}
 #toast.show{transform:none;opacity:1;pointer-events:auto}
 #toast .tbtn{background:none;border:0;color:var(--accent);font-weight:800;font-size:15px;min-height:40px;font-family:inherit}
 #print{display:none}
+.ico.s{width:15px;height:15px}.ico.ci{width:21px;height:21px}
+.cat .ico{color:var(--c)}
+.cbar{width:4px;align-self:stretch;min-height:30px;border-radius:3px;flex:none;margin:-2px 0}
+.ctag{display:inline-block;font-size:10.5px;font-weight:800;padding:1px 7px;border-radius:6px;line-height:1.5;vertical-align:1px;white-space:nowrap}
+.cdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:0}
+.ccard{display:flex;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--cc);border-radius:16px;padding:10px;margin-bottom:10px;cursor:pointer}
+.ccard img,.ccard-ph{width:100px;height:78px;object-fit:cover;border-radius:11px;flex:none;background:var(--surface2);display:grid;place-items:center;color:var(--muted)}
+.ccard b{font-size:17px}.ccard .km{font-size:13px;color:var(--muted);margin:1px 0 7px}
+.pills{display:flex;flex-wrap:wrap;gap:5px}
+.pill{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--surface2);color:var(--muted);white-space:nowrap}
+.pill.ok{background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green)}.pill.wa{background:color-mix(in srgb,var(--yellow) 16%,transparent);color:var(--yellow)}.pill.ba{background:color-mix(in srgb,var(--red) 16%,transparent);color:var(--red)}
+h2 .h2a{color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700;background:none;border:0;font:inherit;font-size:13px;cursor:pointer;float:right}
+.mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.mtile{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 6px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:13px;font-weight:600;text-align:center;cursor:pointer;color:var(--text)}
+.mtile .mi{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,transparent)}
+.mtile .mi .ico{width:25px;height:25px}.mtile small{color:var(--muted);font-weight:500;font-size:11px;margin-top:-4px}
+.qbtn .ico{width:28px;height:28px;color:var(--accent)}
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 12px 8px;margin-bottom:12px}
+.chart-head{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.legend{display:flex;align-items:center;gap:5px;text-transform:none;letter-spacing:0;font-weight:600;flex-wrap:wrap;justify-content:flex-end}
+.legend i{width:9px;height:9px;border-radius:3px;display:inline-block;margin-left:6px}.legend i.dash{width:14px;height:0;border-top:2px dashed var(--muted);border-radius:0}
+.plot{position:relative;height:110px;margin-left:30px}
+.yax span{position:absolute;left:-32px;width:26px;text-align:right;font-size:10px;color:var(--muted);opacity:.75;transform:translateY(50%)}
+.grid-l i{position:absolute;left:0;right:0;border-top:1px solid var(--line);opacity:.6}
+.cols{position:absolute;inset:0;display:flex;gap:8px;align-items:flex-end}
+.col{flex:1;height:100%;display:flex;gap:2px;align-items:flex-end;justify-content:center}
+.col i{flex:1;max-width:18px;border-radius:4px 4px 0 0;min-height:0}
+.lsvg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.xax{display:flex;gap:8px;margin:5px 0 0 30px;font-size:10px;color:var(--muted)}.xax span{flex:1;text-align:center}
+.swatches{display:flex;flex-wrap:wrap;gap:10px;margin:4px 0 6px}
+.sw{width:36px;height:36px;border-radius:50%;border:2px solid var(--line);cursor:pointer;padding:0;display:grid;place-items:center;position:relative;color:#fff}
+.sw.on{outline:3px solid var(--text);outline-offset:2px}
+.sw-custom input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;min-height:0}
 header.top.with-tabs h1{flex:none}
 header.top.with-tabs #hdrActions{flex:1;min-width:0;display:flex;justify-content:flex-end}
 .hdr-seg{display:flex;gap:3px;background:var(--surface2);border-radius:12px;padding:3px;width:100%;max-width:300px}
@@ -1656,7 +1689,7 @@ window.addEventListener('hashchange',()=>{render();window.scrollTo(0,0)});
 let toastT;function toast(msg,label,fn){const t=$('#toast');t.innerHTML=`<span>${esc(msg)}</span>${label?`<button class="tbtn">${esc(label)}</button>`:''}`;t.classList.add('show');
  if(label)t.querySelector('button').onclick=()=>{t.classList.remove('show');fn()};clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),label?6000:2200)}
 function hydratePhotos(root){$$('img[data-photo]:not([src])',root).forEach(async img=>{const d=await getPhoto(img.dataset.photo);if(d)img.src=d})}
-const catBadge=c=>`<span class="cat" style="--c:${CAT_COL[c]||'#888'}">${esc((c||'?')[0])}</span>`;
+const catBadge=c=>ibox(CAT_ICON[c]||'dots',CAT_COL[c]||'#888');
 const empty=(t,btn,a,extra='')=>`<div class="empty"><p>${t}</p>${btn?`<button class="btn primary" data-a="${a}" ${extra}>${btn}</button>`:''}</div>`;
 const prioLabel=p=>['','Hoch','Mittel','Niedrig'][p||2];
 const prioBadge=p=>`<span class="badge ${p==1?'st-over st':p==3?'':'st-soon st'}">${prioLabel(p)}</span>`;
@@ -1679,11 +1712,11 @@ function tileHTML(c){const nd=nextDue(c.id);
  <div class="row between"><b class="t">${esc(dispName(c))}</b>${c.plate?`<span class="plate">${esc(c.plate)}</span>`:''}</div>
  <div class="sub">${esc([[c.make,c.model].filter(Boolean).join(' '),carOdo(c.id)!=null?kmT(carOdo(c.id)):''].filter(Boolean).join(' · '))||'Noch keine Daten'}</div>
  ${nd?`<div class="due st-${nd.st}"><span class="dot"></span><span>${esc(nd.label)}: ${esc(nd.text)}</span></div>`:''}</div></div>`}
-const dueItemHTML=(d,showCar=true)=>`<div class="item st-${d.st}" data-a="${({iv:'ivOpen',dl:'dlOpen',pk:'pkOpen',ty:'tyOpen'})[d.kind]}" data-id="${d.id}" data-car="${d.carId}"><span class="dot"></span><div class="grow"><b>${esc(d.label)}</b><div class="sub">${showCar?esc(carName(d.carId))+' · ':''}${esc(d.text)}</div></div><span class="muted">›</span></div>`;
-function todoHTML(t,showCar=true){const meta=[prioBadge(t.prio)];if(showCar)meta.push(esc(t.carId?carName(t.carId):'Allgemein'));
+const dueItemHTML=(d,showCar=true)=>`<div class="item st-${d.st}" data-a="${({iv:'ivOpen',dl:'dlOpen',pk:'pkOpen',ty:'tyOpen'})[d.kind]}" data-id="${d.id}" data-car="${d.carId}"><span class="dot"></span><div class="grow"><b>${esc(d.label)}</b><div class="sub">${showCar?carTag(d.carId)+' ':''}${esc(d.text)}</div></div><span class="muted">›</span></div>`;
+function todoHTML(t,showCar=true){const meta=[prioBadge(t.prio)];if(showCar)meta.push(t.carId?carTag(t.carId):'Allgemein');
  if(t.due&&!t.done){const d=daysUntil(t.due);meta.push(`<span style="${d<0?'color:var(--red);font-weight:700':''}">fällig ${fmtD(t.due)}</span>`)}
  if(t.done&&t.doneAt)meta.push('erledigt '+fmtD(t.doneAt));if(t.parts?.length)meta.push(`${t.parts.length} Teil${t.parts.length>1?'e':''}`);
- return`<div class="item ${t.done?'done':''}"><button class="chk ${t.done?'on':''}" data-a="todoToggle" data-id="${t.id}" aria-label="Erledigt">✓</button>
+ return`<div class="item ${t.done?'done':''}">${showCar&&t.carId?cbar(t.carId):''}<button class="chk ${t.done?'on':''}" data-a="todoToggle" data-id="${t.id}" aria-label="Erledigt">✓</button>
  <div class="grow" data-a="todoForm" data-id="${t.id}"><b>${esc(t.title)}</b><div class="sub">${meta.join(' · ')}</div></div>
  ${t.done&&!t.entryId&&S.cars.length?`<button class="btn" data-a="todoToEntry" data-id="${t.id}" style="min-height:40px;padding:0 10px;font-size:14px">→ Eintrag</button>`:''}</div>`}
 function entryHTML(e,showCar=false){const parts=(e.parts||[]).map(p=>[p.name,p.maker].filter(Boolean).join(' ')).filter(Boolean);
@@ -1695,16 +1728,16 @@ function viewHome(){if(homeTab==='log')return{title:'Garage',html:viewLog(),tab:
  if(memOnly)h+=`<div class="note warn"><b>Vorschau-Modus:</b> Der Browser erlaubt hier keinen dauerhaften Speicher. Änderungen gehen beim Schließen verloren. Installiere die App wie unter „Mehr › Installation“ beschrieben.</div>`;
  if(hasDemo())h+=`<div class="note">Beispieldaten aktiv (Werte zum Ausprobieren). Entfernen unter <button class="linkbtn" data-a="go" data-h="#/settings">Mehr › Einstellungen</button>.</div>`;
  else if(backupDue())h+=`<div class="note warn">Letzte Sicherung: ${lsGet('garage.lastBackup')?fmtD(lsGet('garage.lastBackup').slice(0,10)):'noch nie'}. <button class="linkbtn" data-a="go" data-h="#/backup">Jetzt sichern</button></div>`;
- h+=cars.length?`<div class="tiles">${cars.map(tileHTML).join('')}</div>`:empty('Noch keine Autos in der Garage.','Auto hinzufügen','carForm');
+ h+=cars.length?`<h2>Meine Autos <button class="h2a" data-a="go" data-h="#/cars">Alle ›</button></h2>${cars.map(carCard).join('')}`:empty('Noch keine Autos in der Garage.','Auto hinzufügen','carForm');
  const due=dueItems().filter(d=>d.st==='over'||d.st==='soon');
- h+=`<h2>Fällig & überfällig</h2>`+(due.length?due.map(d=>dueItemHTML(d)).join(''):`<p class="muted">Alles im grünen Bereich.</p>`)+`<button class="btn block" data-a="go" data-h="#/calendar">📅 Kalender – nächste 12 Monate</button>`;
+ h+=`<h2>Fällig & überfällig</h2>`+(due.length?due.map(d=>dueItemHTML(d)).join(''):`<p class="muted">Alles im grünen Bereich.</p>`)+`<button class="btn block" data-a="go" data-h="#/calendar">${ic('cal')} Kalender – nächste 12 Monate</button>`;
  const oi=S.issues.filter(x=>x.status!=='solved'&&car(x.carId)&&!car(x.carId).archived);if(oi.length)h+=`<h2>Offene Fehler</h2>`+oi.map(issueHTML).join('');
- const td=openTodos();h+=`<h2>Offene To-dos</h2>`+(td.length?td.slice(0,5).map(t=>todoHTML(t)).join('')+(td.length>5?`<button class="btn block" data-a="go" data-h="#/todos">Alle ${td.length} anzeigen</button>`:''):`<p class="muted">Keine offenen Aufgaben.</p>`);
+ const td=openTodos();h+=`<h2>Offene To-dos${td.length?` <button class="h2a" data-a="go" data-h="#/todos">${td.length} ›</button>`:''}</h2>`+(td.length?td.slice(0,5).map(t=>todoHTML(t)).join('')+(td.length>5?`<button class="btn block" data-a="go" data-h="#/todos">Alle ${td.length} anzeigen</button>`:''):`<p class="muted">Keine offenen Aufgaben.</p>`);
  return{title:'Garage',html:h,tab:'home',actions:homeTabs(),hdrTabs:true}}
 
 let showArchived=false;
 function viewCars(){const act=activeCars(),arch=S.cars.filter(c=>c.archived).sort(byName);
- const li=c=>`<div class="item" data-a="go" data-h="#/car/${c.id}"><div class="cat" style="--c:var(--accent)">${c.photoId?`<img data-photo="${c.photoId}" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:12px">`:'🚗'}</div><div class="grow"><b>${esc(dispName(c))}</b><div class="sub">${esc([c.make,c.model,c.year].filter(Boolean).join(' '))} · ${kmT(carOdo(c.id))}</div></div>${c.plate?`<span class="plate">${esc(c.plate)}</span>`:''}</div>`;
+ const li=c=>`<div class="item" data-a="go" data-h="#/car/${c.id}" style="border-left:5px solid ${carColor(c.id)}"><div class="cat" style="--c:${carColor(c.id)}">${c.photoId?`<img data-photo="${c.photoId}" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:12px">`:ic('car','ico ci')}</div><div class="grow"><b>${esc(dispName(c))}</b><div class="sub">${esc([c.make,c.model,c.year].filter(Boolean).join(' '))} · ${kmT(carOdo(c.id))}</div></div>${c.plate?`<span class="plate">${esc(c.plate)}</span>`:''}</div>`;
  let h=act.length?act.map(li).join(''):empty('Noch keine Autos.','','');
  h+=`<button class="btn primary block" data-a="carForm">+ Auto hinzufügen</button>`;
  return{title:'Garage',html:h,tab:'cars'}}
@@ -1757,8 +1790,8 @@ function viewCar(id,tab){const c=car(id);
   h+=`<button class="btn block" data-a="torqueSheet" data-car="${id}">🔩 Drehmoment-Spickzettel</button>`+(c.demo?`<div class="note warn">Beispielwerte – bitte mit Handbuch, Reparaturleitfaden oder Teilekatalog abgleichen.</div>`:'')+(sp.length?`<div class="card"><dl class="kv">${sp.map(s=>`<dt>${esc(s.k)}</dt><dd>${esc(s.v)}</dd>`).join('')}</dl></div>`:empty('Noch keine technischen Daten.','',''))+`<button class="btn primary block" data-a="specForm" data-car="${id}">Technische Daten bearbeiten</button>`}
  if(tab==='fuel'){const fc=fuelCalc(id);
   h+=`<div class="card"><dl class="kv"><dt>Ø Verbrauch</dt><dd><b>${fc.avg?fmtN(fc.avg,1)+' l/100 km':'–'}</b></dd><dt>Getankt gesamt</dt><dd>${fmtN(fc.liters,1)} l</dd><dt>Kosten gesamt</dt><dd>${eur(fc.cost)}</dd><dt>Ø Literpreis</dt><dd>${fc.liters?eur(fc.cost/fc.liters):'–'}</dd></dl></div>
-  <button class="btn primary block" data-a="fuelForm" data-car="${id}">+ Tankung</button>`+
-  fc.list.slice().reverse().map(f=>`<div class="item" data-a="fuelForm" data-id="${f.id}"><span class="cat" style="--c:#5aa9e6">⛽</span><div class="grow"><b>${fmtN(f.liters,2)} l${f.full?'':' (Teil)'}</b><div class="sub">${fmtD(f.date)} · ${kmT(f.odo)}${fc.cons[f.id]?` · <b style="color:var(--text)">${fmtN(fc.cons[f.id],1)} l/100</b>`:''}</div></div><span class="amt">${eur(f.price)}</span></div>`).join('')+
+  ${consChart(id)}<button class="btn primary block" data-a="fuelForm" data-car="${id}">+ Tankung</button>`+
+  fc.list.slice().reverse().map(f=>`<div class="item" data-a="fuelForm" data-id="${f.id}">${ibox('fuel','#5aa9e6')}<div class="grow"><b>${fmtN(f.liters,2)} l${f.full?'':' (Teil)'}</b><div class="sub">${fmtD(f.date)} · ${kmT(f.odo)}${fc.cons[f.id]?` · <b style="color:var(--text)">${fmtN(fc.cons[f.id],1)} l/100</b>`:''}</div></div><span class="amt">${eur(f.price)}</span></div>`).join('')+
   (fc.list.length?'<p class="sub">Verbrauch wird zwischen zwei Volltankungen berechnet.</p>':'')}
  if(tab==='odo'){const rows=[...S.entries.filter(e=>e.carId===id&&e.odo!=null).map(e=>({date:e.date,odo:e.odo,src:'Wartung: '+(e.title||e.category)})),
   ...S.fuel.filter(f=>f.carId===id&&f.odo!=null).map(f=>({date:f.date,odo:f.odo,src:'Tanken'})),...S.odo.filter(o=>o.carId===id).map(o=>({date:o.date,odo:o.odo,src:'Manuell',id:o.id}))]
@@ -1776,11 +1809,11 @@ function renderHistList(id){const box=$('#histList');if(!box)return;const words=
 let todoFilter='',todoShowDone=false;
 function viewTodos(){let list=S.todos.filter(t=>todoFilter===''?true:todoFilter==='_none'?!t.carId:t.carId===todoFilter);
  const open=sortTodos(list.filter(t=>!t.done)),done=list.filter(t=>t.done).sort((a,b)=>(b.doneAt||'').localeCompare(a.doneAt||''));
- let h=`<div class="chips"><button class="chip ${todoFilter===''?'on':''}" data-a="todoFilter" data-f="">Alle</button>${activeCars().map(c=>`<button class="chip ${todoFilter===c.id?'on':''}" data-a="todoFilter" data-f="${c.id}">${esc(dispName(c))}</button>`).join('')}<button class="chip ${todoFilter==='_none'?'on':''}" data-a="todoFilter" data-f="_none">Allgemein</button></div>`;
+ let h=`<div class="chips"><button class="chip ${todoFilter===''?'on':''}" data-a="todoFilter" data-f="">Alle</button>${activeCars().map(c=>`<button class="chip ${todoFilter===c.id?'on':''}" data-a="todoFilter" data-f="${c.id}"><span class="cdot" style="background:${carColor(c.id)}"></span>${esc(dispName(c))}</button>`).join('')}<button class="chip ${todoFilter==='_none'?'on':''}" data-a="todoFilter" data-f="_none">Allgemein</button></div>`;
  h+=open.map(t=>todoHTML(t)).join('')||empty('Keine offenen Aufgaben. 👍','','');
  h+=`<button class="btn primary block" data-a="todoForm" data-car="${todoFilter.startsWith('_')?'':todoFilter}">+ Aufgabe</button>`;
  if(done.length)h+=`<h2><button class="linkbtn" data-a="todoShowDone">${todoShowDone?'▾':'▸'} Erledigt (${done.length})</button></h2>`+(todoShowDone?done.map(t=>todoHTML(t)).join(''):'');
- return{title:'To-dos',html:h,tab:'todos',actions:`<button class="iconbtn" data-a="shopOpen" aria-label="Einkaufsliste">🛒${shopOpenCount()||''}</button>`}}
+ return{title:'To-dos',html:h,tab:'todos',actions:`<button class="iconbtn" data-a="shopOpen" aria-label="Einkaufsliste" style="display:inline-flex;align-items:center;gap:3px;font-weight:800">${ic('cart')}${shopOpenCount()||''}</button>`}}
 
 let invQ='';
 function viewInv(){const low=lowStock();let h=workshopChips('inv')+(low.length?`<div class="note warn">⚠ ${low.length} Artikel unter Mindestbestand – <button class="linkbtn" data-a="shopOpen">Einkaufsliste</button></div>`:'')+`<div class="row" style="gap:8px;margin-bottom:10px;flex-wrap:nowrap"><input id="invQ" type="search" placeholder="Lager durchsuchen …" value="${esc(invQ)}" style="flex:1"><button class="btn" data-a="scanInv" style="flex:none">📷 Scan</button></div><div id="invList"></div><button class="btn primary block" data-a="invForm">+ Teil / Betriebsstoff</button>`;
@@ -1796,8 +1829,11 @@ function viewArchive(){const arch=S.cars.filter(c=>c.archived).sort((a,b)=>(b.so
  <div class="grow"><b>${esc(dispName(c))}</b><div class="sub">${c.sold?`Verkauft ${fmtD(c.sold.date)}${c.sold.price!=null?' für '+eur(c.sold.price):''}`:'Archiviert, nicht verkauft'}</div>
  <div class="sub">${[o.months!=null?'besessen '+fmtMonths(o.months):'',o.buy!=null?'Gesamtkosten '+eur(o.total):''].filter(Boolean).join(' · ')}</div></div><span class="muted">›</span></div>`}).join('');
  return{title:'Archiv',tab:'more',back:'#/more',html:h||empty('Noch keine verkauften Autos.<br><span class="sub">Ein Auto verkaufst du in seiner Übersicht unter „Als verkauft markieren“.</span>','','')}}
-function viewMore(){const li=(h,i,t,s)=>`<div class="item" data-a="go" data-h="${h}"><span class="cat" style="--c:var(--accent)">${i}</span><div class="grow"><b>${t}</b><div class="sub">${s}</div></div><span class="muted">›</span></div>`;
- return{title:'Mehr',tab:'more',html:li('#/calendar','📅','Kalender','Alle Fälligkeiten der nächsten 12 Monate')+li('#/stats','📊','Statistik','Kosten pro Auto, Jahr, Kategorie, km')+li('#/warranty','🛡️','Garantien','Teile mit laufender Garantie')+li('#/archive','🗄️','Archiv',`Verkaufte & abgemeldete Autos (${S.cars.filter(c=>c.archived).length})`)+li('#/backup','💾','Backup & Export','Sichern, wiederherstellen, CSV')+li('#/settings','⚙️','Einstellungen','Darstellung, Beispieldaten, Daten löschen')+li('#/help','❔','Installation & Hilfe','So kommt die App aufs Handy')}}
+function viewMore(){const t=(h,i,l,sub)=>`<div class="mtile" data-a="go" data-h="${h}"><span class="mi">${ic(i)}</span>${l}${sub?`<small>${sub}</small>`:''}</div>`;const arch=S.cars.filter(c=>c.archived).length;
+ const tw=S.tools.filter(x=>{const w=toolWarranty(x);return w&&w.st!=='exp'}).length+S.entries.reduce((n,e)=>n+(e.parts||[]).filter(p=>p.warranty&&addMonths(e.date,p.warranty)>=today()).length,0);
+ let h=`<div class="mgrid">${t('#/calendar','cal','Kalender')}${t('#/stats','chart','Statistik')}${t('#/warranty','shield','Garantien',tw?tw+' aktiv':'')}${t('#/archive','archive','Archiv',arch?arch+' Autos':'')}${t('#/backup','save','Backup',backupDue()?'fällig':'')}${t('#/settings','gear','Einstellungen')}${t('#/help','help','Hilfe')}</div>`;
+ const cs=activeCars().map(c=>consChart(c.id)?`<h2><span class="cdot" style="background:${carColor(c.id)}"></span>${esc(dispName(c))}</h2>${consChart(c.id)}`:'').join('');if(cs)h+=cs;
+ return{title:'Mehr',tab:'more',html:h}}
 
 let statsYear='';
 function barsHTML(rows,fmt=eur){const max=Math.max(0,...rows.map(r=>r.v));return`<div class="bars">${rows.map(r=>`<div class="barrow"><div class="row between"><span>${esc(r.l)}</span><b>${fmt(r.v)}</b></div><div class="bar"><i style="width:${max?r.v/max*100:0}%"></i></div></div>`).join('')}</div>`}
@@ -1864,11 +1900,12 @@ function viewHelp(){return{title:'Installation & Hilfe',tab:'more',back:'#/more'
 
 /* ================= Formulare: Auto ================= */
 function carForm(id){const c=id?car(id):{fuel:'Benzin',deadlines:['Versicherung','Reifenwechsel Winter','Reifenwechsel Sommer'].map(l=>({id:uid(),label:l,date:''}))};
- draft={kind:'car',id:id||null,photoId:c.photoId||null,photoOrigId:c.photoOrigId||null,photoData:null,photoSrc:null,photoChanged:false,deadlines:structuredClone(c.deadlines||[])};
+ draft={kind:'car',id:id||null,photoId:c.photoId||null,color:c.color||(id?carColor(id):''),colorAuto:id?!!c.colorAuto:true,photoOrigId:c.photoOrigId||null,photoData:null,photoSrc:null,photoChanged:false,deadlines:structuredClone(c.deadlines||[])};
  const f=(k,l,t='text',x='')=>`<label class="f"><span>${l}</span><input name="${k}" type="${t}" value="${esc(c[k]??'')}" ${x}></label>`;
  const body=`<form id="fCar" data-form="car">
  <div class="ph" style="border-radius:var(--radius);margin-bottom:8px" id="carPh">${c.photoId?`<img data-photo="${c.photoId}" alt="">`:CAR_SVG}</div>
  <div class="grid3" style="margin-bottom:12px"><label class="btn">📷 Foto<input type="file" accept="image/*" data-file="carPhoto" hidden></label><button type="button" class="btn" data-a="carPhotoCrop">✂️ Zuschnitt</button><button type="button" class="btn" data-a="carPhotoDel">Entfernen</button></div>
+ <span class="sub">Farbe des Autos – erscheint als Streifen in Listen und Diagrammen</span>${colorPicker(draft.color,draft.colorAuto)}
  ${f('name','Name / Spitzname')}<div class="grid2">${f('make','Marke')}${f('model','Modell')}</div>
  <div class="grid2">${f('year','Baujahr','text','inputmode="numeric"')}${f('plate','Kennzeichen','text','autocapitalize="characters"')}</div>
  ${f('vin','FIN (Fahrgestellnummer)','text','autocapitalize="characters"')}${f('hsn','Typenschein-Nr.')}
@@ -1889,8 +1926,10 @@ async function saveCar(f){syncDl();const fd=Object.fromEntries(new FormData(f));
  const c={...(old||{}),id:draft.id||uid(),name:fd.name.trim(),make:fd.make.trim(),model:fd.model.trim(),year:fd.year.trim(),plate:fd.plate.trim().toUpperCase(),vin:fd.vin.trim().toUpperCase(),hsn:fd.hsn.trim(),tsn:old?.tsn||'',pickerlLast:fd.pickerlLast||null,purchasePrice:num(fd.purchasePrice),purchaseOdo:num(fd.purchaseOdo),engine:fd.engine.trim(),power:fd.power.trim(),fuel:fd.fuel,firstReg:fd.firstReg,purchase:fd.purchase,odo:num(fd.odo),deadlines:draft.deadlines.filter(d=>d.label),specs:old?.specs||[],archived:old?.archived||false,created:old?.created||today()};
  if(!c.name&&!c.make&&!c.model){toast('Bitte Name oder Marke/Modell angeben');return}
  if(!c.firstReg){toast('Bitte die Erstzulassung eintragen (fürs Pickerl)');return}
+ c.colorAuto=!!fd.colorAuto;c.color=fd.color||old?.color||null;if(c.colorAuto&&draft.photoChanged&&draft.photoData){const col=await colorFromPhoto(draft.photoData);if(col)c.color=col}
  if(draft.photoChanged){if(old?.photoId)await del('photos',old.photoId);if(old?.photoOrigId)await del('photos',old.photoOrigId);c.photoId=null;c.photoOrigId=null;
   if(draft.photoData){c.photoId=uid();await put('photos',{id:c.photoId,data:draft.photoData});if(draft.photoSrc){c.photoOrigId=uid();await put('photos',{id:c.photoOrigId,data:draft.photoSrc})}}}
+ if(!c.color)c.color=CAR_PALETTE[S.cars.filter(x=>x.id!==c.id).length%CAR_PALETTE.length][0];
  await put('cars',c);if(!old&&fd.stdIv)for(const t of stdIntervals(c.fuel))await put('intervals',ivFromTpl(t,c.id));
  closeSheet();toast('Gespeichert');if(!old)nav('#/car/'+c.id)}
 async function carDelete(id){const c=car(id);if(!confirm(`„${dispName(c)}“ mit ALLEN Einträgen, Intervallen, Tankungen und To-dos endgültig löschen?\n\nTipp: Verkaufte Autos besser archivieren.`))return;
@@ -2183,10 +2222,10 @@ async function saveOdo(f){const fd=Object.fromEntries(new FormData(f));const v=n
 /* ================= Schnelleingabe, Export, Druck ================= */
 function quick(){const r=parseHash();const cid=r.v==='car'?r.id:'';
  if(!activeCars().length)return carForm();draft={kind:'quick',carId:cid};
- openSheet('Neu …',`<div class="qgrid"><button class="qbtn" data-a="entryForm" data-car="${cid}"><b>🔧</b>Wartung / Reparatur</button><button class="qbtn" data-a="todoForm" data-car="${cid}"><b>✅</b>To-do</button>
- <button class="qbtn" data-a="odoForm" data-car="${cid}"><b>📏</b>km-Stand</button><button class="qbtn" data-a="fuelForm" data-car="${cid}"><b>⛽</b>Tanken</button>
- <label class="qbtn"><b>🧾</b>Beleg fotografieren<input type="file" accept="image/*" capture="environment" hidden data-file="receipt"></label><button class="qbtn" data-a="issueForm" data-car="${cid||defaultCarId()}"><b>⚠️</b>Fehler / Symptom</button>
- <button class="qbtn" data-a="pkDone" data-car="${cid||defaultCarId()}"><b>🛡️</b>Pickerl</button><button class="qbtn" data-a="quickWs"><b>🧰</b>Werkzeug / Lager</button><button class="qbtn" data-a="guideForm" data-car="${cid}"><b>📖</b>Anleitung</button><button class="qbtn" data-a="carForm"><b>🚗</b>Neues Auto</button></div>`)}
+ openSheet('Neu …',`<div class="qgrid"><button class="qbtn" data-a="entryForm" data-car="${cid}">${ic('wrench')}Wartung / Reparatur</button><button class="qbtn" data-a="todoForm" data-car="${cid}">${ic('list')}To-do</button>
+ <button class="qbtn" data-a="odoForm" data-car="${cid}">${ic('gauge')}km-Stand</button><button class="qbtn" data-a="fuelForm" data-car="${cid}">${ic('fuel')}Tanken</button>
+ <label class="qbtn">${ic('receipt')}Beleg fotografieren<input type="file" accept="image/*" capture="environment" hidden data-file="receipt"></label><button class="qbtn" data-a="issueForm" data-car="${cid||defaultCarId()}">${ic('alert')}Fehler / Symptom</button>
+ <button class="qbtn" data-a="pkDone" data-car="${cid||defaultCarId()}">${ic('shield')}Pickerl</button><button class="qbtn" data-a="quickWs">${ic('toolbox')}Werkzeug / Lager</button><button class="qbtn" data-a="guideForm" data-car="${cid}">${ic('book')}Anleitung</button><button class="qbtn" data-a="carForm">${ic('car')}Neues Auto</button></div>`)}
 function download(name,content,type){const b=new Blob([content],{type});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
 const fileSafe=s=>String(s).replace(/[^\wäöüÄÖÜß-]+/g,'_');
 function exportCSV(carId){const c=car(carId);const q=v=>{const s=String(v??'');return /[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};const n=v=>v==null?'':String(v).replace('.',',');
@@ -2219,7 +2258,7 @@ function toolCalc(t){const uses=toolUses(t),price=t.price??null;const r={uses,pr
  if(t.rentPrice&&price!=null){r.saved=uses*t.rentPrice-price;r.amort=r.saved>=0;r.left=r.amort?0:Math.ceil((price-uses*t.rentPrice)/t.rentPrice)}
  return r}
 let toolQ='',toolCat='';
-const workshopChips=on=>`<div class="chips"><button class="chip ${on==='tools'?'on':''}" data-a="go" data-h="#/tools">🔧 Werkzeug</button><button class="chip ${on==='inv'?'on':''}" data-a="go" data-h="#/inv">📦 Teilelager</button><button class="chip" data-a="shopOpen">🛒 Einkaufsliste${shopOpenCount()?' ('+shopOpenCount()+')':''}</button></div>`;
+const workshopChips=on=>`<div class="chips"><button class="chip ${on==='tools'?'on':''}" data-a="go" data-h="#/tools">${ic('wrench','ico s')} Werkzeug</button><button class="chip ${on==='inv'?'on':''}" data-a="go" data-h="#/inv">${ic('box','ico s')} Teilelager</button><button class="chip" data-a="shopOpen">${ic('cart','ico s')} Einkaufsliste${shopOpenCount()?' ('+shopOpenCount()+')':''}</button></div>`;
 function viewTools(){const all=S.tools;const val=all.reduce((s,t)=>s+(t.price||0),0),uses=all.reduce((s,t)=>s+toolUses(t),0),lent=all.filter(t=>t.lentTo).length;
  const rentTools=all.filter(t=>t.rentPrice&&t.price!=null),rentVal=rentTools.reduce((s,t)=>s+t.price,0),saved=rentTools.reduce((s,t)=>s+toolUses(t)*t.rentPrice,0);
  let h=workshopChips('tools')+`<div class="grid2"><div class="card"><div class="sub">Werkzeugwert</div><div class="big">${eur(val)}</div><div class="sub">${all.length} Werkzeuge</div></div>
@@ -2405,7 +2444,7 @@ function calendarItems(){const out=[],t=today(),end=addMonths(t,12);const add=(o
  return out.sort((a,b)=>a.date.localeCompare(b.date))}
 function viewCalendar(){const t=today(),items=calendarItems();const over=items.filter(i=>i.date<t||i.st==='over'),rest=items.filter(i=>!(i.date<t||i.st==='over'));
  const wd=s=>new Date(s+'T12:00:00').toLocaleDateString('de-AT',{weekday:'short'});
- const row=i=>`<div class="item st-${i.st}" ${i.act}><div class="cal-d"><b>${i.date.slice(8,10)}</b><span>${i.date<t?fmtM(i.date):wd(i.date)}</span></div><div class="grow"><b>${esc(i.label)}</b><div class="sub">${esc(i.carId?carName(i.carId):'Allgemein')}${i.sub?' · '+esc(i.sub):''}${i.est?' · ≈ geschätzt nach deiner Fahrleistung':''}</div></div></div>`;
+ const row=i=>`<div class="item st-${i.st}" ${i.act}><div class="cal-d"><b>${i.date.slice(8,10)}</b><span>${i.date<t?fmtM(i.date):wd(i.date)}</span></div><div class="grow"><b>${esc(i.label)}</b><div class="sub">${i.carId?carTag(i.carId):'Allgemein'}${i.sub?' · '+esc(i.sub):''}${i.est?' · ≈ geschätzt nach deiner Fahrleistung':''}</div></div></div>`;
  let h=over.length?`<h2 style="color:var(--red)">Überfällig</h2>`+over.map(row).join(''):'';let m='';
  for(const i of rest){const k=i.date.slice(0,7);if(k!==m){m=k;h+=`<h2>${new Date(k+'-01T12:00:00').toLocaleDateString('de-AT',{month:'long',year:'numeric'})}</h2>`}h+=row(i)}
  if(!items.length)h=empty('Keine Termine in den nächsten 12 Monaten.','','');
@@ -2545,26 +2584,26 @@ function activityItems(){const out=[];const add=o=>out.push(o);
  for(const e of S.entries)add({date:e.date,cat:mainCat(e.category),carId:e.carId,icon:catBadge(e.category),title:e.title||e.category,
   sub:[catLabel(e.category)!==(e.title||e.category)?catLabel(e.category):'',e.odo!=null?kmT(e.odo):'',isPk(e)?pkRes(e).i+' '+(e.workshop||'Prüfstelle'):e.diy?'selbst':'Werkstatt'].filter(Boolean).join(' · '),amount:entryCost(e)||null,act:`data-a="entryView" data-id="${e.id}"`});
  const cons={};for(const c of S.cars)Object.assign(cons,fuelCalc(c.id).cons);
- for(const f of S.fuel)add({date:f.date,cat:'Tanken',carId:f.carId,icon:'<span class="cat" style="--c:#5aa9e6">⛽</span>',title:`Getankt ${fmtN(f.liters,1)} l`,sub:[kmT(f.odo),cons[f.id]?fmtN(cons[f.id],1)+' l/100 km':''].filter(Boolean).join(' · '),amount:f.price,act:`data-a="fuelForm" data-id="${f.id}"`});
- for(const o of S.odo)add({date:o.date,cat:'km-Stand',carId:o.carId,icon:'<span class="cat" style="--c:var(--muted)">📏</span>',title:`km-Stand ${kmT(o.odo)}`,sub:'manuell eingetragen',act:`data-a="go" data-h="#/car/${o.carId}/odo"`});
- for(const x of S.issues)add({date:x.date,cat:'Fehler',carId:x.carId,icon:`<span class="cat" style="--c:${x.status==='solved'?'var(--green)':'var(--yellow)'}">${x.status==='solved'?'✓':'!'}</span>`,title:x.title,sub:['Fehler erfasst',x.codes,x.status==='solved'?'gelöst':'offen'].filter(Boolean).join(' · '),act:`data-a="issueForm" data-id="${x.id}" data-car="${x.carId}"`});
- for(const t of S.todos)if(t.done&&t.doneAt&&!t.entryId)add({date:t.doneAt,cat:'To-do',carId:t.carId,icon:'<span class="cat" style="--c:var(--green)">✓</span>',title:t.title,sub:'Aufgabe erledigt',act:`data-a="todoForm" data-id="${t.id}"`});
- for(const i of S.inventory)for(const b of i.buys||[])add({date:b.date,cat:'Lager',carId:null,icon:'<span class="cat" style="--c:#b07cf0">📦</span>',title:`${i.name} gekauft`,sub:[`+${fmtQ(b.qty)} ${b.unit}`,i.maker,b.shop].filter(Boolean).join(' · '),amount:b.price,act:`data-a="invForm" data-id="${i.id}"`});
- for(const c of S.cars){if(c.purchase)add({date:c.purchase,cat:'Auto',carId:c.id,icon:'<span class="cat" style="--c:var(--accent)">🚗</span>',title:`${dispName(c)} gekauft`,sub:c.purchaseOdo!=null?kmT(c.purchaseOdo):'',amount:c.purchasePrice,noSum:true,act:`data-a="go" data-h="#/car/${c.id}"`});
-  if(c.sold)add({date:c.sold.date,cat:'Auto',carId:c.id,icon:'<span class="cat" style="--c:var(--green)">💶</span>',title:`${dispName(c)} verkauft`,sub:[c.sold.odo!=null?kmT(c.sold.odo):'',c.sold.buyer].filter(Boolean).join(' · '),amount:c.sold.price,plus:true,noSum:true,act:`data-a="go" data-h="#/car/${c.id}"`})}
+ for(const f of S.fuel)add({date:f.date,cat:'Tanken',carId:f.carId,icon:ibox('fuel','#5aa9e6'),title:`Getankt ${fmtN(f.liters,1)} l`,sub:[kmT(f.odo),cons[f.id]?fmtN(cons[f.id],1)+' l/100 km':''].filter(Boolean).join(' · '),amount:f.price,act:`data-a="fuelForm" data-id="${f.id}"`});
+ for(const o of S.odo)add({date:o.date,cat:'km-Stand',carId:o.carId,icon:ibox('gauge'),title:`km-Stand ${kmT(o.odo)}`,sub:'manuell eingetragen',act:`data-a="go" data-h="#/car/${o.carId}/odo"`});
+ for(const x of S.issues)add({date:x.date,cat:'Fehler',carId:x.carId,icon:ibox(x.status==='solved'?'check':'alert',x.status==='solved'?'var(--green)':'var(--yellow)'),title:x.title,sub:['Fehler erfasst',x.codes,x.status==='solved'?'gelöst':'offen'].filter(Boolean).join(' · '),act:`data-a="issueForm" data-id="${x.id}" data-car="${x.carId}"`});
+ for(const t of S.todos)if(t.done&&t.doneAt&&!t.entryId)add({date:t.doneAt,cat:'To-do',carId:t.carId,icon:ibox('check','var(--green)'),title:t.title,sub:'Aufgabe erledigt',act:`data-a="todoForm" data-id="${t.id}"`});
+ for(const i of S.inventory)for(const b of i.buys||[])add({date:b.date,cat:'Lager',carId:null,icon:ibox('box','#b07cf0'),title:`${i.name} gekauft`,sub:[`+${fmtQ(b.qty)} ${b.unit}`,i.maker,b.shop].filter(Boolean).join(' · '),amount:b.price,act:`data-a="invForm" data-id="${i.id}"`});
+ for(const c of S.cars){if(c.purchase)add({date:c.purchase,cat:'Auto',carId:c.id,icon:ibox('car',carColor(c.id)),title:`${dispName(c)} gekauft`,sub:c.purchaseOdo!=null?kmT(c.purchaseOdo):'',amount:c.purchasePrice,noSum:true,act:`data-a="go" data-h="#/car/${c.id}"`});
+  if(c.sold)add({date:c.sold.date,cat:'Auto',carId:c.id,icon:ibox('euro','var(--green)'),title:`${dispName(c)} verkauft`,sub:[c.sold.odo!=null?kmT(c.sold.odo):'',c.sold.buyer].filter(Boolean).join(' · '),amount:c.sold.price,plus:true,noSum:true,act:`data-a="go" data-h="#/car/${c.id}"`})}
  return out.sort((a,b)=>b.date.localeCompare(a.date))}
 function homeTabs(){return`<div class="hdr-seg" role="tablist"><button type="button" class="${homeTab==='ov'?'on':''}" data-a="homeTab" data-t="ov">Übersicht</button><button type="button" class="${homeTab==='log'?'on':''}" data-a="homeTab" data-t="log">Verlauf</button></div>`}
 function viewLog(){const cars=S.cars.slice().sort((a,b)=>(a.archived?1:0)-(b.archived?1:0)||byName(a,b));
  return`<label class="f"><input id="logQ" type="search" placeholder="Verlauf durchsuchen …" value="${esc(logQ)}"></label>
- <div class="chips"><button class="chip ${!logCar?'on':''}" data-a="logCar" data-c="">Alle Autos</button>${cars.map(c=>`<button class="chip ${logCar===c.id?'on':''}" data-a="logCar" data-c="${c.id}">${esc(dispName(c))}${c.archived?' 🗄️':''}</button>`).join('')}<button class="chip ${logCar==='_none'?'on':''}" data-a="logCar" data-c="_none">Allgemein</button></div>
+ <div class="chips"><button class="chip ${!logCar?'on':''}" data-a="logCar" data-c="">Alle Autos</button>${cars.map(c=>`<button class="chip ${logCar===c.id?'on':''}" data-a="logCar" data-c="${c.id}"><span class="cdot" style="background:${carColor(c.id)}"></span>${esc(dispName(c))}${c.archived?' (verkauft)':''}</button>`).join('')}<button class="chip ${logCar==='_none'?'on':''}" data-a="logCar" data-c="_none">Allgemein</button></div>
  <div class="chips"><button class="chip ${!logCat?'on':''}" data-a="logCat" data-c="">Alle</button>${LOG_CATS.map(k=>`<button class="chip ${logCat===k?'on':''}" data-a="logCat" data-c="${k}">${k}</button>`).join('')}</div><div id="logList"></div>`}
 function renderLog(){const box=$('#logList');if(!box)return;const w=logQ.toLowerCase().split(/\s+/).filter(Boolean);
  const all=activityItems().filter(i=>(!logCar||(logCar==='_none'?!i.carId:i.carId===logCar))&&(!logCat||i.cat===logCat)&&(!w.length||w.every(x=>[i.title,i.sub,i.cat,i.carId?carName(i.carId):''].join(' ').toLowerCase().includes(x))));
  const list=all.slice(0,logLimit);let h='',m='';const sums={};all.forEach(i=>{if(!i.noSum&&i.amount)sums[i.date.slice(0,7)]=(sums[i.date.slice(0,7)]||0)+i.amount});
  for(const i of list){const k=i.date.slice(0,7);if(k!==m){m=k;h+=`<div class="log-month"><span>${new Date(k+'-01T12:00:00').toLocaleDateString('de-AT',{month:'long',year:'numeric'})}</span>${sums[k]?`<b>${eur(sums[k])}</b>`:''}</div>`}
-  h+=`<div class="item" ${i.act}>${i.icon}<div class="grow"><b>${esc(i.title)}</b><div class="sub">${fmtD(i.date)}${!logCar&&i.carId?' · '+esc(carName(i.carId)):''}${i.sub?' · '+esc(i.sub):''}</div></div>${i.amount?`<span class="amt" style="${i.plus?'color:var(--green)':''}">${i.plus?'+':''}${eur(i.amount)}</span>`:''}</div>`}
+  h+=`<div class="item" ${i.act}>${cbar(i.carId)}${i.icon}<div class="grow"><b>${esc(i.title)}</b><div class="sub">${!logCar&&i.carId?carTag(i.carId)+' ':''}${fmtD(i.date)}${i.sub?' · '+esc(i.sub):''}</div></div>${i.amount?`<span class="amt" style="${i.plus?'color:var(--green)':''}">${i.plus?'+':''}${eur(i.amount)}</span>`:''}</div>`}
  if(all.length>logLimit)h+=`<button class="btn block" data-a="logMore">Weitere ${Math.min(60,all.length-logLimit)} anzeigen (${all.length-logLimit} übrig)</button>`;
- box.innerHTML=h||`<p class="muted">${w.length||logCar||logCat?'Keine Treffer.':'Noch keine Aktivitäten.'}</p>`;
+ box.innerHTML=(all.length&&logLimit===60?costChart(all):'')+(h||`<p class="muted">${w.length||logCar||logCat?'Keine Treffer.':'Noch keine Aktivitäten.'}</p>`);
  if(all.length&&(logCar||logCat||w.length)){const tot=all.filter(i=>!i.noSum).reduce((s,i)=>s+(i.amount||0),0);box.insertAdjacentHTML('afterbegin',`<p class="sub" style="text-align:right;margin:0 0 8px">${all.length} Treffer · ${eur(tot)}</p>`)}}
 
 /* ================= Einkaufsliste ================= */
@@ -2621,6 +2660,92 @@ async function openDoc(id,local){const data=local||await getPhoto(id);if(!data){
 
 function shopList(){const h=location.hash||'#/home';if(!h.startsWith('#/shop'))shopBack=h;if(sheetOpen)closeSheet();nav('#/shop')}
 async function shopShare(){const txt=shopShareText();try{if(navigator.share){await navigator.share({title:'Einkaufsliste',text:txt});return}await navigator.clipboard.writeText(txt);toast('In Zwischenablage kopiert')}catch(e){if(e.name!=='AbortError')toast('Teilen nicht möglich')}}
+/* ================= Symbole ================= */
+const ICONS={
+ home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+ car:'<path d="M5 17H3v-5l2-5h14l2 5v5h-2M9 17h6"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M4 12h16"/>',
+ list:'<path d="M10 6h10M10 12h10M10 18h10M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5 2.5-2.5M3.5 18l1.5 1.5 2.5-2.5"/>',
+ wrench:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>',
+ cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+ chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+ shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
+ archive:'<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4"/>',
+ save:'<path d="M12 3v12M7 10l5 5 5-5M4 21h16"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/>',
+ help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.9.8c0 1.7-2.4 2.2-2.4 3.7M12 17h.01"/>',
+ alert:'<path d="M12 3l10 18H2zM12 10v4M12 17h.01"/>',
+ check:'<path d="M5 12l5 5L20 7"/>',
+ fuel:'<path d="M4 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16M3 21h13M15 9h2a2 2 0 0 1 2 2v5a1.5 1.5 0 0 0 3 0V8l-3-3M7 8h5"/>',
+ cart:'<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.7 12.4a1 1 0 0 0 1 .8h9.7a1 1 0 0 0 1-.8L21 7H6"/>',
+ gauge:'<path d="M12 14l4-4M3.5 18a9 9 0 1 1 17 0"/>',
+ drop:'<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',
+ box:'<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
+ disc:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3M21 12h-3M12 21v-3M3 12h3"/>',
+ tire:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v5M12 16v5M3 12h5M16 12h5"/>',
+ clipboard:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/>',
+ filter:'<path d="M3 4h18l-7 9v6l-4 2v-8z"/>',
+ bolt:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+ dots:'<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
+ receipt:'<path d="M6 2h12v20l-3-2-3 2-3-2-3 2zM9 7h6M9 11h6M9 15h4"/>',
+ book:'<path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2 2 2 0 0 0 2 2h13"/>',
+ toolbox:'<rect x="3" y="8" width="18" height="12" rx="2"/><path d="M9 8V5h6v3M3 13h18M10 13v2h4v-2"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',
+ euro:'<path d="M17 6a7 7 0 1 0 0 12M4 10h9M4 14h9"/>',
+ scan:'<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 9v6M10 9v6M13 9v6M16 9v6"/>',
+};
+const ic=(n,c='ico')=>`<svg viewBox="0 0 24 24" class="${c}" aria-hidden="true">${ICONS[n]||ICONS.dots}</svg>`;
+const CAT_ICON={'Wartung':'wrench','Ölwechsel':'drop','Bremsen':'disc','Inspektion':'clipboard','Filter':'filter','Flüssigkeiten':'drop','Reparatur':'wrench','Reifen':'tire','Pickerl':'shield','Tuning':'bolt','Sonstiges':'dots'};
+const ibox=(n,col)=>`<span class="cat" style="--c:${col||'var(--muted)'}">${ic(n,'ico ci')}</span>`;
+
+/* ================= Farbe pro Auto ================= */
+const CAR_PALETTE=[['#c3cad5','Silber'],['#d2403a','Rot'],['#3b82f6','Blau'],['#22c55e','Grün'],['#f5a524','Orange'],['#eab308','Gelb'],['#a855f7','Lila'],['#e5e7eb','Weiß'],['#8a93a0','Grau / Schwarz'],['#a0784f','Braun']];
+const carColor=id=>{const c=car(id);if(!c)return'var(--muted)';if(c.color)return c.color;const i=S.cars.slice().sort((a,b)=>(a.created||'').localeCompare(b.created||'')).findIndex(x=>x.id===id);return CAR_PALETTE[(i<0?0:i)%CAR_PALETTE.length][0]};
+function textOn(hex){const m=/^#?([0-9a-f]{6})$/i.exec(hex||'');if(!m)return'#111';const n=parseInt(m[1],16),r=n>>16,g=n>>8&255,b=n&255;return(r*299+g*587+b*114)/1000>150?'#111':'#fff'}
+function carShort(c){if(!c)return'';let n=dispName(c);if(c.make&&n.toLowerCase().startsWith(c.make.toLowerCase()+' '))n=n.slice(c.make.length+1);return n.length>12?n.slice(0,11)+'…':n}
+const carTag=id=>{const c=car(id);if(!c)return'';const col=carColor(id);return`<span class="ctag" style="background:${col};color:${textOn(col)}">${esc(carShort(c))}</span>`};
+const cbar=id=>`<span class="cbar" style="background:${id?carColor(id):'var(--line)'}"></span>`;
+function hexFromHsl(h,s,l){const k=n=>(n+h/30)%12,a=s*Math.min(l,1-l),f=n=>l-a*Math.max(-1,Math.min(k(n)-3,9-k(n),1));return'#'+[f(0),f(8),f(4)].map(x=>Math.round(x*255).toString(16).padStart(2,'0')).join('')}
+async function colorFromPhoto(data){try{const img=await loadImg(data);const W=80,H=45,c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');g.drawImage(img,0,0,W,H);const px=g.getImageData(0,0,W,H).data;
+ const bins=new Array(24).fill(0).map(()=>({w:0,h:0,s:0,l:0}));let sat=0,neu=0,neuL=0;
+ for(let y=Math.floor(H*.2);y<H*.9;y++)for(let x=Math.floor(W*.15);x<W*.85;x++){const i=(y*W+x)*4,r=px[i]/255,gg=px[i+1]/255,b=px[i+2]/255,mx=Math.max(r,gg,b),mn=Math.min(r,gg,b),l=(mx+mn)/2,d=mx-mn;
+  const s=d===0?0:d/(1-Math.abs(2*l-1));if(s>.28&&l>.12&&l<.85){let h=mx===r?((gg-b)/d)%6:mx===gg?(b-r)/d+2:(r-gg)/d+4;h=(h*60+360)%360;const bn=bins[Math.floor(h/15)];bn.w+=s;bn.h+=h*s;bn.s+=s*s;bn.l+=l*s;sat+=s}else{neu++;neuL+=l}}
+ const total=sat+neu*.35;const best=bins.reduce((a,b)=>b.w>a.w?b:a);
+ if(best.w>total*.22){const h=best.h/best.w,s=Math.min(.78,Math.max(.45,best.s/best.w)),l=Math.min(.6,Math.max(.48,best.l/best.w));return hexFromHsl(h,s,l)}
+ const L=neu?neuL/neu:.5;return L>.62?'#c3cad5':L<.3?'#8a93a0':'#a7b0bc'}catch(e){return null}}
+async function ensureCarColors(){for(const c of S.cars){if(c.color)continue;let col=null;if(c.photoId){const d=await getPhoto(c.photoId);if(d)col=await colorFromPhoto(d)}c.color=col||carColor(c.id);c.colorAuto=!!col;try{await put('cars',c)}catch(e){}}}
+function colorPicker(sel,auto){return`<div class="swatches">${CAR_PALETTE.map(([h,n])=>`<button type="button" class="sw ${sel&&sel.toLowerCase()===h&&!auto?'on':''}" style="background:${h}" data-a="pickColor" data-c="${h}" title="${n}" aria-label="${n}"></button>`).join('')}
+ <label class="sw sw-custom" title="Eigene Farbe" style="background:${sel||'#888'}">${ic('plus','ico s')}<input type="color" value="${sel&&/^#[0-9a-f]{6}$/i.test(sel)?sel:'#888888'}" data-change="pickColorCustom"></label></div>
+ <label class="checkline"><input type="checkbox" name="colorAuto" ${auto?'checked':''} data-change="colorAutoToggle"> Automatisch aus dem Foto übernehmen</label><input type="hidden" name="color" value="${esc(sel||'')}">`}
+
+/* ================= Kompakte Auto-Karte ================= */
+function carCard(c){const d=dueItems(c.id);const over=d.filter(x=>x.st==='over').length,soon=d.filter(x=>x.st==='soon').length,pk=pickerlStatus(c),td=S.todos.filter(t=>t.carId===c.id&&!t.done).length,iss=S.issues.filter(x=>x.carId===c.id&&x.status!=='solved').length;
+ const pills=[];if(over)pills.push(`<span class="pill ba">${ic('alert','ico s')}${over} überfällig</span>`);else if(soon)pills.push(`<span class="pill wa">${ic('alert','ico s')}${soon} bald</span>`);
+ if(pk)pills.push(`<span class="pill ${pk.st==='over'?'ba':pk.st==='soon'?'wa':'ok'}">${ic('shield','ico s')}Pickerl ${pk.label.replace('Pickerl ','').replace(/\/20(\d\d)$/,'/$1')}</span>`);
+ if(iss)pills.push(`<span class="pill wa">${ic('alert','ico s')}${iss} Fehler</span>`);if(td)pills.push(`<span class="pill">${ic('list','ico s')}${td}</span>`);
+ if(!pills.length)pills.push(`<span class="pill ok">${ic('check','ico s')}alles ok</span>`);
+ return`<div class="ccard" style="--cc:${carColor(c.id)}" data-a="go" data-h="#/car/${c.id}">${c.photoId?`<img data-photo="${c.photoId}" alt="">`:`<span class="ccard-ph">${ic('car')}</span>`}
+ <div class="grow"><b>${esc(dispName(c))}</b><div class="km">${esc([c.model&&c.model.replace(/\s*\(.*?\)\s*/,' ').trim(),carOdo(c.id)!=null?kmT(carOdo(c.id)):''].filter(Boolean).join(' · ')||'Noch keine Daten')}</div><div class="pills">${pills.join('')}</div></div></div>`}
+
+/* ================= Diagramme ================= */
+function niceMax(v){if(v<=0)return 10;const p=Math.pow(10,Math.floor(Math.log10(v))),f=v/p;return(f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*p}
+const shortEur=v=>v>=1000?(v/1000).toLocaleString('de-AT',{maximumFractionDigits:1})+'k':Math.round(v).toLocaleString('de-AT');
+function costChart(items,months=6){const now=new Date();const keys=[];for(let i=months-1;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);keys.push(isoD(d).slice(0,7))}
+ const series=new Map();for(const it of items){if(it.noSum||!it.amount)continue;const k=it.date.slice(0,7);if(!keys.includes(k))continue;const s=it.carId||'_';if(!series.has(s))series.set(s,{});series.get(s)[k]=(series.get(s)[k]||0)+it.amount}
+ if(!series.size)return'';const ids=[...series.keys()].sort((a,b)=>a==='_'?1:b==='_'?-1:carName(a).localeCompare(carName(b),'de'));
+ const max=niceMax(Math.max(...keys.map(k=>Math.max(...ids.map(s=>series.get(s)[k]||0)))));const col=s=>s==='_'?'var(--muted)':carColor(s);
+ return`<div class="chart"><div class="chart-head"><span>Kosten pro Monat</span><span class="legend">${ids.map(s=>`<i style="background:${col(s)}"></i>${esc(s==='_'?'Allgemein':carShort(car(s)))}`).join('')}</span></div>
+ <div class="plot"><div class="yax">${[1,.5,0].map(f=>`<span style="bottom:${f*100}%">${shortEur(max*f)}</span>`).join('')}</div><div class="grid-l">${[1,.5,0].map(f=>`<i style="bottom:${f*100}%"></i>`).join('')}</div>
+ <div class="cols">${keys.map(k=>`<div class="col">${ids.map(s=>{const v=series.get(s)[k]||0;return`<i style="height:${v/max*100}%;background:${col(s)}" title="${eur(v)}"></i>`}).join('')}</div>`).join('')}</div></div>
+ <div class="xax">${keys.map(k=>`<span>${new Date(k+'-01T12:00:00').toLocaleDateString('de-AT',{month:'short'}).replace('.','')}</span>`).join('')}</div></div>`}
+function consChart(carId){const fc=fuelCalc(carId);const pts=fc.list.filter(f=>fc.cons[f.id]).map(f=>({d:f.date,v:fc.cons[f.id]}));if(pts.length<2)return'';
+ const vs=pts.map(p=>p.v),lo=Math.floor(Math.min(...vs)-.5),hi=Math.ceil(Math.max(...vs)+.5),rng=hi-lo||1,W=300,H=100,col=carColor(carId);
+ const x=i=>pts.length===1?W/2:i/(pts.length-1)*W,y=v=>H-(v-lo)/rng*H;const avg=fc.avg;
+ return`<div class="chart"><div class="chart-head"><span>Verbrauch</span><span class="legend"><i style="background:${col}"></i>l/100 km<i class="dash"></i>Ø ${fmtN(avg,1)}</span></div>
+ <div class="plot"><div class="yax">${[hi,(hi+lo)/2,lo].map((v,i)=>`<span style="bottom:${(1-i/2)*100}%">${fmtN(v,1)}</span>`).join('')}</div><div class="grid-l">${[1,.5,0].map(f=>`<i style="bottom:${f*100}%"></i>`).join('')}</div>
+ <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="lsvg"><line x1="0" x2="${W}" y1="${y(avg)}" y2="${y(avg)}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 5" vector-effect="non-scaling-stroke"/>
+ <polyline fill="none" stroke="${col}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" points="${pts.map((p,i)=>x(i)+','+y(p.v)).join(' ')}"/></svg></div>
+ <div class="xax"><span style="text-align:left">${fmtD(pts[0].d)}</span><span style="text-align:right">${fmtD(pts[pts.length-1].d)}</span></div></div>`}
+
 /* ================= Artikel-Vorschläge (Autofill) ================= */
 function partCatalog(){const map=new Map();const key=p=>[p.name,p.maker,p.partNo,p.spec].map(x=>String(x||'').trim().toLowerCase()).join('|');
  const add=(p,date,carId)=>{if(!p?.name)return;const k=key(p);const o=map.get(k);
@@ -2683,7 +2808,7 @@ const A={
   else{if(!confirm('Auto ohne Verkauf ins Archiv verschieben?'))return;c.archived=true;await put('cars',c);toast('Ins Archiv verschoben');render()}},
  sellForm:d=>sellForm(d.car),pkOpen:d=>pkOpen(d.car),
  pkDone:d=>pkForm({carId:d.car}),
- quickWs:()=>openSheet('Werkzeug / Lager',`<div class="qgrid"><button class="qbtn" data-a="toolForm"><b>🔧</b>Neues Werkzeug</button><button class="qbtn" data-a="invForm"><b>📦</b>Teil ins Lager</button><button class="qbtn" data-a="scanInv"><b>📷</b>Barcode scannen</button><button class="qbtn" data-a="shopOpen"><b>🛒</b>Einkaufsliste</button></div>`),pkView:d=>pkView(d.id),
+ quickWs:()=>openSheet('Werkzeug / Lager',`<div class="qgrid"><button class="qbtn" data-a="toolForm">${ic('wrench')}Neues Werkzeug</button><button class="qbtn" data-a="invForm">${ic('box')}Teil ins Lager</button><button class="qbtn" data-a="scanInv">${ic('scan')}Barcode scannen</button><button class="qbtn" data-a="shopOpen">${ic('cart')}Einkaufsliste</button></div>`),pkView:d=>pkView(d.id),
  carPhotoCrop:async()=>{let src=draft.photoSrc;
   if(!src&&!draft.photoChanged){if(draft.photoOrigId)src=await getPhoto(draft.photoOrigId);if(!src&&draft.photoId)src=await getPhoto(draft.photoId)}
   if(!src)src=draft.photoData;if(!src){toast('Zuerst ein Foto wählen');return}
@@ -2725,6 +2850,7 @@ const A={
  restockForm:d=>restockForm(d.id),scanInv,eanAssign:async d=>{const it=S.inventory.find(i=>i.id===d.id);it.ean=d.ean;await put('inventory',it);closeSheet();toast(`Code zugeordnet: ${it.name}`)},
  scanEan:async()=>{const c=await openScanner();if(c){$('#fInv [name=ean]').value=c;const o=invByCode(c);if(o&&o.id!==draft.id)toast(`Achtung: Code gehört schon zu „${o.name}“`)}},
  scanPart:(d,el)=>scanPart(el.closest('.prow')),
+ pickColor:d=>{const f=$('#fCar');f.elements.namedItem('color').value=d.c;f.elements.namedItem('colorAuto').checked=false;$$('#fCar .sw').forEach(b=>b.classList.toggle('on',b.dataset.c===d.c))},
  homeTab:d=>{homeTab=d.t;lsSet('garage.homeTab',d.t);render();window.scrollTo(0,0)},logCar:d=>{logCar=d.c;logLimit=60;render()},logCat:d=>{logCat=d.c;logLimit=60;render()},logMore:()=>{logLimit+=60;renderLog()},
  fuelForm:d=>fuelForm(d.id,d.car),fuelDelete:async d=>{if(!confirm('Diese Tankung löschen?'))return;await del('fuel',d.id);closeSheet()},
  odoForm:d=>odoForm(d.car),odoDelete:async d=>{if(!confirm('Diesen km-Stand löschen?'))return;await del('odo',d.id);render()},
@@ -2753,10 +2879,12 @@ const CHANGES={
   $('#issueFixSel').innerHTML='<option value="">—</option>'+carEntries(t.value).map(e=>`<option value="${e.id}">${fmtD(e.date)} · ${esc(e.title)}</option>`).join('')},
  pkCar:t=>{draft.carId=t.value;$('#fPk [name=odo]').value=valN(carOdo(t.value))},
  pkRes:t=>{const c=$('#pkTodoLine input');if(c)c.checked=t.value!=='ok'},
+ pickColorCustom:t=>{const f=$('#fCar');f.elements.namedItem('color').value=t.value;f.elements.namedItem('colorAuto').checked=false;$$('#fCar .sw').forEach(b=>b.classList.remove('on'));t.parentElement.style.background=t.value;t.parentElement.classList.add('on')},
+ colorAutoToggle:async t=>{if(!t.checked)return;let d=draft.photoData;if(!d&&draft.photoId&&!draft.photoChanged)d=await getPhoto(draft.photoId);if(!d){toast('Kein Foto – Farbe bitte auswählen');return}const col=await colorFromPhoto(d);if(col){$('#fCar').elements.namedItem('color').value=col;$$('#fCar .sw').forEach(b=>b.classList.toggle('on',b.dataset.c===col));toast('Farbe aus dem Foto übernommen')}},
  backupDays:t=>{lsSet('garage.backupDays',t.value);toast('Gespeichert')},
 };
 const FILES={
- carPhoto:async fl=>{if(!fl[0])return;let big;try{big=await compressImage(fl[0],2000,.9)}catch(e){toast('Bild konnte nicht gelesen werden');return}const d=await openCropper(big);if(!d)return;draft.photoSrc=big;draft.photoData=d;draft.photoChanged=true;$('#carPh').innerHTML=`<img src="${d}" alt="">`},
+ carPhoto:async fl=>{if(!fl[0])return;let big;try{big=await compressImage(fl[0],2000,.9)}catch(e){toast('Bild konnte nicht gelesen werden');return}const d=await openCropper(big);if(!d)return;draft.photoSrc=big;draft.photoData=d;draft.photoChanged=true;{const f=$('#fCar');if(f?.elements.namedItem('colorAuto')?.checked){colorFromPhoto(d).then(col=>{if(col){f.elements.namedItem('color').value=col;$$('#fCar .sw').forEach(b=>b.classList.toggle('on',b.dataset.c===col))}})}}$('#carPh').innerHTML=`<img src="${d}" alt="">`},
  entryPhotos:async fl=>{for(const f of fl){try{draft.photos.push({id:uid(),tag:'Foto',data:await compressImage(f)})}catch(e){toast('Bild konnte nicht gelesen werden')}}renderPhotos()},
  importJSON,
  toolDocs:addToolDocs,
@@ -2852,6 +2980,7 @@ async function seed(){const P=(name,maker,qty,unit,price,o={})=>({name,maker,par
  if(empty&&!lsGet('garage.seeded')){try{await seed()}catch(e){console.error(e)}lsSet('garage.seeded','1')}
  for(const c of S.cars.filter(c=>c.demo&&(c.deadlines||[]).some(d=>d.label==='HU/AU'))){c.deadlines=c.deadlines.filter(d=>!['HU/AU','Kfz-Steuer'].includes(d.label));if(!c.firstReg)c.firstReg=c.make==='Audi'?'2000-03-15':'1996-11-05';try{await put('cars',c)}catch(e){}}
  render();
+ ensureCarColors().then(()=>{if(S.cars.some(c=>c.colorAuto!==undefined))render()});
  if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 })();
 </script>
