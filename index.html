@@ -1704,7 +1704,7 @@ function parseHash(){const p=(location.hash||'#/home').replace(/^#\/?/,'').split
 function render(){const r=parseHash();let o;
  switch(r.v){case'cars':o=viewCars();break;case'car':o=car(r.id)?viewCar(r.id,r.tab||'ov'):viewHome();break;case'todos':o=viewTodos();break;
   case'inv':o=viewInv();break;case'more':o=viewMore();break;case'stats':o=viewStats();break;case'backup':o=viewBackup();break;
-  case'settings':o=viewSettings();break;case'shop':o=viewShop();break;case'tools':o=viewTools();break;case'calendar':o=viewCalendar();break;case'warranty':o=viewWarranty();break;case'archive':o=viewArchive();break;case'help':o=viewHelp();break;default:o=viewHome()}
+  case'settings':o=viewSettings();break;case'shop':o=viewShop();break;case'tools':o=viewTools();break;case'calendar':o=viewCalendar();break;case'prices':o=viewPrices();break;case'warranty':o=viewWarranty();break;case'archive':o=viewArchive();break;case'help':o=viewHelp();break;default:o=viewHome()}
  $('#title').textContent=o.title;document.title=o.title==='Garage'?'Garage':o.title+' · Garage';
  const b=$('#backBtn');b.hidden=!o.back;b.dataset.h=o.back||'';
  $('#hdrActions').innerHTML=o.actions||'';$('header.top').classList.toggle('with-tabs',!!o.hdrTabs);
@@ -1795,7 +1795,7 @@ function viewCar(id,tab){const c=car(id);
   h+=`<button class="btn block" data-a="torqueSheet" data-car="${id}">🔩 Drehmoment-Spickzettel</button>`+(c.demo?`<div class="note warn">Beispielwerte – bitte mit Handbuch, Reparaturleitfaden oder Teilekatalog abgleichen.</div>`:'')+(sp.length?`<div class="card"><dl class="kv">${sp.map(s=>`<dt>${esc(s.k)}</dt><dd>${esc(s.v)}</dd>`).join('')}</dl></div>`:empty('Noch keine technischen Daten.','',''))+`<button class="btn primary block" data-a="specForm" data-car="${id}">Technische Daten bearbeiten</button>`}
  if(tab==='fuel'){const fc=fuelCalc(id);
   h+=`<div class="card"><dl class="kv"><dt>Ø Verbrauch</dt><dd><b>${fc.avg?fmtN(fc.avg,1)+' l/100 km':'–'}</b></dd><dt>Getankt gesamt</dt><dd>${fmtN(fc.liters,1)} l</dd><dt>Kosten gesamt</dt><dd>${eur(fc.cost)}</dd><dt>Ø Literpreis</dt><dd>${fc.liters?eur(fc.cost/fc.liters):'–'}</dd></dl></div>
-  ${consChart(id)}<button class="btn primary block" data-a="fuelForm" data-car="${id}">+ Tankung</button>`+
+  ${consChart(id)||consHint(id)}<button class="btn primary block" data-a="fuelForm" data-car="${id}">+ Tankung</button>`+
   fc.list.slice().reverse().map(f=>`<div class="item" data-a="fuelForm" data-id="${f.id}">${ibox('fuel','#5aa9e6')}<div class="grow"><b>${fmtN(f.liters,2)} l${f.full?'':' (Teil)'}${ppl(f)?` <span class="sub" style="font-weight:600">· ${eur3(ppl(f))}/l</span>`:''}</b><div class="sub">${fmtD(f.date)} · ${kmT(f.odo)}${fc.cons[f.id]?` · <b style="color:var(--text)">${fmtN(fc.cons[f.id],1)} l/100</b>`:''}</div>${f.station||f.type?`<div class="sub">${esc([f.type,f.station].filter(Boolean).join(' · '))}${f.photoId?' · 🧾':''}</div>`:''}</div><span class="amt">${eur(f.price)}</span></div>`).join('')+
   (fc.list.length?'<p class="sub">Verbrauch wird zwischen zwei Volltankungen berechnet.</p>':'')}
  if(tab==='odo'){const rows=[...S.entries.filter(e=>e.carId===id&&e.odo!=null).map(e=>({date:e.date,odo:e.odo,src:'Wartung: '+(e.title||e.category)})),
@@ -1836,8 +1836,8 @@ function viewArchive(){const arch=S.cars.filter(c=>c.archived).sort((a,b)=>(b.so
  return{title:'Archiv',tab:'more',back:'#/more',html:h||empty('Noch keine verkauften Autos.<br><span class="sub">Ein Auto verkaufst du in seiner Übersicht unter „Als verkauft markieren“.</span>','','')}}
 function viewMore(){const t=(h,i,l,sub)=>`<div class="mtile" data-a="go" data-h="${h}"><span class="mi">${ic(i)}</span>${l}${sub?`<small>${sub}</small>`:''}</div>`;const arch=S.cars.filter(c=>c.archived).length;
  const tw=S.tools.filter(x=>{const w=toolWarranty(x);return w&&w.st!=='exp'}).length+S.entries.reduce((n,e)=>n+(e.parts||[]).filter(p=>p.warranty&&addMonths(e.date,p.warranty)>=today()).length,0);
- let h=`<div class="mgrid">${t('#/calendar','cal','Kalender')}${t('#/stats','chart','Statistik')}${t('#/warranty','shield','Garantien',tw?tw+' aktiv':'')}${t('#/archive','archive','Archiv',arch?arch+' Autos':'')}${t('#/backup','save','Backup',backupDue()?'fällig':'')}${t('#/settings','gear','Einstellungen')}${t('#/help','help','Hilfe')}</div>`;
- const cs=activeCars().map(c=>consChart(c.id)?`<h2><span class="cdot" style="background:${carColor(c.id)}"></span>${esc(dispName(c))}</h2>${consChart(c.id)}`:'').join('');if(cs)h+=cs;
+ let h=`<div class="mgrid">${t('#/calendar','cal','Kalender')}${t('#/stats','chart','Statistik')}${t('#/prices','fuel','Spritpreise')}${t('#/warranty','shield','Garantien',tw?tw+' aktiv':'')}${t('#/archive','archive','Archiv',arch?arch+' Autos':'')}${t('#/backup','save','Backup',backupDue()?'fällig':'')}${t('#/settings','gear','Einstellungen')}${t('#/help','help','Hilfe')}</div>`;
+ const cs=activeCars().map(c=>`<h2><span class="cdot" style="background:${carColor(c.id)}"></span>Verbrauch ${esc(dispName(c))}</h2>${consChart(c.id)||consHint(c.id,true)}`).join('');if(cs)h+=cs;
  return{title:'Mehr',tab:'more',html:h}}
 
 let statsYear='';
@@ -2752,6 +2752,10 @@ function costChart(items,months=6){const now=new Date();const keys=[];for(let i=
  <div class="plot"><div class="yax">${[1,.5,0].map(f=>`<span style="bottom:${f*100}%">${shortEur(max*f)}</span>`).join('')}</div><div class="grid-l">${[1,.5,0].map(f=>`<i style="bottom:${f*100}%"></i>`).join('')}</div>
  <div class="cols">${keys.map(k=>`<div class="col">${ids.map(s=>{const v=series.get(s)[k]||0;return`<i style="height:${v/max*100}%;background:${col(s)}" title="${eur(v)}"></i>`}).join('')}</div>`).join('')}</div></div>
  <div class="xax">${keys.map(k=>`<span>${new Date(k+'-01T12:00:00').toLocaleDateString('de-AT',{month:'short'}).replace('.','')}</span>`).join('')}</div></div>`}
+function consHint(carId,short){const fc=fuelCalc(carId);const full=fc.list.filter(f=>f.full&&f.odo!=null).length,need=Math.max(0,3-full);const one=Object.values(fc.cons)[0];
+ if(short)return`<p class="sub" style="margin:0 2px 8px">${one?`Bisher ${fmtN(one,1)} l/100 km · `:''}Kurve ab ${need} weiteren Volltankung${need===1?'':'en'} mit km-Stand.</p>`;
+ return`<div class="chart"><div class="chart-head"><span>Verbrauch</span></div><p class="sub" style="margin:0 0 6px">${one?`Bisher: <b style="color:var(--text)">${fmtN(one,1)} l/100 km</b>. `:''}Die Kurve erscheint, sobald genug Volltankungen <b>mit km-Stand</b> da sind – noch <b style="color:var(--text)">${need}</b>.</p><p class="sub" style="margin:0">Der Verbrauch wird immer zwischen zwei Volltankungen berechnet. Tipp: Beim Tanken „Vollgetankt“ angehakt lassen und den km-Stand eintragen.</p></div>`}
+function viewPrices(){const h=fuelPriceStats();return{title:'Spritpreise',tab:'more',back:'#/more',html:h?h.replace('<h2>Spritpreise</h2>',''):empty('Noch keine Tankungen mit Preis.<br><span class="sub">Trag beim Tanken Liter und Betrag ein – oder fotografier einfach den Tankbeleg. Ab der zweiten Tankung siehst du hier den Preisverlauf für Benzin und Diesel.</span>','⛽ Tankung eintragen','fuelForm')}}
 function consChart(carId){const fc=fuelCalc(carId);const pts=fc.list.filter(f=>fc.cons[f.id]).map(f=>({d:f.date,v:fc.cons[f.id]}));if(pts.length<2)return'';
  const vs=pts.map(p=>p.v),lo=Math.floor(Math.min(...vs)-.5),hi=Math.ceil(Math.max(...vs)+.5),rng=hi-lo||1,W=300,H=100,col=carColor(carId);
  const x=i=>pts.length===1?W/2:i/(pts.length-1)*W,y=v=>H-(v-lo)/rng*H;const avg=fc.avg;
@@ -2827,7 +2831,7 @@ function fuelTriple(changed){const f=$('#fFuel');if(!f)return;const F=n=>f.eleme
 
 /* ================= Spritpreis-Statistik ================= */
 function fuelPriceStats(){const rows=S.fuel.map(f=>({f,p:ppl(f),g:fuelGroup(f.type||defaultFuelType(f.carId))})).filter(x=>x.p&&x.g&&(x.g==='Diesel'||x.g==='Benzin')&&x.p>.4&&x.p<4).sort((a,b)=>a.f.date.localeCompare(b.f.date));
- if(!rows.length)return'';const G={Benzin:'#f5a524',Diesel:'#5aa9e6'};const groups=['Benzin','Diesel'].filter(g=>rows.some(r=>r.g===g));
+ if(!rows.length)return'';const enough=groups=>groups.some(g=>rows.filter(r=>r.g===g).length>=2);const G={Benzin:'#f5a524',Diesel:'#5aa9e6'};const groups=['Benzin','Diesel'].filter(g=>rows.some(r=>r.g===g));
  const ps=rows.map(r=>r.p),lo=Math.floor(Math.min(...ps)*10)/10-.05,hi=Math.ceil(Math.max(...ps)*10)/10+.05,rng=hi-lo||1;const t0=new Date(rows[0].f.date).getTime(),t1=new Date(rows[rows.length-1].f.date).getTime(),span=t1-t0||1;
  const W=300,H=110,x=d=>rows.length===1?W/2:(new Date(d).getTime()-t0)/span*W,y=v=>H-(v-lo)/rng*H;
  const lines=groups.map(g=>{const pts=rows.filter(r=>r.g===g);return`<polyline fill="none" stroke="${G[g]}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" points="${pts.map(r=>x(r.f.date)+','+y(r.p)).join(' ')}"/>`+pts.map(r=>`<circle cx="${x(r.f.date)}" cy="${y(r.p)}" r="2.6" fill="${G[g]}" vector-effect="non-scaling-stroke"/>`).join('')}).join('');
@@ -2835,6 +2839,7 @@ function fuelPriceStats(){const rows=S.fuel.map(f=>({f,p:ppl(f),g:fuelGroup(f.ty
   const st={};v.forEach(r=>{const k=r.f.station||'';if(!k)return;(st[k]=st[k]||[]).push(r.p)});const sl=Object.entries(st).map(([k,a])=>({k,a:a.reduce((s,x)=>s+x,0)/a.length,n:a.length})).sort((a,b)=>a.a-b.a);
   return`<div class="card"><div class="row between" style="margin-bottom:6px"><b><span class="cdot" style="background:${G[g]}"></span>${g}</b><span class="sub">${v.length} Tankungen</span></div><dl class="kv"><dt>Zuletzt</dt><dd><b>${eur3(last.p)}</b> / l<div class="sub">${fmtD(last.f.date)}${last.f.station?' · '+esc(last.f.station):''}</div></dd><dt>Durchschnitt</dt><dd>${eur3(avg)} / l</dd><dt>Günstigste</dt><dd>${eur3(mn.p)}<div class="sub">${fmtD(mn.f.date)}${mn.f.station?' · '+esc(mn.f.station):''}</div></dd><dt>Teuerste</dt><dd>${eur3(mx.p)}<div class="sub">${fmtD(mx.f.date)}${mx.f.station?' · '+esc(mx.f.station):''}</div></dd></dl>
   ${sl.length>1?`<div class="sub" style="margin-top:8px"><b>Tankstellen</b> (Ø pro Liter): ${sl.map(s=>`${esc(s.k)} ${eur3(s.a)}`).join(' · ')}</div>`:''}</div>`};
+ if(!enough(groups))return`<h2>Spritpreise</h2><p class="sub">Der Preisverlauf erscheint ab der zweiten Tankung je Sorte.</p>${groups.map(card).join('')}`;
  return`<h2>Spritpreise</h2><div class="chart"><div class="chart-head"><span>Preis pro Liter</span><span class="legend">${groups.map(g=>`<i style="background:${G[g]}"></i>${g}`).join('')}</span></div>
  <div class="plot"><div class="yax">${[hi,(hi+lo)/2,lo].map((v,i)=>`<span style="bottom:${(1-i/2)*100}%">${fmtN(v,2)}</span>`).join('')}</div><div class="grid-l">${[1,.5,0].map(f=>`<i style="bottom:${f*100}%"></i>`).join('')}</div>
  <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="lsvg">${lines}</svg></div><div class="xax"><span style="text-align:left">${fmtM(rows[0].f.date)}</span><span style="text-align:right">${fmtM(rows[rows.length-1].f.date)}</span></div></div>${groups.map(card).join('')}`}
