@@ -1863,7 +1863,7 @@ const BADGES=[
  ['e100','🏛️','Archivar','100 Einträge',D=>D.ents.length>=100],
  ['diy10','💪','Selbermacher','10 Arbeiten selbst gemacht',D=>D.diy.length>=10],
  ['oil','🛢️','Ölwechsel-Profi','5 Ölwechsel selbst gemacht',D=>D.diy.filter(e=>e.category==='Ölwechsel'||/öl ?wechsel|ölwechsel/i.test(e.title||'')).length>=5],
- ['brake','🛑','Bremsen-Meister','Bremsen selbst gemacht',D=>D.diy.some(e=>e.category==='Bremsen'||/brems/i.test(e.title||''))],
+ ['brake','🛑','Bremsen-Meister','Bremsen selbst gemacht',D=>D.diy.some(e=>e.category==='Bremsen'||/bremsbel(a|ä)g|bremsscheibe|bremsklotz|bremskl(ö|o)tze|bremssattel|bremstrommel|bremsbacke/i.test([e.title,...(e.parts||[]).map(p=>p.name)].join(' ')))],
  ['belt','⚙️','Zahnriemen-Held','Zahnriemen selbst gewechselt',D=>D.diy.some(e=>/zahnriemen/i.test(e.title||''))],
  ['pk','✅','Ohne Mängel','Ein Pickerl ohne Mängel bestanden',D=>D.ents.some(e=>isPk(e)&&e.pk?.result==='ok')],
  ['save500','🐷','Sparfuchs','500 € durch Selbermachen gespart',D=>(D.saved||0)>=500],
