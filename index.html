@@ -1458,9 +1458,13 @@ const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
 const WARTUNG_SUB=['Ölwechsel','Bremsen','Inspektion','Filter','Flüssigkeiten'];
 const MAIN_CATS=['Wartung','Reparatur','Reifen','Pickerl','Tuning','Sonstiges'];
 const CATS=['Wartung',...WARTUNG_SUB,'Reparatur','Reifen','Pickerl','Tuning','Sonstiges'];
+const isPk=e=>e?.category==='Pickerl';
+const PK_RES={ok:{l:'Ohne Mängel',i:'✅',st:'ok',pass:true},minor:{l:'Leichte Mängel – Pickerl erteilt',i:'🟡',st:'soon',pass:true},major:{l:'Schwere Mängel – kein Pickerl',i:'🔴',st:'over',pass:false},danger:{l:'Gefahr in Verzug – kein Pickerl',i:'⛔',st:'over',pass:false}};
+const pkRes=e=>PK_RES[e?.pk?.result||'ok']||PK_RES.ok;
+const doneBy=e=>isPk(e)?'Prüfstelle':e.diy?'selbst':'Werkstatt';
 const mainCat=c=>WARTUNG_SUB.includes(c)?'Wartung':(c||'Sonstiges');
 const catLabel=c=>WARTUNG_SUB.includes(c)?'Wartung · '+c:(c||'');
-const catOptions=(sel,none)=>(none?`<option value="">${esc(none)}</option>`:'')+`<optgroup label="Wartung"><option value="Wartung" ${sel==='Wartung'?'selected':''}>Wartung (allgemein)</option>${WARTUNG_SUB.map(k=>`<option value="${k}" ${sel===k?'selected':''}>${k}</option>`).join('')}</optgroup><optgroup label="Weitere">${MAIN_CATS.slice(1).map(k=>`<option value="${k}" ${sel===k?'selected':''}>${k}</option>`).join('')}</optgroup>`;
+const catOptions=(sel,none,withPk)=>(none?`<option value="">${esc(none)}</option>`:'')+`<optgroup label="Wartung"><option value="Wartung" ${sel==='Wartung'?'selected':''}>Wartung (allgemein)</option>${WARTUNG_SUB.map(k=>`<option value="${k}" ${sel===k?'selected':''}>${k}</option>`).join('')}</optgroup><optgroup label="Weitere">${MAIN_CATS.slice(1).filter(k=>withPk||k!=='Pickerl').map(k=>`<option value="${k}" ${sel===k?'selected':''}>${k}</option>`).join('')}</optgroup>`;
 const CAT_COL={'Wartung':'#5aa9e6','Filter':'#5aa9e6','Flüssigkeiten':'#4fc3c7','Ölwechsel':'#d4a72c','Inspektion':'#5aa9e6','Bremsen':'#ef5350','Reifen':'#9aa6b8','Reparatur':'#f5a524','Tuning':'#b07cf0','Pickerl':'#4caf7a','Sonstiges':'#7d8794'};
 const UNITS=['Stk','Satz','Paar','l','ml','kg','g','m','Dose'];
 const ST_LABEL={over:'Überfällig',soon:'Bald fällig',ok:'OK',unknown:'Unbekannt'};
@@ -1565,13 +1569,15 @@ function dueItems(carId){const out=[];for(const c of activeCars()){if(carId&&c.i
 /* Pickerl (§57a KFG, PKW): 3 Jahre nach EZ, dann +2, danach jährlich; Monat = EZ-Monat; Toleranz -1 / +4 Monate */
 const monthStart=(y,m)=>isoD(new Date(y,m,1));const monthEnd=(y,m)=>isoD(new Date(y,m+1,0));
 function pickerlSchedule(fr){const[y,m]=fr.split('-').map(Number);const out=[y+3,y+5];for(let yr=y+6;yr<=y+120;yr++)out.push(yr);return out.map(Y=>({y:Y,m:m-1}))}
-function pickerlDone(c){const d=S.entries.filter(e=>e.carId===c.id&&e.category==='Pickerl').map(e=>e.date);if(c.pickerlLast)d.push(c.pickerlLast);return d.sort()}
+const lastPk=c=>S.entries.filter(e=>e.carId===c.id&&isPk(e)).sort((a,b)=>b.date.localeCompare(a.date))[0];
+function pickerlDone(c){const d=S.entries.filter(e=>e.carId===c.id&&isPk(e)&&pkRes(e).pass).map(e=>e.date);if(c.pickerlLast)d.push(c.pickerlLast);return d.sort()}
 function pickerlStatus(c){if(!c?.firstReg)return null;const sch=pickerlSchedule(c.firstReg),done=pickerlDone(c),last=done[done.length-1]||null,t=today();
  const next=last?sch.find(s=>monthStart(s.y,s.m-1)>last):sch.find(s=>monthEnd(s.y,s.m+4)>=t);if(!next)return null;
  const due=monthStart(next.y,next.m),ws=monthStart(next.y,next.m-1),we=monthEnd(next.y,next.m+4),mm=String(next.m+1).padStart(2,'0');let st,text;
  if(t>we){st='over';text=`Toleranz seit ${fmtD(we)} abgelaufen!`}else if(t>=ws){st='soon';text=`jetzt möglich – spätestens bis ${fmtD(we)}`}
  else if(daysUntil(ws)<=30){st='soon';text=`möglich ab ${fmtD(ws)}`}else{st='ok';text=`möglich ${fmtM(ws)} – ${fmtM(we)}`}
- return{st,text,due,ws,we,last,lochung:mm,label:`Pickerl ${mm}/${next.y}`}}
+ const lp=lastPk(c);if(lp&&!pkRes(lp).pass&&(!last||lp.date>last)){st='over';text=`Nachprüfung nötig (${pkRes(lp).l.split(' – ')[0]} am ${fmtD(lp.date)})`}
+ return{st,text,due,ws,we,last,lochung:mm,label:`Pickerl ${mm}/${next.y}`,fail:lp&&!pkRes(lp).pass&&(!last||lp.date>last)?lp:null}}
 function ownCost(c){const maint=S.entries.filter(e=>e.carId===c.id).reduce((s,e)=>s+entryCost(e),0),fuel=fuelCalc(c.id).cost,buy=c.purchasePrice??null,sell=c.sold?.price??null;
  let months=null;if(c.purchase){const a=new Date(c.purchase+'T12:00:00'),b=new Date((c.sold?.date||today())+'T12:00:00');months=Math.max(0,(b.getFullYear()-a.getFullYear())*12+b.getMonth()-a.getMonth())}
  const endOdo=c.sold?.odo??carOdo(c.id);const kmDriven=endOdo!=null&&c.purchaseOdo!=null?endOdo-c.purchaseOdo:null;
@@ -1645,8 +1651,8 @@ function todoHTML(t,showCar=true){const meta=[prioBadge(t.prio)];if(showCar)meta
  ${t.done&&!t.entryId&&S.cars.length?`<button class="btn" data-a="todoToEntry" data-id="${t.id}" style="min-height:40px;padding:0 10px;font-size:14px">→ Eintrag</button>`:''}</div>`}
 function entryHTML(e,showCar=false){const parts=(e.parts||[]).map(p=>[p.name,p.maker].filter(Boolean).join(' ')).filter(Boolean);
  return`<div class="item" data-a="entryView" data-id="${e.id}">${catBadge(e.category)}<div class="grow"><b>${esc(e.title||e.category)}</b>
- <div class="sub">${fmtD(e.date)} · ${kmT(e.odo)}${showCar?' · '+esc(carName(e.carId)):''} · ${e.diy?'selbst':'Werkstatt'}</div>
- ${parts.length?`<div class="sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(parts.join(', '))}</div>`:''}</div><span class="amt">${entryCost(e)?eur(entryCost(e)):''}</span></div>`}
+ <div class="sub">${fmtD(e.date)} · ${kmT(e.odo)}${showCar?' · '+esc(carName(e.carId)):''} · ${isPk(e)?pkRes(e).i+' '+esc(e.workshop||'Prüfstelle'):e.diy?'selbst':'Werkstatt'}</div>
+ ${isPk(e)&&e.pk?.defects?`<div class="sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Mängel: ${esc(e.pk.defects.split('\n')[0])}</div>`:''}${parts.length?`<div class="sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(parts.join(', '))}</div>`:''}</div><span class="amt">${entryCost(e)?eur(entryCost(e)):''}</span></div>`}
 
 function viewHome(){const cars=activeCars();let h='';
  if(memOnly)h+=`<div class="note warn"><b>Vorschau-Modus:</b> Der Browser erlaubt hier keinen dauerhaften Speicher. Änderungen gehen beim Schließen verloren. Installiere die App wie unter „Mehr › Installation“ beschrieben.</div>`;
@@ -1760,10 +1766,11 @@ let statsYear='';
 function barsHTML(rows,fmt=eur){const max=Math.max(0,...rows.map(r=>r.v));return`<div class="bars">${rows.map(r=>`<div class="barrow"><div class="row between"><span>${esc(r.l)}</span><b>${fmt(r.v)}</b></div><div class="bar"><i style="width:${max?r.v/max*100:0}%"></i></div></div>`).join('')}</div>`}
 function viewStats(){const years=[...new Set([...S.entries.map(e=>e.date.slice(0,4)),...S.fuel.map(f=>f.date.slice(0,4))])].sort().reverse();
  const inY=d=>!statsYear||d.startsWith(statsYear);const ents=S.entries.filter(e=>inY(e.date)),fuel=S.fuel.filter(f=>inY(f.date));
- const tot=ents.reduce((s,e)=>s+entryCost(e),0),ftot=fuel.reduce((s,f)=>s+(f.price||0),0),diy=ents.filter(e=>e.diy);
+ const tot=ents.reduce((s,e)=>s+entryCost(e),0),ftot=fuel.reduce((s,f)=>s+(f.price||0),0),work=ents.filter(e=>!isPk(e)),diy=work.filter(e=>e.diy),pks=ents.filter(isPk);
  let h=`<div class="chips"><button class="chip ${!statsYear?'on':''}" data-a="statsYear" data-y="">Gesamt</button>${years.map(y=>`<button class="chip ${statsYear===y?'on':''}" data-a="statsYear" data-y="${y}">${y}</button>`).join('')}</div>
  <div class="grid2"><div class="card"><div class="sub">Wartung & Reparatur</div><div class="big">${eur(tot)}</div></div><div class="card"><div class="sub">Kraftstoff</div><div class="big">${eur(ftot)}</div></div></div>
- <div class="card"><dl class="kv"><dt>Einträge</dt><dd>${ents.length}</dd><dt>Selbst gemacht</dt><dd>${diy.length} (${ents.length?Math.round(diy.length/ents.length*100):0} %)</dd><dt>Schrauberstunden</dt><dd>${fmtN(diy.reduce((s,e)=>s+(e.hours||0),0),1)} h</dd><dt>Davon Teilekosten</dt><dd>${eur(ents.reduce((s,e)=>s+partsCost(e),0))}</dd><dt>Davon Arbeitslohn</dt><dd>${eur(ents.reduce((s,e)=>s+(e.labor||0),0))}</dd></dl></div>`;
+ <div class="card"><dl class="kv"><dt>Arbeiten</dt><dd>${work.length}</dd><dt>Selbst gemacht</dt><dd>${diy.length} (${work.length?Math.round(diy.length/work.length*100):0} %)</dd><dt>In der Werkstatt</dt><dd>${work.length-diy.length}</dd><dt>Schrauberstunden</dt><dd>${fmtN(diy.reduce((s,e)=>s+(e.hours||0),0),1)} h</dd><dt>Davon Teilekosten</dt><dd>${eur(ents.reduce((s,e)=>s+partsCost(e),0))}</dd><dt>Davon Arbeitslohn</dt><dd>${eur(work.reduce((s,e)=>s+(e.labor||0),0))}</dd>${pks.length?`<dt>Pickerl-Gebühren</dt><dd>${eur(pks.reduce((s,e)=>s+entryCost(e),0))}<div class="sub">${pks.length} Begutachtung${pks.length>1?'en':''}</div></dd>`:''}</dl>
+ <p class="sub" style="margin-bottom:0">Das Pickerl zählt nicht zu „selbst“ oder „Werkstatt“ – es darf nur eine Prüfstelle machen.</p></div>`;
  const cars=S.cars.slice().sort(byName);
  h+=`<h2>Pro Auto (Wartung + Kraftstoff)</h2><div class="card">${barsHTML(cars.map(c=>({l:dispName(c),v:ents.filter(e=>e.carId===c.id).reduce((s,e)=>s+entryCost(e),0)+fuel.filter(f=>f.carId===c.id).reduce((s,f)=>s+(f.price||0),0)})).filter(r=>r.v>0))}</div>`;
  h+=`<h2>Nach Kategorie</h2><div class="card">${barsHTML(MAIN_CATS.map(k=>({l:k,v:ents.filter(e=>mainCat(e.category)===k).reduce((s,e)=>s+entryCost(e),0)})).filter(r=>r.v>0).sort((a,b)=>b.v-a.v))}</div>`;
@@ -1870,6 +1877,39 @@ function pkOpen(carId){const c=car(carId);const p=pickerlStatus(c);if(!p)return 
  <p class="sub">PKW (§57a KFG): erste Begutachtung 3 Jahre nach der Erstzulassung, die zweite 2 Jahre später, danach jährlich. Möglich von einem Monat vor bis vier Monate nach dem Begutachtungsmonat – das verschiebt den nächsten Termin nicht.</p>`,
  `<button class="btn" data-a="carForm" data-id="${carId}">Daten</button><button class="btn primary grow" data-a="pkDone" data-car="${carId}">✓ Pickerl eintragen</button>`)}
 
+/* ================= Pickerl-Begutachtung ================= */
+function pkForm(o={}){const old=o.id?S.entries.find(e=>e.id===o.id):null;if(!S.cars.length){toast('Lege zuerst ein Auto an');return carForm()}
+ const cid=old?.carId||o.carId||defaultCarId();const lastSt=[...S.entries].filter(isPk).sort((a,b)=>b.date.localeCompare(a.date))[0]?.workshop||'';
+ const e=old||{carId:cid,date:today(),odo:carOdo(cid),workshop:lastSt,labor:null,pk:{result:'ok',defects:''},photos:[]};const pk=e.pk||{result:'ok'};
+ draft={kind:'pk',id:old?.id||null,carId:cid,photos:(e.photos||[]).map(p=>({...p}))};
+ const fail=pickerlStatus(car(cid))?.fail;
+ const body=`${fail&&!old?`<div class="note warn">Letzte Begutachtung am ${fmtD(fail.date)} ohne Pickerl – das ist die <b>Nachprüfung</b>.</div>`:''}<form id="fPk" data-form="pk">
+ <label class="f"><span>Auto</span><select name="carId" data-change="pkCar">${carOptions(e.carId)}</select></label>
+ <div class="grid2"><label class="f"><span>Datum</span><input type="date" name="date" required value="${esc(e.date)}"></label><label class="f"><span>km-Stand</span><input name="odo" inputmode="numeric" value="${valN(e.odo)}"></label></div>
+ <div class="grid2"><label class="f"><span>Prüfstelle / Werkstatt</span><input name="workshop" list="dl-shops" value="${esc(e.workshop)}" placeholder="z. B. ÖAMTC, Werkstatt …"></label><label class="f"><span>Kosten (€)</span><input name="fee" inputmode="decimal" value="${valN(e.labor)}"></label></div>
+ <h4>Ergebnis</h4>${Object.entries(PK_RES).map(([k,r])=>`<label class="checkline"><input type="radio" name="result" value="${k}" ${pk.result===k?'checked':''} data-change="pkRes"><span>${r.i} ${r.l}</span></label>`).join('')}
+ <label class="f" style="margin-top:8px"><span>Mängel / Hinweise – einer pro Zeile</span><textarea name="defects" placeholder="z. B. Querlenkerlager vorne ausgeschlagen">${esc(pk.defects)}</textarea></label>
+ ${old?'':`<label class="checkline" id="pkTodoLine"><input type="checkbox" name="mkTodo" ${pk.result!=='ok'?'checked':''}> Mängel als To-dos anlegen</label>`}
+ <label class="f"><span>Notizen</span><textarea name="notes">${esc(e.notes)}</textarea></label>
+ <h4>Gutachten & Beleg</h4><div id="photos" class="thumbs"></div><label class="btn block">📷 Gutachten fotografieren<input type="file" accept="image/*" multiple hidden data-file="entryPhotos"></label>${datalists()}</form>
+ <p class="sub">PKW: erste Begutachtung 3 Jahre nach der Erstzulassung, dann nach 2 Jahren, danach jährlich. Bei schweren Mängeln gibt es kein Pickerl – nach der Reparatur ist eine Nachprüfung nötig.</p>`;
+ openSheet(old?'Pickerl bearbeiten':'🛡️ Pickerl eintragen',body,`${old?`<button class="btn danger" data-a="entryDelete" data-id="${old.id}">Löschen</button>`:''}<button class="btn primary grow" type="submit" form="fPk">Speichern</button>`);renderPhotos()}
+async function savePk(f){const fd=Object.fromEntries(new FormData(f));const old=draft.id?S.entries.find(e=>e.id===draft.id):null;if(!fd.date){toast('Bitte ein Datum angeben');return}
+ const res=fd.result||'ok';const defects=fd.defects.trim();
+ const e={...(old||{}),id:draft.id||uid(),carId:fd.carId,date:fd.date,odo:num(fd.odo),category:'Pickerl',title:old?.title||'Pickerl-Begutachtung §57a',desc:'',diy:false,workshop:fd.workshop.trim(),hours:null,labor:num(fd.fee),
+  notes:fd.notes.trim(),parts:[],photos:draft.photos.map(({id,tag})=>({id,tag:tag==='Foto'?'Gutachten':tag})),intervalIds:[],toolIds:[],pk:{result:res,defects},created:old?.created||new Date().toISOString()};
+ for(const p of draft.photos)if(p.data)await put('photos',{id:p.id,data:p.data});for(const p of old?.photos||[])if(!e.photos.some(x=>x.id===p.id))await del('photos',p.id);
+ await put('entries',e);let n=0;
+ if(fd.mkTodo&&defects)for(const line of defects.split('\n').map(x=>x.trim()).filter(Boolean)){await put('todos',{id:uid(),carId:e.carId,title:line,prio:PK_RES[res].pass?2:1,due:PK_RES[res].pass?null:addMonths(e.date,1),tools:'',note:`Mangel aus der Pickerl-Begutachtung vom ${fmtD(e.date)}`,parts:[],toolIds:[],done:false,created:new Date().toISOString()});n++}
+ closeSheet();toast(PK_RES[res].pass?`Pickerl eingetragen – nächstes: ${pickerlStatus(car(e.carId))?.label.replace('Pickerl ','')||'–'}${n?` · ${n} To-do${n>1?'s':''}`:''}`:`Gespeichert – Nachprüfung nötig${n?` · ${n} To-do${n>1?'s':''}`:''}`);nav(`#/car/${e.carId}`)}
+function pkView(id){const e=S.entries.find(x=>x.id===id);const r=pkRes(e);const ds=(e.pk?.defects||'').split('\n').map(x=>x.trim()).filter(Boolean);
+ openSheet('Pickerl-Begutachtung',`<div class="item st-${r.st}" style="cursor:default"><span class="cat" style="--c:var(--${r.st==='ok'?'green':r.st==='soon'?'yellow':'red'})">${r.i}</span><div class="grow"><b>${esc(r.l)}</b><div class="sub">${esc(carName(e.carId))} · ${fmtD(e.date)} · ${kmT(e.odo)}</div></div></div>
+ <div class="card"><dl class="kv"><dt>Prüfstelle</dt><dd>${esc(e.workshop||'–')}</dd><dt>Kosten</dt><dd>${eur(entryCost(e))}</dd></dl></div>
+ ${ds.length?`<h4>Mängel / Hinweise</h4><ul style="padding-left:20px;margin:0 0 8px">${ds.map(d=>`<li>${esc(d)}</li>`).join('')}</ul>`:''}
+ ${e.notes?`<h4>Notizen</h4><p class="pre">${esc(e.notes)}</p>`:''}
+ ${e.photos?.length?`<h4>Gutachten & Beleg</h4><div class="thumbs">${e.photos.map(p=>`<div class="thumb"><img data-photo="${p.id}" alt="" data-a="photoView"><span class="tag">${esc(p.tag||'Foto')}</span></div>`).join('')}</div>`:''}`,
+ `<button class="btn primary grow" data-a="entryForm" data-id="${id}">Bearbeiten</button>`)}
+
 /* ================= Foto zuschneiden ================= */
 const loadImg=src=>new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src});
 async function rotateData(src){const i=await loadImg(src);const c=document.createElement('canvas');c.width=i.height;c.height=i.width;const x=c.getContext('2d');x.translate(c.width/2,c.height/2);x.rotate(Math.PI/2);x.drawImage(i,-i.width/2,-i.height/2);return c.toDataURL('image/jpeg',.92)}
@@ -1901,6 +1941,7 @@ function openCropper(src,aspect=16/9){return new Promise(resolve=>{const ov=$('#
 
 /* ================= Formulare: Eintrag ================= */
 function entryForm(o={}){const old=o.id?S.entries.find(e=>e.id===o.id):null;let base;
+ if(isPk(old))return pkForm({id:old.id});if(o.category==='Pickerl')return pkForm({carId:o.carId});
  if(old)base=structuredClone(old);
  else if(o.copyOf){const src=S.entries.find(e=>e.id===o.copyOf);base={...structuredClone(src),date:today(),odo:carOdo(src.carId),photos:[]};delete base.id;delete base.demo}
  else base={carId:o.carId||defaultCarId(),date:today(),odo:null,category:o.category||'Wartung',title:o.title||'',desc:'',diy:o.diy??true,workshop:'',hours:null,labor:null,notes:o.notes||'',parts:o.parts||[],photos:[],intervalIds:o.intervalIds||[],toolIds:o.toolIds||[]};
@@ -1912,7 +1953,7 @@ function entryForm(o={}){const old=o.id?S.entries.find(e=>e.id===o.id):null;let 
  const body=`<form id="fEntry" data-form="entry">
  <label class="f"><span>Auto</span><select name="carId" data-change="entryCar">${carOptions(d.carId)}</select></label>
  <div class="grid2"><label class="f"><span>Datum</span><input type="date" name="date" value="${esc(d.date)}" required></label><label class="f"><span>km-Stand</span><input name="odo" inputmode="numeric" value="${valN(d.odo)}"></label></div>
- <label class="f"><span>Kategorie</span><select name="category" data-change="entryCat">${catOptions(d.category)}</select></label>
+ <label class="f"><span>Kategorie</span><select name="category" data-change="entryCat">${catOptions(d.category,null,true)}</select></label>
  <label class="f"><span>Titel</span><input name="title" value="${esc(d.title)}" placeholder="z. B. Ölwechsel mit Filter"></label>
  <label class="f"><span>Beschreibung / Arbeitsschritte</span><textarea name="desc">${esc(d.desc)}</textarea></label>
  <div class="seg"><label><input type="radio" name="diy" value="1" ${d.diy?'checked':''}><span>🔧 Selbst gemacht</span></label><label><input type="radio" name="diy" value="0" ${!d.diy?'checked':''}><span>🏭 Werkstatt</span></label></div>
@@ -1961,7 +2002,7 @@ async function saveEntry(f){const fd=Object.fromEntries(new FormData(f));const o
  if(draft.issueId){const x=S.issues.find(i=>i.id===draft.issueId);if(x){x.status='solved';x.solvedEntryId=e.id;x.solvedDate=e.date;await put('issues',x)}}
  const wh=old?[]:warrantyHits(e);if(wh.length)setTimeout(()=>warrantySheet(wh),600);
  histQ='';histCat='';closeSheet();toast(ivIds.length?`Gespeichert · ${ivIds.length} Intervall${ivIds.length>1?'e':''} zurückgesetzt`:'Gespeichert');nav(`#/car/${e.carId}/hist`)}
-function entryView(id){const e=S.entries.find(x=>x.id===id);if(!e)return;
+function entryView(id){const e=S.entries.find(x=>x.id===id);if(!e)return;if(isPk(e))return pkView(id);
  const parts=(e.parts||[]).map(p=>`<div class="prow" style="padding-bottom:10px"><div class="row between"><b>${esc(p.name||'Teil')}</b><span class="amt">${p.price!=null?eur(p.price):''}</span></div>
  <div class="sub">${esc([p.qty!=null?fmtQ(p.qty)+' '+(p.unit||''):'',p.maker,p.partNo&&'Nr. '+p.partNo].filter(Boolean).join(' · '))}</div>${p.spec?`<div class="sub">Spezifikation: ${esc(p.spec)}</div>`:''}${p.shop?`<div class="sub">Bezug: ${esc(p.shop)}</div>`:''}${p.invId?'<div class="sub">📦 aus dem Lager</div>':''}${p.warranty?(()=>{const we=addMonths(e.date,p.warranty);return`<div class="sub" style="color:${we>=today()?'var(--green)':'var(--muted)'}">🛡️ Garantie bis ${fmtD(we)}${we>=today()?'':' (abgelaufen)'}</div>`})():''}</div>`).join('');
  const ivn=(e.intervalIds||[]).map(i=>S.intervals.find(x=>x.id===i)?.name).filter(Boolean);
@@ -2078,12 +2119,12 @@ function quick(){const r=parseHash();const cid=r.v==='car'?r.id:'';
  openSheet('Neu …',`<div class="qgrid"><button class="qbtn" data-a="entryForm" data-car="${cid}"><b>🔧</b>Wartung / Reparatur</button><button class="qbtn" data-a="todoForm" data-car="${cid}"><b>✅</b>To-do</button>
  <button class="qbtn" data-a="odoForm" data-car="${cid}"><b>📏</b>km-Stand</button><button class="qbtn" data-a="fuelForm" data-car="${cid}"><b>⛽</b>Tanken</button>
  <label class="qbtn"><b>🧾</b>Beleg fotografieren<input type="file" accept="image/*" capture="environment" hidden data-file="receipt"></label><button class="qbtn" data-a="issueForm" data-car="${cid||defaultCarId()}"><b>⚠️</b>Fehler / Symptom</button>
- <button class="qbtn" data-a="toolForm"><b>🔧</b>Werkzeug</button><button class="qbtn" data-a="invForm"><b>📦</b>Teil ins Lager</button><button class="qbtn" data-a="guideForm" data-car="${cid}"><b>📖</b>Anleitung</button><button class="qbtn" data-a="carForm"><b>🚗</b>Neues Auto</button></div>`)}
+ <button class="qbtn" data-a="pkDone" data-car="${cid||defaultCarId()}"><b>🛡️</b>Pickerl</button><button class="qbtn" data-a="quickWs"><b>🧰</b>Werkzeug / Lager</button><button class="qbtn" data-a="guideForm" data-car="${cid}"><b>📖</b>Anleitung</button><button class="qbtn" data-a="carForm"><b>🚗</b>Neues Auto</button></div>`)}
 function download(name,content,type){const b=new Blob([content],{type});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
 const fileSafe=s=>String(s).replace(/[^\wäöüÄÖÜß-]+/g,'_');
 function exportCSV(carId){const c=car(carId);const q=v=>{const s=String(v??'');return /[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};const n=v=>v==null?'':String(v).replace('.',',');
  const rows=[['Datum','km','Kategorie','Titel','Ausgeführt','Werkstatt','Arbeitszeit h','Teile','Teilekosten €','Arbeitslohn €','Gesamt €','Beschreibung','Notizen']];
- carEntries(carId).slice().reverse().forEach(e=>rows.push([fmtD(e.date),e.odo??'',catLabel(e.category),e.title,e.diy?'selbst':'Werkstatt',e.workshop,n(e.hours),(e.parts||[]).map(p=>`${p.qty!=null?fmtQ(p.qty)+' '+(p.unit||'')+' ':''}${p.name}${p.maker?' ('+p.maker+(p.partNo?', '+p.partNo:'')+')':p.partNo?' ('+p.partNo+')':''}${p.spec?' ['+p.spec+']':''}`).join(' | '),n(r3(partsCost(e))),n(e.labor),n(r3(entryCost(e))),e.desc,e.notes]));
+ carEntries(carId).slice().reverse().forEach(e=>rows.push([fmtD(e.date),e.odo??'',catLabel(e.category),e.title,doneBy(e),e.workshop,n(e.hours),(e.parts||[]).map(p=>`${p.qty!=null?fmtQ(p.qty)+' '+(p.unit||'')+' ':''}${p.name}${p.maker?' ('+p.maker+(p.partNo?', '+p.partNo:'')+')':p.partNo?' ('+p.partNo+')':''}${p.spec?' ['+p.spec+']':''}`).join(' | '),n(r3(partsCost(e))),n(e.labor),n(r3(entryCost(e))),e.desc,e.notes]));
  download(`Wartung_${fileSafe(dispName(c))}_${today()}.csv`,'﻿'+rows.map(r=>r.map(q).join(';')).join('\r\n'),'text/csv;charset=utf-8');toast('CSV erstellt')}
 function printBook(carId){draft={kind:'print',carId};openSheet('Scheckheft / PDF',`<p>Erstellt eine druckbare Wartungshistorie – ideal für den Verkauf oder fürs Pickerl. Im Druckdialog „Als PDF speichern“ wählen.</p>
  <label class="checkline"><input type="checkbox" id="pbCost" checked> Kosten anzeigen</label><label class="checkline"><input type="checkbox" id="pbParts" checked> Teile & Hersteller anzeigen</label>`,
@@ -2092,7 +2133,7 @@ function doPrint(carId){const c=car(carId),cost=$('#pbCost').checked,parts=$('#p
  const kv=[['Fahrzeug',[c.make,c.model].filter(Boolean).join(' ')],['Baujahr',c.year],['Kennzeichen',c.plate],['FIN',c.vin],['Motorcode',c.engine],['Leistung',c.power],['Erstzulassung',c.firstReg&&fmtD(c.firstReg)],['km-Stand',kmT(carOdo(carId))+' (Stand '+fmtD(today())+')']].filter(x=>x[1]);
  $('#print').innerHTML=`<h1>Wartungsnachweis – ${esc(dispName(c))}</h1><table>${kv.map(([k,v])=>`<tr><th style="width:30%">${k}</th><td>${esc(v)}</td></tr>`).join('')}</table>
  <h2>Durchgeführte Arbeiten (${ents.length})</h2><table><tr><th>Datum</th><th>km</th><th>Arbeit</th>${parts?'<th>Teile / Betriebsstoffe</th>':''}<th>Ausgeführt</th>${cost?'<th>Kosten</th>':''}</tr>
- ${ents.map(e=>`<tr><td>${fmtD(e.date)}</td><td>${e.odo!=null?fmtN(e.odo):''}</td><td><b>${esc(e.title)}</b><br>${esc(catLabel(e.category))}${e.desc?'<br>'+esc(e.desc):''}</td>${parts?`<td>${(e.parts||[]).map(p=>esc(`${p.qty!=null?fmtQ(p.qty)+' '+(p.unit||'')+' ':''}${p.name}${p.maker?' – '+p.maker:''}${p.partNo?' ('+p.partNo+')':''}${p.spec?', '+p.spec:''}`)).join('<br>')}</td>`:''}<td>${e.diy?'selbst':'Werkstatt'+(e.workshop?'<br>'+esc(e.workshop):'')}</td>${cost?`<td>${eur(entryCost(e))}</td>`:''}</tr>`).join('')}</table>
+ ${ents.map(e=>`<tr><td>${fmtD(e.date)}</td><td>${e.odo!=null?fmtN(e.odo):''}</td><td><b>${esc(e.title)}</b><br>${esc(catLabel(e.category))}${e.desc?'<br>'+esc(e.desc):''}</td>${parts?`<td>${(e.parts||[]).map(p=>esc(`${p.qty!=null?fmtQ(p.qty)+' '+(p.unit||'')+' ':''}${p.name}${p.maker?' – '+p.maker:''}${p.partNo?' ('+p.partNo+')':''}${p.spec?', '+p.spec:''}`)).join('<br>')}</td>`:''}<td>${isPk(e)?'Prüfstelle'+(e.workshop?'<br>'+esc(e.workshop):'')+'<br>'+pkRes(e).l:e.diy?'selbst':'Werkstatt'+(e.workshop?'<br>'+esc(e.workshop):'')}</td>${cost?`<td>${eur(entryCost(e))}</td>`:''}</tr>`).join('')}</table>
  ${cost?`<p><b>Summe: ${eur(ents.reduce((s,e)=>s+entryCost(e),0))}</b></p>`:''}<p style="color:#666;font-size:9pt">Erstellt am ${fmtD(today())} mit Garage & Wartungsmanager.</p>`;
  closeSheet();setTimeout(()=>window.print(),350)}
 async function exportJSON(){download(`garage-backup-${today()}.json`,await backupJSON(),'application/json');lsSet('garage.lastBackup',new Date().toISOString());toast('Backup gespeichert (Downloads)');render()}
@@ -2352,7 +2393,7 @@ async function saveExpose(f){const fd=Object.fromEntries(new FormData(f));const 
  ${hero?`<img class="ex-hero" src="${hero}" alt="">`:''}<table>${kv.map(([k,v])=>`<tr><th style="width:38%">${k}</th><td>${esc(v)}</td></tr>`).join('')}</table>
  ${x.highlights.trim()?`<h2>Highlights</h2><ul>${x.highlights.split('\n').map(s=>s.trim()).filter(Boolean).map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`:''}
  ${x.desc?`<h2>Beschreibung</h2><p style="white-space:pre-wrap">${esc(x.desc)}</p>`:''}
- ${x.history&&ents.length?`<h2>Wartungshistorie (Auszug)</h2><table><tr><th>Datum</th><th>km</th><th>Arbeit</th><th>durch</th></tr>${ents.slice(0,15).map(e=>`<tr><td>${fmtD(e.date)}</td><td>${e.odo!=null?fmtN(e.odo):''}</td><td>${esc(e.title)}</td><td>${e.diy?'selbst':'Werkstatt'}</td></tr>`).join('')}</table>`:''}
+ ${x.history&&ents.length?`<h2>Wartungshistorie (Auszug)</h2><table><tr><th>Datum</th><th>km</th><th>Arbeit</th><th>durch</th></tr>${ents.slice(0,15).map(e=>`<tr><td>${fmtD(e.date)}</td><td>${e.odo!=null?fmtN(e.odo):''}</td><td>${esc(e.title)}</td><td>${doneBy(e)}</td></tr>`).join('')}</table>`:''}
  ${pics.length?`<h2>Fotos</h2><div class="ex-grid">${pics.map(p=>`<img src="${p}" alt="">`).join('')}</div>`:''}
  ${x.contact||x.phone?`<div class="ex-contact">Kontakt: <b>${esc(x.contact)}</b>${x.phone?' · '+esc(x.phone):''}</div>`:''}</div>`;
  closeSheet();setTimeout(()=>window.print(),450)}
@@ -2417,7 +2458,8 @@ const A={
  carArchive:async d=>{const c=car(d.car);if(c.archived){if(c.sold&&!confirm('Verkauf rückgängig machen und das Auto zurück in die Garage holen?'))return;delete c.sold;c.archived=false;await put('cars',c);toast('Zurück in der Garage');render()}
   else{if(!confirm('Auto ohne Verkauf ins Archiv verschieben?'))return;c.archived=true;await put('cars',c);toast('Ins Archiv verschoben');render()}},
  sellForm:d=>sellForm(d.car),pkOpen:d=>pkOpen(d.car),
- pkDone:d=>entryForm({carId:d.car,category:'Pickerl',title:'Pickerl-Begutachtung §57a',diy:false}),
+ pkDone:d=>pkForm({carId:d.car}),
+ quickWs:()=>openSheet('Werkzeug / Lager',`<div class="qgrid"><button class="qbtn" data-a="toolForm"><b>🔧</b>Neues Werkzeug</button><button class="qbtn" data-a="invForm"><b>📦</b>Teil ins Lager</button></div>`),pkView:d=>pkView(d.id),
  carPhotoCrop:async()=>{let src=draft.photoSrc;
   if(!src&&!draft.photoChanged){if(draft.photoOrigId)src=await getPhoto(draft.photoOrigId);if(!src&&draft.photoId)src=await getPhoto(draft.photoId)}
   if(!src)src=draft.photoData;if(!src){toast('Zuerst ein Foto wählen');return}
@@ -2457,19 +2499,21 @@ const A={
  wipe:async()=>{if(!confirm('Wirklich ALLE Daten löschen? Das kann nicht rückgängig gemacht werden.\n\nTipp: Vorher ein Backup speichern.'))return;await clearAll();toast('Alle Daten gelöscht');nav('#/home')},
 };
 document.addEventListener('click',e=>{if(e.target.id==='sheet'){closeSheet();return}const el=e.target.closest('[data-a]');if(!el)return;const f=A[el.dataset.a];if(f){e.preventDefault();f(el.dataset,el,e)}});
-const FORMS={tool:saveTool,tyre:saveTyre,issue:saveIssue,guide:saveGuide,receipt:saveReceipt,expose:saveExpose,ivTpl:saveIvTpl,sell:saveSell,car:saveCar,entry:saveEntry,todo:saveTodo,inv:saveInv,fuel:saveFuel,odo:saveOdo,iv:saveIv,spec:saveSpecs,dl:saveDl};
+const FORMS={pk:savePk,tool:saveTool,tyre:saveTyre,issue:saveIssue,guide:saveGuide,receipt:saveReceipt,expose:saveExpose,ivTpl:saveIvTpl,sell:saveSell,car:saveCar,entry:saveEntry,todo:saveTodo,inv:saveInv,fuel:saveFuel,odo:saveOdo,iv:saveIv,spec:saveSpecs,dl:saveDl};
 let saving=false;
 document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target;const fn=FORMS[f.dataset.form];if(!fn||saving)return;saving=true;try{await fn(f)}catch(err){console.error(err);toast('Fehler beim Speichern: '+err.message)}finally{saving=false}});
 const CHANGES={
  entryCar:t=>{draft.intervalIds=checkedIv();draft.carId=t.value;draft.intervalIds=[...new Set([...draft.intervalIds.filter(id=>S.intervals.find(i=>i.id===id)?.carId===t.value),...autoIvIds(t.value,$('#fEntry [name=category]').value)])];
   const o=$('#fEntry [name=odo]');const cur=carOdo(t.value);o.value=valN(cur);renderIvChecks()},
- entryCat:t=>{draft.intervalIds=[...new Set([...checkedIv(),...autoIvIds(draft.carId,t.value)])];renderIvChecks()},
+ entryCat:t=>{if(t.value==='Pickerl'){const cid=$('#fEntry [name=carId]').value;closeSheet();setTimeout(()=>pkForm({carId:cid}),50);return}draft.intervalIds=[...new Set([...checkedIv(),...autoIvIds(draft.carId,t.value)])];renderIvChecks()},
  partInv:t=>{draft.parts=readParts();const p=draft.parts[+t.dataset.i];const it=S.inventory.find(i=>i.id===t.value);
   if(it){p.name=it.name;p.maker=it.maker||p.maker;p.partNo=it.partNo||p.partNo;p.unit=it.unit||p.unit;p.spec=it.spec||p.spec;if(!p.qty)p.qty=1;if(it.price!=null)p.price=r3(it.price*p.qty);p.shop=p.shop||'Lager'}renderParts();ivAutoMatch()},
  ivTpl:t=>{const tp=IV_TPL[+t.value];if(!tp)return;const f=$('#fIv'),F=n=>f.elements.namedItem(n);F('name').value=tp.name;F('km').value=valN(tp.km);F('months').value=valN(tp.months);F('category').value=tp.category||'';F('group').value=IV_GROUPS[tp.g];F('match').value=tp.match||''},
  theme:t=>{lsSet('garage.theme',t.value);applyTheme()},
  issueCar:t=>{draft.carId=t.value;const f=$('#fIssue'),o=f.elements.namedItem('odo');if(!draft.id)o.value=valN(carOdo(t.value));
   $('#issueFixSel').innerHTML='<option value="">—</option>'+carEntries(t.value).map(e=>`<option value="${e.id}">${fmtD(e.date)} · ${esc(e.title)}</option>`).join('')},
+ pkCar:t=>{draft.carId=t.value;$('#fPk [name=odo]').value=valN(carOdo(t.value))},
+ pkRes:t=>{const c=$('#pkTodoLine input');if(c)c.checked=t.value!=='ok'},
  backupDays:t=>{lsSet('garage.backupDays',t.value);toast('Gespeichert')},
 };
 const FILES={
@@ -2516,8 +2560,8 @@ async function seed(){const P=(name,maker,qty,unit,price,o={})=>({name,maker,par
   E(b.id,'2026-05-10',187200,'Ölwechsel','Ölwechsel mit Filter',{hours:1,parts:[P('Motoröl 5W-30','Castrol',6.5,'l',54.9,{spec:'BMW Longlife'}),P('Ölfiltereinsatz','Mann-Filter',1,'Stk',9.9)],intervalIds:[bOil.id]}),
   E(b.id,'2025-09-20',183900,'Reparatur','Wasserpumpe + Thermostat',{hours:4,desc:'Wasserpumpe mit Metallflügelrad und Thermostat getauscht, Kühlsystem entlüftet.',notes:'Lüfterkupplung gleich mitgeprüft – ok.',parts:[P('Wasserpumpe (Metallflügelrad)','Hepu',1,'Stk',39.9),P('Thermostat','Wahler',1,'Stk',24.5),P('Kühlerfrostschutz','BASF Glysantin',3,'l',18)],intervalIds:[bKm.id]}),
   E(b.id,'2023-04-02',176500,'Inspektion','Zündkerzen erneuert',{hours:.5,parts:[P('Zündkerzen','NGK',6,'Stk',42)],intervalIds:[bZk.id]}),
-  E(a.id,'2026-03-20',242800,'Pickerl','Pickerl-Begutachtung §57a',{diy:false,workshop:'Prüfstelle',labor:69,notes:'Keine Mängel. Hinweis: Bremsen vorne bald fällig.'}),
-  E(b.id,'2025-11-12',184500,'Pickerl','Pickerl-Begutachtung §57a',{diy:false,workshop:'Prüfstelle',labor:69,notes:'Leichter Mangel: Querlenkerlager vorne – beobachten.'}),
+  E(a.id,'2026-03-20',242800,'Pickerl','Pickerl-Begutachtung §57a',{diy:false,workshop:'ÖAMTC Prüfzentrum',labor:69,pk:{result:'minor',defects:'Bremsscheiben vorne Verschleißgrenze nahe'},notes:''}),
+  E(b.id,'2025-11-12',184500,'Pickerl','Pickerl-Begutachtung §57a',{diy:false,workshop:'Werkstatt Huber',labor:69,pk:{result:'minor',defects:'Querlenkerlager vorne – Spiel, beobachten'},notes:''}),
   E(g.id,'2017-06-03',162000,'Reparatur','Kupplung erneuert',{hours:6,parts:[P('Kupplungssatz','Sachs',1,'Satz',129)]}),
   E(g.id,'2018-09-15',176000,'Ölwechsel','Ölwechsel mit Filter',{hours:.75,parts:[P('Motoröl 10W-40','Castrol',4,'l',24),P('Ölfilter','Mann-Filter',1,'Stk',6.5)]}),
  ];
