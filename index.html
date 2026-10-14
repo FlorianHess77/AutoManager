@@ -1813,7 +1813,7 @@ function viewCar(id,tab){const c=car(id);
  if(tab==='odo'){const rows=[...S.entries.filter(e=>e.carId===id&&e.odo!=null).map(e=>({date:e.date,odo:e.odo,src:'Wartung: '+(e.title||e.category)})),
   ...S.fuel.filter(f=>f.carId===id&&f.odo!=null).map(f=>({date:f.date,odo:f.odo,src:'Tanken'})),...S.odo.filter(o=>o.carId===id).map(o=>({date:o.date,odo:o.odo,src:'Manuell',id:o.id})),...(c.purchaseOdo!=null?[{date:c.purchase||c.created||'',odo:c.purchaseOdo,src:'Kauf'+(c.purchase?'':' (Datum fehlt)')}]:[]),...(c.sold?.odo!=null?[{date:c.sold.date,odo:c.sold.odo,src:'Verkauf'}]:[])]
   .sort((a,b)=>b.date.localeCompare(a.date)||b.odo-a.odo);
-  h+=`<button class="btn primary block" data-a="odoForm" data-car="${id}">+ km-Stand eintragen</button>`+rows.map((r,i)=>{const nx=rows[i+1];const diff=nx?r.odo-nx.odo:null;
+  h+=`<button class="btn primary block" data-a="odoForm" data-car="${id}">+ km-Stand eintragen</button>`+odoChart(c,rows)+rows.map((r,i)=>{const nx=rows[i+1];const diff=nx?r.odo-nx.odo:null;
    return`<div class="item" ${r.id?`data-a="odoDelete" data-id="${r.id}"`:''}><div class="grow"><b>${kmT(r.odo)}</b><div class="sub">${fmtD(r.date)} · ${esc(r.src)}</div></div>${diff>0?`<span class="sub">+${fmtN(diff)} km</span>`:''}${r.id?'<span class="muted">✕</span>':''}</div>`}).join('')||empty('Noch keine km-Stände.','','')}
  return{title:dispName(c),html:h,tab:c.archived?'more':'cars',back:c.archived?'#/archive':'#/cars',actions:`<button class="iconbtn" data-a="torqueSheet" data-car="${id}" aria-label="Drehmomente">🔩</button> <button class="iconbtn" data-a="carForm" data-id="${id}" aria-label="Bearbeiten">✎</button>`,after}}
 function renderHistList(id){const box=$('#histList');if(!box)return;const words=histQ.toLowerCase().split(/\s+/).filter(Boolean);
@@ -2786,6 +2786,20 @@ function consHint(carId,short){const fc=fuelCalc(carId);const full=fc.list.filte
  if(short)return`<p class="sub" style="margin:0 2px 8px">${one?`Bisher ${fmtN(one,1)} l/100 km · `:''}Kurve ab ${need} weiteren Volltankung${need===1?'':'en'} mit km-Stand.</p>`;
  return`<div class="chart"><div class="chart-head"><span>Verbrauch</span></div><p class="sub" style="margin:0 0 6px">${one?`Bisher: <b style="color:var(--text)">${fmtN(one,1)} l/100 km</b>. `:''}Die Kurve erscheint, sobald genug Volltankungen <b>mit km-Stand</b> da sind – noch <b style="color:var(--text)">${need}</b>.</p><p class="sub" style="margin:0">Der Verbrauch wird immer zwischen zwei Volltankungen berechnet. Tipp: Beim Tanken „Vollgetankt“ angehakt lassen und den km-Stand eintragen.</p></div>`}
 function viewPrices(){const h=fuelPriceStats();return{title:'Spritpreise',tab:'more',back:'#/more',html:h?h.replace('<h2>Spritpreise</h2>',''):empty('Noch keine Tankungen mit Preis.<br><span class="sub">Trag beim Tanken Liter und Betrag ein – oder fotografier einfach den Tankbeleg. Ab der zweiten Tankung siehst du hier den Preisverlauf für Benzin und Diesel.</span>','⛽ Tankung eintragen','fuelForm')}}
+function odoChart(c,rows){const by={};rows.forEach(r=>{if(!r.date)return;by[r.date]=Math.max(by[r.date]||0,r.odo)});
+ const pts=Object.entries(by).map(([d,v])=>({d,t:new Date(d).getTime(),v})).filter(p=>!isNaN(p.t)).sort((a,b)=>a.t-b.t);
+ const hasBuy=!!(c.purchase&&c.purchaseOdo!=null),start=hasBuy?new Date(c.purchase).getTime():pts[0]?.t;const P=pts.filter(p=>p.t>=start);if(P.length<2)return'';
+ for(let i=1;i<P.length;i++)if(P[i].v<P[i-1].v)P[i].v=P[i-1].v;
+ const t1=P[P.length-1].t,span=t1-start||1,W=300,H=110,mo=t=>(t-start)/(30.4375*864e5);
+ const vs=P.map(p=>p.v),pad=Math.max((Math.max(...vs)-Math.min(...vs))*.08,200),lo=Math.min(...vs)-pad,hi=Math.max(...vs)+pad,rng=hi-lo;
+ const x=t=>(t-start)/span*W,y=v=>H-(v-lo)/rng*H,col=carColor(c.id);
+ const dur=m=>m<.5?'0':m<12?Math.round(m)+' Mon.':fmtN(m/12,m/12<10?1:0)+' J.';
+ const driven=P[P.length-1].v-P[0].v,yrs=mo(t1)/12;
+ return`<div class="chart" style="margin-top:12px"><div class="chart-head"><span>km-Stand</span><span class="legend"><i style="background:${col}"></i>Tsd. km</span></div>
+ <div class="plot"><div class="yax">${[hi,(hi+lo)/2,lo].map((v,i)=>`<span style="bottom:${(1-i/2)*100}%">${fmtN(v/1000,1)}</span>`).join('')}</div><div class="grid-l">${[1,.5,0].map(f=>`<i style="bottom:${f*100}%"></i>`).join('')}</div>
+ <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="lsvg"><polyline fill="none" stroke="${col}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" points="${P.map(p=>x(p.t)+','+y(p.v)).join(' ')}"/>${P.map(p=>`<circle cx="${x(p.t)}" cy="${y(p.v)}" r="3" fill="${col}" vector-effect="non-scaling-stroke"/>`).join('')}</svg></div>
+ <div class="xax"><span style="text-align:left">${hasBuy?'Kauf':fmtD(P[0].d)}</span><span>${hasBuy?dur(mo(start+span/2)):''}</span><span style="text-align:right">${hasBuy?dur(mo(t1)):fmtD(P[P.length-1].d)}</span></div>
+ <p class="sub" style="margin:8px 0 0">${hasBuy?'Seit Kauf':'Seit erstem Eintrag'}: <b style="color:var(--text)">${fmtN(driven)} km</b>${yrs>=.25?` · Ø <b style="color:var(--text)">${fmtN(Math.round(driven/yrs/100)*100)} km/Jahr</b>`:''}</p></div>`}
 function consChart(carId){const fc=fuelCalc(carId);const pts=fc.list.filter(f=>fc.cons[f.id]).map(f=>({d:f.date,v:fc.cons[f.id]}));if(pts.length<2)return'';
  const vs=pts.map(p=>p.v),lo=Math.floor(Math.min(...vs)-.5),hi=Math.ceil(Math.max(...vs)+.5),rng=hi-lo||1,W=300,H=100,col=carColor(carId);
  const x=i=>pts.length===1?W/2:i/(pts.length-1)*W,y=v=>H-(v-lo)/rng*H;const avg=fc.avg;
