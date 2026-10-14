@@ -191,6 +191,15 @@ details.fold[open]{padding-bottom:12px}details.fold .kv{margin-bottom:10px}
 .fo-stage{flex:1;display:grid;place-items:center;overflow:hidden;padding:8px 16px}.fo-wrap{position:relative;touch-action:none}.fo-wrap img{width:100%;height:100%;display:block;user-select:none;-webkit-user-drag:none;pointer-events:none;border-radius:4px}
 .fo-frame{position:absolute;border:2px solid #fff;border-radius:6px;box-shadow:0 0 0 9999px rgba(0,0,0,.55);cursor:grab}
 
+.sumrow{display:flex;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin-bottom:10px}.sumrow>div{flex:1;min-width:0;display:flex;flex-direction:column}.sumrow b{font-size:18px}.sumrow .sub{font-size:11.5px}
+.ttiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ttile{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:96px;text-align:left;color:var(--text);font:inherit;cursor:pointer}
+.ttile .i{font-size:24px;line-height:1.1}.ttile b{font-size:14.5px;line-height:1.25}.ttile .n{font-size:12px;color:var(--muted)}.ttile.warn{border-color:color-mix(in srgb,var(--yellow) 45%,var(--line))}
+.subhead{display:flex;align-items:baseline;justify-content:space-between;margin:2px 2px 8px}.subhead b{font-size:16px}.subhead span{font-size:12.5px;color:var(--muted)}
+.tlist{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.trow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-top:1px solid var(--line);cursor:pointer;min-height:56px}.trow:first-child{border-top:0}
+.trow .th{width:38px;height:38px;border-radius:9px;background:color-mix(in srgb,var(--accent) 14%,var(--surface2));display:grid;place-items:center;font-size:17px;flex:none;overflow:hidden}.trow .th img{width:100%;height:100%;object-fit:cover}
+.trow .grow{flex:1;min-width:0}.trow b{font-size:14.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.trow .sub{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trow .tv{font-size:12.5px;color:var(--muted);text-align:right;flex:none;max-width:40%}.dot.g{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:4px;vertical-align:1px}
 .searchbar{display:flex;align-items:center;gap:10px;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;color:var(--muted);font:inherit;font-size:15px;margin-bottom:6px;cursor:pointer;text-align:left}
 .mtile .mi{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,transparent)}
 .mtile .mi .ico{width:25px;height:25px}.mtile small{color:var(--muted);font-weight:500;font-size:11px;margin-top:-4px}
@@ -2585,30 +2594,44 @@ function toolCalc(t){const uses=toolUses(t),price=toolPaid(t);const r={uses,pric
  return r}
 let toolQ='',toolCat='';
 const workshopChips=on=>`<div class="chips"><button class="chip ${on==='tools'?'on':''}" data-a="go" data-h="#/tools">${ic('wrench','ico s')} Werkzeug</button><button class="chip ${on==='inv'?'on':''}" data-a="go" data-h="#/inv">${ic('box','ico s')} Teilelager</button><button class="chip" data-a="shopOpen">${ic('cart','ico s')} Einkaufsliste${shopOpenCount()?' ('+shopOpenCount()+')':''}</button></div>`;
-function viewTools(){const all=S.tools;const val=all.reduce((s,t)=>s+(t.price||0),0),uses=all.reduce((s,t)=>s+toolUses(t),0),lent=all.filter(t=>t.lentTo).length;
- const rentTools=all.filter(t=>t.rentPrice&&toolPaid(t)!=null),rentVal=rentTools.reduce((s,t)=>s+toolPaid(t),0),saved=rentTools.reduce((s,t)=>s+toolUses(t)*t.rentPrice,0);
- let h=workshopChips('tools')+`<div class="grid2"><div class="card"><div class="sub">Werkzeugwert</div><div class="big">${eur(val)}</div><div class="sub">${all.filter(t=>!isAcc(t)).length} Werkzeuge${all.some(isAcc)?` · ${all.filter(isAcc).length} Zubehör`:''}</div></div>
- ${(()=>{const y=today().slice(0,4),b=all.filter(t=>(t.purchaseDate||'').startsWith(y)),sum=b.reduce((x,t)=>x+(toolPaid(t)||0),0);return`<div class="card"><div class="sub">Ausgaben ${y}</div><div class="big">${eur(sum)}</div><div class="sub">${b.length?(()=>{const nt=b.filter(t=>!isAcc(t)).length,na=b.filter(isAcc).length;return[nt?`${nt} Werkzeug${nt>1?'e':''}`:'',na?`${na} Zubehör`:''].filter(Boolean).join(' · ')+' gekauft'})():'noch nichts gekauft'}</div></div>`})()}</div>
- ${(()=>{const w=all.map(t=>({t,w:toolWarranty(t)})).filter(x=>x.w&&x.w.st!=='exp'),soon=w.filter(x=>x.w.st==='soon');const ch=[];
-  if(saved)ch.push(`<button class="hchip g" data-a="toolInfo" data-k="saved">💶 ${eur(saved).replace(',00','')} gespart${saved>=rentVal?' ✓':''}</button>`);
-  if(w.length)ch.push(`<button class="hchip ${soon.length?'y':'g'}" data-a="toolCat" data-c="_wy">🛡️ ${w.length} mit Garantie${soon.length?` · ${soon.length} läuft ab`:''}</button>`);
-  if(lent)ch.push(`<button class="hchip y" data-a="toolInfo" data-k="lent">🤝 ${lent} verliehen</button>`);
-  return ch.length?`<div class="hchips">${ch.join('')}</div>`:''})()}
- <label class="f"><input id="toolQ" type="search" placeholder="Werkzeug suchen …" value="${esc(toolQ)}"></label>
- <div class="chips"><button class="chip ${!toolCat?'on':''}" data-a="toolCat" data-c="">Alle</button>${all.some(isAcc)?`<button class="chip ${toolCat==='_acc'?'on':''}" data-a="toolCat" data-c="_acc">🔋 Zubehör</button>`:''}${all.some(t=>toolWarranty(t)&&toolWarranty(t).st!=='exp')?`<button class="chip ${toolCat==='_wy'?'on':''}" data-a="toolCat" data-c="_wy">🛡️ Mit Garantie</button>`:''}${TOOL_CATS.filter(c=>all.some(t=>t.category===c&&!isAcc(t))).map(c=>`<button class="chip ${toolCat===c?'on':''}" data-a="toolCat" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>
- <div id="toolList"></div><div class="grid2"><button class="btn primary" data-a="toolForm">+ Werkzeug</button><button class="btn" data-a="accForm">+ Zubehör</button></div>`;
+const TOOL_ICON={'Handwerkzeug':'🔧','Steckschlüssel & Ratschen':'🔩','Drehmoment':'📏','Elektrowerkzeug':'⚡','Druckluft':'💨','Mess- & Prüfwerkzeug':'📐','Spezialwerkzeug':'🛠️','Hebe- & Sicherungstechnik':'🏗️','Diagnose & Elektrik':'🔌','Sonstiges':'📦','Akku':'🔋','Ladegerät':'🔌','Zubehör':'🧩'};
+function toolGroups(){const all=S.tools,G=[];const cats=[...TOOL_CATS,...new Set(all.filter(t=>!isAcc(t)&&!TOOL_CATS.includes(t.category)).map(t=>t.category||'Sonstiges'))];
+ for(const c of cats){const it=all.filter(t=>!isAcc(t)&&(t.category||'Sonstiges')===c);if(it.length)G.push({k:'c:'+c,l:c,i:TOOL_ICON[c]||'🔧',it})}
+ const acc=all.filter(isAcc),sk={};acc.forEach(a=>{const k=sysKey(a.system)||'~';(sk[k]=sk[k]||[]).push(a)});
+ for(const k of Object.keys(sk).sort()){const lab=k==='~'?'':(S.tools.find(t=>!isAcc(t)&&sysKey(t.system)===k)?.system||sk[k][0].system||'').trim();G.push({k:'a:'+k,l:lab?'Zubehör · '+lab:'Zubehör',i:'🔋',it:sk[k],acc:true,sys:lab})}
+ return G}
+function toolSpecial(){const all=S.tools;return[{k:'_wy',l:'Mit Garantie',i:'🛡️',it:all.filter(t=>{const w=toolWarranty(t);return w&&w.st!=='exp'}).sort((a,b)=>(a.warrantyLifetime?'9999':a.warrantyUntil||'').localeCompare(b.warrantyLifetime?'9999':b.warrantyUntil||''))},{k:'_lent',l:'Verliehen',i:'🤝',it:all.filter(t=>t.lentTo)}]}
+const toolGroup=k=>[...toolGroups(),...toolSpecial()].find(g=>g.k===k);
+function toolRow(t){const r=toolCalc(t),w=toolWarranty(t);let v='';
+ if(t.lentTo)v=`<span style="color:var(--yellow)">🤝 ${esc(t.lentTo)}</span>`;else if(w&&w.st==='soon')v=`<span style="color:var(--yellow)">${esc(w.short)}</span>`;
+ else if(!isAcc(t)&&r.perUse!=null)v=`${eur(r.perUse)}/Einsatz`;else if(w&&w.st!=='exp')v=`<span class="dot g"></span>${esc(w.short.replace(/^🛡️\s*/,''))}`;else if(!isAcc(t)&&!r.uses)v='neu';else if(r.price!=null)v=eur(r.price);
+ return`<div class="trow" data-a="toolView" data-id="${t.id}"><span class="th">${t.photoId?`<img data-photo="${t.photoId}" alt="" style="${ppos(t)}">`:isAcc(t)?(TOOL_ICON[t.category]||'🔋'):(TOOL_ICON[t.category]||'🔧')}</span><div class="grow"><b>${esc(t.name)}</b><div class="sub">${esc([t.brand,!isAcc(t)&&t.system?'🔋 '+t.system:'',isAcc(t)?t.category:'',t.location&&'📍 '+t.location].filter(Boolean).join(' · '))}</div></div><span class="tv">${v}</span></div>`}
+function viewTools(){const r=parseHash(),key=r.id?decodeURIComponent(r.id):'';const all=S.tools;
+ const g=key?toolGroup(key):null;if(key&&!g){return viewToolsHome()}
+ if(g){const val=g.it.reduce((s,t)=>s+(t.price||0),0),nav=[...toolGroups()];
+  let h=`<div class="chips">${nav.map(x=>`<button class="chip ${x.k===g.k?'on':''}" data-a="go" data-h="#/tools/${encodeURIComponent(x.k)}">${x.i} ${esc(x.l.replace(/^Zubehör · /,''))}</button>`).join('')}</div>
+  <div class="subhead"><b>${g.it.length} ${g.acc?'Teile':g.it.length===1?'Werkzeug':'Werkzeuge'}</b><span>${val?'Wert '+eur(val):''}</span></div>
+  <div class="tlist">${g.it.slice().sort(g.k.startsWith('_')?()=>0:byName).map(toolRow).join('')||'<p class="muted" style="padding:12px">Nichts drin.</p>'}</div>
+  ${g.k.startsWith('_')?'':`<div class="grid2" style="margin-top:12px"><button class="btn ${g.acc?'':'primary'}" data-a="toolForm" data-cat="${esc(g.acc?'':g.l)}">+ Werkzeug</button><button class="btn ${g.acc?'primary':''}" data-a="accForm" data-sys="${esc(g.sys||'')}">+ Zubehör</button></div>`}`;
+  return{title:g.l,html:h,tab:'inv',back:'#/tools',after:()=>hydratePhotos($('#view'))}}
+ return viewToolsHome()}
+function viewToolsHome(){const all=S.tools,y=today().slice(0,4);const val=all.reduce((s,t)=>s+(t.price||0),0);
+ const b=all.filter(t=>(t.purchaseDate||'').startsWith(y)),spent=b.reduce((x,t)=>x+(toolPaid(t)||0),0),nt=b.filter(t=>!isAcc(t)).length,na=b.filter(isAcc).length;
+ const rentTools=all.filter(t=>t.rentPrice&&toolPaid(t)!=null),saved=rentTools.reduce((s,t)=>s+toolUses(t)*t.rentPrice,0);
+ let h=workshopChips('tools')+`<div class="sumrow"><div><span class="sub">Wert</span><b>${eur(val).replace(/,00(?=\D*$)/,'')}</b><span class="sub">${all.filter(t=>!isAcc(t)).length} Werkzeuge${all.some(isAcc)?` · ${all.filter(isAcc).length} Zubehör`:''}</span></div>
+ <div><span class="sub">Ausgaben ${y}</span><b>${eur(spent).replace(/,00(?=\D*$)/,'')}</b><span class="sub">${b.length?[nt?`${nt} Werkzeug${nt>1?'e':''}`:'',na?`${na} Zubehör`:''].filter(Boolean).join(' · ')+' gekauft':'noch nichts gekauft'}</span></div>
+ ${saved?`<div data-a="toolInfo" data-k="saved" style="cursor:pointer"><span class="sub">gespart</span><b style="color:var(--green)">${eur(saved).replace(/,00(?=\D*$)/,'')}</b><span class="sub">statt Leihen ›</span></div>`:''}</div>
+ <label class="f"><input id="toolQ" type="search" placeholder="Werkzeug suchen …" value="${esc(toolQ)}" autocomplete="off"></label><div id="toolList"></div>
+ <div class="grid2" style="margin-top:12px"><button class="btn primary" data-a="toolForm">+ Werkzeug</button><button class="btn" data-a="accForm">+ Zubehör</button></div>`;
  return{title:'Werkstatt',html:h,tab:'inv',after:renderToolList}}
 function renderToolList(){const box=$('#toolList');if(!box)return;const w=toolQ.toLowerCase().split(/\s+/).filter(Boolean);
- const list0=S.tools.filter(t=>(!toolCat||(toolCat==='_wy'?(toolWarranty(t)&&toolWarranty(t).st!=='exp'):toolCat==='_acc'?isAcc(t):t.category===toolCat&&!isAcc(t)))&&w.every(x=>[t.name,t.brand,t.category,t.location,t.lentTo,t.notes,t.system].join(' ').toLowerCase().includes(x))).sort(byName);
- const accs=toolCat==='_wy'?[]:list0.filter(isAcc),list=toolCat==='_wy'?list0:list0.filter(t=>!isAcc(t));
- let h='';if(toolCat==='_wy'){const l=list.slice().sort((a,b)=>(a.warrantyLifetime?'9999':a.warrantyUntil||'').localeCompare(b.warrantyLifetime?'9999':b.warrantyUntil||''));list.length=0;list.push(...l)}
- for(const c of toolCat==='_wy'?['_all']:[...TOOL_CATS,'_']){const it=c==='_all'?list:list.filter(t=>c==='_'?!TOOL_CATS.includes(t.category):t.category===c);if(!it.length)continue;if(!toolCat)h+=`<h2>${esc(c==='_'?'Ohne Kategorie':c)}</h2>`;
-  h+=it.map(t=>{const r=toolCalc(t);return`<div class="item"><div class="cat" style="--c:var(--accent)">${t.photoId?`<img data-photo="${t.photoId}" alt="" style="${ppos(t)}width:40px;height:40px;object-fit:cover;border-radius:12px">`:'🔧'}</div>
-  <div class="grow" data-a="toolView" data-id="${t.id}"><b>${esc(t.name)}</b><div class="sub">${esc([t.brand,t.system&&'🔋 '+t.system,t.location&&'📍 '+t.location].filter(Boolean).join(' · '))}</div>
-  <div class="sub">${r.uses}× verwendet${r.perUse!=null?` · <b style="color:var(--text)">${eur(r.perUse)}/Einsatz</b>`:r.price!=null?' · '+eur(r.price):''}${r.amort?' · <span style="color:var(--green)">✓ amortisiert</span>':''}${t.lentTo?` · <span style="color:var(--yellow)">verliehen an ${esc(t.lentTo)}</span>`:''}</div>${(()=>{const w=toolWarranty(t);return w&&w.st!=='exp'?`<div style="margin-top:4px"><span class="wy ${w.st==='soon'?'soon':''}">${esc(w.short)}</span>${(t.docs||[]).length?' <span class="wy" style="background:var(--surface2);color:var(--muted)">🧾 Rechnung</span>':''}</div>`:(t.docs||[]).length?'<div style="margin-top:4px"><span class="wy" style="background:var(--surface2);color:var(--muted)">🧾 Rechnung</span></div>':''})()}</div>
-  <button class="iconbtn sm" data-a="toolUse" data-id="${t.id}" aria-label="Einsatz zählen">+1</button></div>`}).join('')}
- if(accs.length){const g={},lab={};accs.forEach(a=>{const k=sysKey(a.system)||'~';if(!lab[k])lab[k]=(S.tools.find(t=>!isAcc(t)&&sysKey(t.system)===k)?.system||a.system||'').trim()||'Ohne System';(g[k]=g[k]||[]).push(a)});for(const k of Object.keys(g).sort())h+=`<h2>🔋 Zubehör · ${esc(lab[k])}</h2>`+g[k].map(accRow).join('')}
- box.innerHTML=h||`<p class="muted">${w.length||toolCat?'Keine Treffer.':'Noch kein Werkzeug eingetragen.'}</p>`;hydratePhotos(box)}
+ if(w.length){const hit=S.tools.filter(t=>w.every(x=>[t.name,t.brand,t.category,t.location,t.lentTo,t.notes,t.system].join(' ').toLowerCase().includes(x))).sort(byName);
+  box.innerHTML=`<div class="subhead"><b>${hit.length} Treffer</b><span>alle Kategorien</span></div>`+(hit.length?`<div class="tlist">${hit.map(toolRow).join('')}</div>`:'<p class="muted">Keine Treffer.</p>');hydratePhotos(box);return}
+ const G=toolGroups(),X=toolSpecial().filter(g=>g.it.length);
+ if(!G.length){box.innerHTML=`<p class="muted">Noch kein Werkzeug eingetragen.</p>`;return}
+ const tile=g=>{const soon=g.it.some(t=>toolWarranty(t)?.st==='soon');const n=g.k==='_lent'?g.it.map(t=>t.lentTo).filter((v,i,a)=>a.indexOf(v)===i).slice(0,2).join(', '):g.k==='_wy'?`${g.it.length} aktiv${soon?` · ${g.it.filter(t=>toolWarranty(t)?.st==='soon').length} läuft ab`:''}`:g.acc?`${g.it.length} ${g.it.length===1?'Teil':'Teile'}`:`${g.it.length} Stück`;
+  return`<button class="ttile ${soon?'warn':''}" data-a="go" data-h="#/tools/${encodeURIComponent(g.k)}"><span class="i">${g.i}</span><b>${esc(g.l)}</b><span class="n">${esc(n)}</span></button>`};
+ box.innerHTML=`<div class="ttiles">${G.map(tile).join('')}${X.map(tile).join('')}</div>`}
 function toolView(id){const t=S.tools.find(x=>x.id===id);if(!t)return;const r=toolCalc(t);const used=S.entries.filter(e=>(e.toolIds||[]).includes(id)).sort((a,b)=>b.date.localeCompare(a.date));
  openSheet(t.name,`${t.photoId?`<div class="ph stretch" style="border-radius:var(--radius);margin-bottom:12px"><img data-photo="${t.photoId}" alt="" style="${ppos(t)}"></div>`:''}
  <div class="card"><dl class="kv">${[['Marke',t.brand],[isAcc(t)?'Art':'Kategorie',t.category],['Akku-System',t.system],['Gekauft am',t.purchaseDate&&fmtD(t.purchaseDate)],['Wert',t.price!=null&&eur(t.price)],['Bezahlt',t.paid!=null&&t.paid!==t.price&&eur(t.paid)+(t.price?` (${Math.round((1-t.paid/t.price)*100)} % günstiger)`:'')],['Lagerort',t.location],['Verliehen an',t.lentTo&&(t.lentTo+(t.lentDate?' seit '+fmtD(t.lentDate):''))]].filter(x=>x[1]).map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl></div>
@@ -2616,7 +2639,7 @@ function toolView(id){const t=S.tools.find(x=>x.id===id);if(!t)return;const r=to
  ${(t.docs||[]).length?`<h4>🧾 Rechnung</h4>${t.docs.map(d=>`<div class="doc-row" data-a="toolDocView" data-id="${d.id}">${d.type==='pdf'?'<span class="doc-ic">📄</span>':`<img data-photo="${d.id}" alt="" class="doc-th">`}<span class="grow">${esc(d.name||'Rechnung')}</span><span class="muted">öffnen ›</span></div>`).join('')}`:`<p class="sub">Keine Rechnung hinterlegt – über „Bearbeiten“ als Foto oder PDF hinzufügen.</p>`}
  ${(()=>{const m=sysMates(t);if(isAcc(t)){const tl=m.filter(x=>!isAcc(x)),ac=m.filter(isAcc);return(tl.length?`<h4>🔧 Passt zu (${tl.length})</h4>${tl.map(accRow).join('')}`:'')+(ac.length?`<h4>🔋 Weiteres Zubehör im System (${ac.length})</h4>${ac.map(accRow).join('')}`:'')+(!m.length?`<p class="sub">${t.system?'Noch kein anderes Gerät mit diesem System.':'Tipp: Akku-System eintragen, dann siehst du hier, zu welchen Geräten das Zubehör passt.'}</p>`:'')}
   const ac=m.filter(isAcc);return ac.length?`<h4>🔋 Zubehör · ${esc(t.system)} (${ac.length})</h4>${ac.map(accRow).join('')}`:''})()}
- ${isAcc(t)?`${t.notes?`<p class="pre">${esc(t.notes)}</p>`:''}<!--acc-->`:`<h4>Kosten-Rechnung</h4><div class="card"><dl class="kv"><dt>Einsätze</dt><dd><b>${r.uses}</b>${t.extraUses?`<div class="sub">davon ${t.extraUses} manuell</div>`:''}</dd>
+ ${isAcc(t)?`${t.notes?`<p class="pre">${esc(t.notes)}</p>`:''}<!--acc-->`:`<h4>Kosten-Rechnung</h4><div class="card"><dl class="kv"><dt>Einsätze</dt><dd><b>${r.uses}</b> <button class="chip" data-a="toolUse" data-id="${t.id}" style="margin-left:6px;padding:3px 10px">+1</button>${t.extraUses?`<div class="sub">davon ${t.extraUses} manuell</div>`:''}</dd>
  <dt>Kosten pro Einsatz</dt><dd><b>${r.perUse!=null?eur(r.perUse):'–'}</b><div class="sub">Kaufpreis ÷ Einsätze</div></dd>
  ${r.perMonth!=null?`<dt>Kosten pro Monat Besitz</dt><dd>${eur(r.perMonth)}<div class="sub">seit ${fmtMonths(r.months)}</div></dd>`:''}
  ${t.rentPrice?`<dt>Leihen / Werkstatt</dt><dd>${eur(t.rentPrice)} pro Einsatz</dd><dt>${r.amort?'Gespart':'Noch offen'}</dt><dd><b style="color:${r.amort?'var(--green)':'var(--yellow)'}">${eur(Math.abs(r.saved))}</b><div class="sub">${r.amort?'hat sich bezahlt gemacht ✓':`noch ${r.left} Einsatz${r.left>1?'e':''} bis amortisiert`}</div></dd>`:''}</dl>
@@ -2624,7 +2647,7 @@ function toolView(id){const t=S.tools.find(x=>x.id===id);if(!t)return;const r=to
  ${t.notes?`<p class="pre">${esc(t.notes)}</p>`:''}
  <h4>Verwendet bei (${used.length})</h4>${used.map(e=>entryHTML(e,true)).join('')||'<p class="sub">Noch bei keinem Eintrag ausgewählt. Wähle das Werkzeug beim Eintragen einer Wartung aus oder zähle Einsätze mit „+1“.</p>'}`}`,
  `<button class="btn" data-a="toolLend" data-id="${id}">${t.lentTo?'Zurückbekommen':'Verleihen'}</button><button class="btn primary grow" data-a="toolForm" data-id="${id}">Bearbeiten</button>`)}
-function toolForm(id,kind){const t=id?S.tools.find(x=>x.id===id):kind==='acc'?{kind:'acc',category:'Akku',purchaseDate:today()}:{category:'Handwerkzeug',purchaseDate:today()};const acc=isAcc(t);
+function toolForm(id,kind,preset){const t=id?S.tools.find(x=>x.id===id):{...(kind==='acc'?{kind:'acc',category:'Akku',purchaseDate:today()}:{category:'Handwerkzeug',purchaseDate:today()}),...(preset||{})};const acc=isAcc(t);
  const systems=[...new Set(S.tools.map(x=>(x.system||'').trim()).filter(Boolean))].sort();draft={kind:'tool',id:id||null,photoPos:t.photoPos||null,photoId:t.photoId||null,photoData:null,photoChanged:false,docs:(t.docs||[]).map(d=>({...d}))};
  const body=`<form id="fTool" data-form="tool" class="${acc?'is-acc':''}"><div class="seg" style="margin-bottom:12px">${[['tool','🔧 Werkzeug'],['acc','🔋 Zubehör']].map(([k,l])=>`<label><input type="radio" name="kind" value="${k}" ${(acc?'acc':'tool')===k?'checked':''} data-change="toolKind"><span>${l}</span></label>`).join('')}</div><div class="ph" id="toolPh" style="border-radius:var(--radius);margin-bottom:8px">${t.photoId?`<img data-photo="${t.photoId}" alt="" style="${ppos(t)}">`:'<span style="font-size:42px">🔧</span>'}</div>
  <div class="grid3" style="margin-bottom:12px"><label class="btn">📷 Foto<input type="file" accept="image/*" data-file="toolPhoto" hidden></label><button type="button" class="btn" data-a="toolPhotoCrop">✂️ Zuschnitt</button><button type="button" class="btn" data-a="photoFocus" data-k="tool">🎯 Anzeige</button></div><button type="button" class="btn block" data-a="toolPhotoDel" style="margin:-4px 0 12px">Foto entfernen</button>
@@ -3265,8 +3288,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('.ac-item');if(!b
 /* ================= Ereignisse ================= */
 const A={
  go:d=>{if(sheetOpen)closeSheet();nav(d.h)},
- toolForm:d=>toolForm(d.id),accForm:()=>toolForm(null,'acc'),toolView:d=>toolView(d.id),toolCat:d=>{toolCat=d.c;render()},
- toolUse:async d=>{const t=S.tools.find(x=>x.id===d.id);t.extraUses=(t.extraUses||0)+1;await put('tools',t);renderToolList();toast(`${t.name}: ${toolUses(t)}× verwendet`)},
+ toolForm:d=>toolForm(d.id,null,d.cat?{category:d.cat}:null),accForm:d=>toolForm(null,'acc',d?.sys?{system:d.sys}:null),toolView:d=>toolView(d.id),toolCat:d=>nav(d.c?'#/tools/'+encodeURIComponent(d.c==='_wy'?'_wy':'c:'+d.c):'#/tools'),
+ toolUse:async d=>{const t=S.tools.find(x=>x.id===d.id);t.extraUses=(t.extraUses||0)+1;await put('tools',t);renderToolList();if(sheetOpen&&$('#sheet [data-a=toolUse]'))toolView(t.id);toast(`${t.name}: ${toolUses(t)}× verwendet`)},
  toolLend:async d=>{const t=S.tools.find(x=>x.id===d.id);if(t.lentTo){t.lentTo='';t.lentDate=null;await put('tools',t);toast('Zurück in der Werkstatt');toolView(t.id);return}
   const who=prompt('An wen verleihst du „'+t.name+'“?','');if(!who||!who.trim())return;t.lentTo=who.trim();t.lentDate=today();await put('tools',t);toast('Verliehen an '+t.lentTo);toolView(t.id)},
  toolDelete:async d=>{const t=S.tools.find(x=>x.id===d.id);if(!confirm(`„${t.name}“ löschen?`))return;if(t.photoId)await del('photos',t.photoId);for(const x of t.docs||[])await del('photos',x.id);await del('tools',t.id);closeSheet()},
