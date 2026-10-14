@@ -1915,6 +1915,8 @@ addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e;if(pa
 addEventListener('appinstalled',()=>{installEvt=null;lsSet('garage.installed','1');render();toast('App installiert – ab jetzt über das Symbol am Startbildschirm öffnen')});
 function installBanner(){if(isStandalone()||lsGet('garage.installHide')||!/^https?:/.test(location.protocol))return'';
  return`<div class="inst"><span class="inst-ic">📲</span><div class="grow"><b>App installieren</b><div class="sub">Wie eine normale App, auch offline.</div></div><button class="btn primary" data-a="installApp">Installieren</button><button class="iconbtn sm" data-a="installHide" aria-label="Ausblenden">✕</button></div>`}
+/* Kaltstart: immer in der Übersicht beginnen (außer QR-Link direkt auf ein Auto) */
+if(location.hash&&!/^#\/car\/[^/]+$/.test(location.hash)){try{history.replaceState(null,'',location.pathname+location.search+'#/home')}catch(e){location.hash='#/home'}}
 /* ================= Router & Ansichten ================= */
 function parseHash(){const p=(location.hash||'#/home').replace(/^#\/?/,'').split('/');return{v:p[0]||'home',id:p[1],tab:p[2]}}
 function render(){const r=parseHash();let o;
@@ -2888,7 +2890,7 @@ async function doUndo(){const d=undoData;if(!d)return;undoData=null;clearTimeout
  for(const p of d.photos)await put('photos',p);toast('Wiederhergestellt');render()}
 
 /* ================= Verlauf ================= */
-let homeTab=lsGet('garage.homeTab')||'ov',logCar='',logCat='',logQ='',logLimit=60;
+let homeTab='ov',logCar='',logCat='',logQ='',logLimit=60;
 const LOG_CATS=[...MAIN_CATS,'Tanken','Lager','Fehler','To-do','km-Stand','Auto'];
 function activityItems(){const out=[];const add=o=>out.push(o);
  for(const e of S.entries)add({date:e.date,cat:mainCat(e.category),carId:e.carId,icon:catBadge(e.category),title:e.title||e.category,
@@ -3313,7 +3315,7 @@ const A={
  carDocAdd:d=>carDocForm(d.car,d.k),carDocOpen:d=>openDoc(d.id),carDocFileDel:d=>{draft.files.splice(+d.i,1);renderDocFiles()},
  carDocDelete:async d=>{const c=car(d.car);const x=(c.docs||[]).find(y=>y.id===d.id);if(!x||!confirm(`„${x.kind}“ löschen?`))return;c.docs=c.docs.filter(y=>y.id!==d.id);await del('photos',d.id);await put('cars',c);render()},
  garTab:d=>{garTab=d.t;render()},
- homeTab:d=>{homeTab=d.t;lsSet('garage.homeTab',d.t);render();window.scrollTo(0,0)},logCar:d=>{logCar=d.c;logLimit=60;render()},logCat:d=>{logCat=d.c;logLimit=60;render()},logMore:()=>{logLimit+=60;renderLog()},
+ homeTab:d=>{homeTab=d.t;render();window.scrollTo(0,0)},logCar:d=>{logCar=d.c;logLimit=60;render()},logCat:d=>{logCat=d.c;logLimit=60;render()},logMore:()=>{logLimit+=60;renderLog()},
  fuelForm:d=>fuelForm(d.id,d.car),fuelDelete:async d=>{if(!confirm('Diese Tankung löschen?'))return;const f=S.fuel.find(x=>x.id===d.id);if(f?.photoId)await del('photos',f.photoId);await del('fuel',d.id);closeSheet()},
  fuelRcptView:async()=>{const r=draft.receipt;if(!r)return;openDoc(r.id,r.data)},fuelRcptDel:()=>{draft.receipt=null;renderFuelReceipt()},
  ocrPreload:async()=>{const b=$('#ocrPre');b.disabled=true;b.textContent='Wird geladen …';try{const c=document.createElement('canvas');c.width=200;c.height=60;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,200,60);g.fillStyle='#000';g.font='28px sans-serif';g.fillText('12,34 EUR',10,40);await ocrImage(c.toDataURL());b.textContent='✓ Bereit – funktioniert jetzt auch offline';lsSet('garage.ocrReady','1')}catch(e){b.disabled=false;b.textContent='Fehlgeschlagen – Internet prüfen und nochmal versuchen'}},
