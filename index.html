@@ -2270,7 +2270,7 @@ function pkView(id){const e=S.entries.find(x=>x.id===id);const r=pkRes(e);const 
 /* ================= Foto zuschneiden ================= */
 const loadImg=src=>new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src});
 async function rotateData(src){const i=await loadImg(src);const c=document.createElement('canvas');c.width=i.height;c.height=i.width;const x=c.getContext('2d');x.translate(c.width/2,c.height/2);x.rotate(Math.PI/2);x.drawImage(i,-i.width/2,-i.height/2);return c.toDataURL('image/jpeg',.92)}
-function openCropper(src,aspect=16/9){return new Promise(resolve=>{const ov=$('#cropper');ov.classList.remove('hidden');
+function openCropper(src,aspect=4/3){return new Promise(resolve=>{const ov=$('#cropper');ov.classList.remove('hidden');
  ov.innerHTML=`<div class="crop-head"><button type="button" class="btn" data-x="cancel">Abbrechen</button><b>Zuschneiden</b><button type="button" class="btn primary" data-x="ok">Fertig</button></div>
  <div class="crop-stage"><img alt="" draggable="false"><div class="crop-frame"></div></div>
  <div class="crop-tools"><button type="button" class="iconbtn" data-x="rot" aria-label="Drehen">⟳</button><input type="range" min="1" max="5" step="0.01" value="1" aria-label="Zoom"><button type="button" class="iconbtn" data-x="reset" aria-label="Zurücksetzen">↺</button></div>
