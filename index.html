@@ -80,7 +80,9 @@ input[type=checkbox],input[type=radio]{width:auto;min-height:0}
 .ph{aspect-ratio:16/9;background:var(--surface2);display:grid;place-items:center;color:var(--muted);overflow:hidden}
 .ph img{width:100%;height:100%;object-fit:cover}
 .ph svg{width:84px;height:84px;opacity:.5}
-.ph.nophoto{aspect-ratio:auto;height:76px}.ph.nophoto svg{width:52px;height:52px}
+.ph.nophoto{aspect-ratio:auto;height:76px}
+.ph.stretch{touch-action:pan-y}.ph.stretch.anim{transition:height .28s cubic-bezier(.2,.8,.2,1)}.sheet-panel{overscroll-behavior-y:contain}
+.ph.nophoto svg{width:52px;height:52px}
 .tile .body{padding:12px 14px}
 .tile .t{font-size:18px}
 .due{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px}
@@ -1687,6 +1689,23 @@ function datalists(){const n=new Set(),m=new Set(),sh=new Set();const a=(s,v)=>{
 
 /* ================= UI-Grundlagen ================= */
 let sheetOpen=false,ignorePop=false,pendingNav=null,draft=null;
+
+/* ===== Foto beim Runterziehen vergrößern ===== */
+(()=>{let st=null;
+ const scroller=el=>el.closest('.sheet-panel')||document.scrollingElement;
+ const fullH=(ph)=>{const im=ph.querySelector('img'),w=ph.clientWidth;const r=im&&im.naturalWidth?im.naturalHeight/im.naturalWidth:.75;return Math.min(Math.max(w*r,w*9/16+60),innerHeight*.78)};
+ const visible=()=>{const sh=$('#sheet');const root=sh&&!sh.classList.contains('hidden')?sh:$('#view');return root?.querySelector('.ph.stretch')};
+ addEventListener('touchstart',e=>{const ph=visible();if(!ph||e.touches.length>1){st=null;return}const sc=scroller(ph);if(sc.scrollTop>2){st=null;return}
+  const base=ph.dataset.base?+ph.dataset.base:ph.getBoundingClientRect().height;if(!ph.dataset.base)ph.dataset.base=base;
+  st={ph,sc,y0:e.touches[0].clientY,h0:ph.getBoundingClientRect().height,base,max:fullH(ph),moved:false};ph.classList.remove('anim')},{passive:true});
+ addEventListener('touchmove',e=>{if(!st)return;const dy=e.touches[0].clientY-st.y0;
+  if(!st.moved){if(Math.abs(dy)<6)return;if(dy<0&&st.h0<=st.base+1){st=null;return}if(st.sc.scrollTop>2){st=null;return}st.moved=true}
+  let h=st.h0+dy*.7;if(h>st.max)h=st.max+(h-st.max)*.25;h=Math.max(st.base,h);
+  st.ph.style.aspectRatio='auto';st.ph.style.height=h+'px';if(e.cancelable)e.preventDefault()},{passive:false});
+ const end=()=>{if(!st)return;const {ph,base,max,moved,h0}=st;st=null;if(!moved)return;const h=ph.getBoundingClientRect().height;
+  const open=h0>base+4?h>max-(max-base)*.4:h>base+(max-base)*.3;ph.classList.add('anim');
+  if(open){ph.style.height=max+'px';ph.classList.add('big')}else{ph.style.height=base+'px';ph.classList.remove('big');setTimeout(()=>{if(!ph.classList.contains('big')){ph.style.height='';ph.style.aspectRatio=''}},300)}};
+ addEventListener('touchend',end);addEventListener('touchcancel',end)})();
 function openSheet(title,body,foot=''){const s=$('#sheet');
  s.innerHTML=`<div class="sheet-panel" role="dialog" aria-modal="true"><div class="sheet-head"><h3>${esc(title)}</h3><button type="button" class="iconbtn" data-a="closeSheet" aria-label="Schließen">✕</button></div><div class="sheet-body">${body}</div>${foot?`<div class="sheet-foot">${foot}</div>`:''}</div>`;
  s.classList.remove('hidden');document.body.classList.add('noscroll');
@@ -1767,7 +1786,7 @@ function viewCar(id,tab){const c=car(id);
  let after=null;
  if(tab==='ov'){const ents=carEntries(id),y=today().slice(0,4),fc=fuelCalc(id);
   const tot=ents.reduce((s,e)=>s+entryCost(e),0),totY=ents.filter(e=>e.date.startsWith(y)).reduce((s,e)=>s+entryCost(e),0),oc=ownCost(c);
-  h+=`${c.photoId?`<div class="ph" style="border-radius:var(--radius);margin-bottom:12px"><img data-photo="${c.photoId}" alt=""></div>`:''}
+  h+=`${c.photoId?`<div class="ph stretch" style="border-radius:var(--radius);margin-bottom:12px"><img data-photo="${c.photoId}" alt=""></div>`:''}
   <div class="card row between"><div><div class="sub">Kilometerstand</div><div class="big">${kmT(carOdo(id))}</div></div>${c.archived?'':`<button class="btn" data-a="odoForm" data-car="${id}">km aktualisieren</button>`}</div>
   ${c.archived?'':`<div class="grid3" style="margin-bottom:12px"><button class="btn" data-a="entryForm" data-car="${id}">+ Eintrag</button><button class="btn" data-a="todoForm" data-car="${id}">+ To-do</button><button class="btn" data-a="fuelForm" data-car="${id}">⛽ Tanken</button></div>
   ${(()=>{const n=S.issues.filter(x=>x.carId===id&&x.status!=='solved').length;return n?`<div class="note warn">⚠ ${n} offene${n>1?'':'r'} Fehler – <button class="linkbtn" data-a="go" data-h="#/car/${id}/issue">ansehen</button></div>`:''})()}
@@ -1833,7 +1852,8 @@ function viewTodos(){let list=S.todos.filter(t=>todoFilter===''?true:todoFilter=
  return{title:'To-dos',html:h,tab:'todos',actions:`<button class="iconbtn" data-a="shopOpen" aria-label="Einkaufsliste" style="display:inline-flex;align-items:center;gap:3px;font-weight:800">${ic('cart')}${shopOpenCount()||''}</button>`}}
 
 let invQ='';
-function viewInv(){const low=lowStock();let h=workshopChips('inv')+(low.length?`<div class="note warn">⚠ ${low.length} Artikel unter Mindestbestand – <button class="linkbtn" data-a="shopOpen">Einkaufsliste</button></div>`:'')+`<div class="row" style="gap:8px;margin-bottom:10px;flex-wrap:nowrap"><input id="invQ" type="search" placeholder="Lager durchsuchen …" value="${esc(invQ)}" style="flex:1"><button class="btn" data-a="scanInv" style="flex:none">📷 Scan</button></div><div id="invList"></div><button class="btn primary block" data-a="invForm">+ Teil / Betriebsstoff</button>`;
+function viewInv(){const low=lowStock();const all=S.inventory,val=all.reduce((x,i)=>x+(i.price!=null&&i.qty>0?i.price*i.qty:0),0),noP=all.filter(i=>i.price==null&&i.qty>0).length,y=today().slice(0,4);let bc=0;const spent=all.reduce((x,i)=>x+(i.buys||[]).filter(b=>(b.date||'').startsWith(y)).reduce((z,b)=>(bc++,z+(b.price||0)),0),0);
+ let h=workshopChips('inv')+`<div class="grid2"><div class="card"><div class="sub">Lagerwert</div><div class="big">${eur(val)}</div><div class="sub">${all.length} Artikel${noP?` · ${noP} ohne Preis`:''}</div></div><div class="card"><div class="sub">Ausgaben ${y}</div><div class="big">${eur(spent)}</div><div class="sub">${bc?`${bc} Einkäufe`:'noch nichts gekauft'}</div></div></div>`+(low.length?`<div class="note warn">⚠ ${low.length} Artikel unter Mindestbestand – <button class="linkbtn" data-a="shopOpen">Einkaufsliste</button></div>`:'')+`<div class="row" style="gap:8px;margin-bottom:10px;flex-wrap:nowrap"><input id="invQ" type="search" placeholder="Lager durchsuchen …" value="${esc(invQ)}" style="flex:1"><button class="btn" data-a="scanInv" style="flex:none">📷 Scan</button></div><div id="invList"></div><button class="btn primary block" data-a="invForm">+ Teil / Betriebsstoff</button>`;
  return{title:'Werkstatt',html:h,tab:'inv',after:renderInvList}}
 function renderInvList(){const box=$('#invList');if(!box)return;const w=invQ.toLowerCase().split(/\s+/).filter(Boolean);
  const list=S.inventory.filter(i=>{const hay=[i.name,i.maker,i.partNo,i.location,i.spec,...(i.fits||[]).map(carName)].join(' ').toLowerCase();return w.every(x=>hay.includes(x))}).sort(byName);
@@ -2201,7 +2221,7 @@ function invForm(id,ean){const it=id?S.inventory.find(i=>i.id===id):{qty:1,unit:
  <div class="grid2"><label class="f"><span>Bestand</span><input name="qty" inputmode="decimal" value="${valN(it.qty)}" data-inv="qty"></label><label class="f"><span>Einheit</span><select name="unit" data-inv="unit">${UNITS.map(u=>`<option ${(it.unit||'Stk')===u?'selected':''}>${u}</option>`).join('')}</select></label></div>
  <h4 style="margin-top:4px">Preis – so wie bezahlt</h4><div class="grid3"><label class="f"><span>Bezahlt (€)</span><input name="packPrice" inputmode="decimal" value="${valN(pp)}" data-inv="pp" placeholder="z. B. 12"></label>
  <label class="f"><span>für Menge</span><input name="packQty" inputmode="decimal" value="${valN(pq)}" data-inv="pq" placeholder="z. B. 250"></label><label class="f"><span>Einheit</span><select name="packUnit" data-inv="pu">${UNITS.map(u=>`<option ${pu===u?'selected':''}>${u}</option>`).join('')}</select></label></div>
- <p class="sub" id="invUP" style="margin-top:-4px"></p>
+ <p class="sub" id="invUP" style="margin-top:-4px"></p>${id?'':`<label class="f"><span>Kaufdatum</span><input type="date" name="buyDate" value="${today()}"></label>`}
  <div class="grid2"><label class="f"><span>Mindestbestand</span><input name="minQty" inputmode="decimal" value="${valN(it.minQty)}" placeholder="optional"></label><label class="f"><span>Barcode (EAN)</span><span class="row" style="flex-wrap:nowrap;gap:6px;display:flex;margin:0"><input name="ean" inputmode="numeric" value="${esc(it.ean)}" style="flex:1;min-width:0"><button type="button" class="iconbtn" data-a="scanEan" aria-label="Scannen">📷</button></span></label></div>
  <p class="sub" style="margin-top:-4px">Fällt der Bestand unter den Mindestbestand, kommt der Artikel automatisch auf die Einkaufsliste.</p>
  <label class="f"><span>Spezifikation</span><input name="spec" value="${esc(it.spec)}"></label><label class="f"><span>Lagerort</span><input name="location" value="${esc(it.location)}" placeholder="z. B. Regal 2, Kiste Bremse"></label>
@@ -2226,7 +2246,7 @@ async function saveInv(f){const fdo=new FormData(f);const fd=Object.fromEntries(
  const ean=fd.ean.trim();const dup=ean&&S.inventory.find(i=>i.ean===ean&&i.id!==draft.id);if(dup){toast(`Barcode gehört schon zu „${dup.name}“`);return}
  const it={...(old||{}),id:draft.id||uid(),name:fd.name.trim(),maker:fd.maker.trim(),partNo:fd.partNo.trim(),qty:num(fd.qty)??0,unit,price,packPrice:pp,packQty:pq!=null&&sameDim(pu,unit)?r3(conv(pq,pu,unit)):null,packUnitQty:pq,packUnit:pu,minQty:num(fd.minQty),ean,spec:fd.spec.trim(),location:fd.location.trim(),fits:fdo.getAll('fits'),note:fd.note.trim()};
  if(!it.name){toast('Bitte Bezeichnung angeben');return}
- if(!old&&pp!=null)it.buys=[{id:uid(),date:today(),qty:pq,unit:pu,price:pp,shop:''}];
+ if(!old&&(pp!=null||(fd.buyDate&&fd.buyDate!==today())))it.buys=[{id:uid(),date:fd.buyDate||today(),qty:pq,unit:pu,price:pp,shop:''}];
  await put('inventory',it);invPqTouched=false;closeSheet();toast('Gespeichert');render()}
 function fuelForm(id,carId){const f=id?S.fuel.find(x=>x.id===id):{carId:carId||defaultCarId(),date:today(),full:true};if(!S.cars.length){toast('Lege zuerst ein Auto an');return carForm()}
  draft={kind:'fuel',id:id||null,receipt:f.photoId?{id:f.photoId}:null};const type=f.type||defaultFuelType(f.carId);const pp=f.ppl??(f.price&&f.liters?Math.round(f.price/f.liters*1000)/1000:null);
@@ -2315,7 +2335,7 @@ function renderToolList(){const box=$('#toolList');if(!box)return;const w=toolQ.
   <button class="iconbtn sm" data-a="toolUse" data-id="${t.id}" aria-label="Einsatz zählen">+1</button></div>`}).join('')}
  box.innerHTML=h||`<p class="muted">${w.length||toolCat?'Keine Treffer.':'Noch kein Werkzeug eingetragen.'}</p>`;hydratePhotos(box)}
 function toolView(id){const t=S.tools.find(x=>x.id===id);if(!t)return;const r=toolCalc(t);const used=S.entries.filter(e=>(e.toolIds||[]).includes(id)).sort((a,b)=>b.date.localeCompare(a.date));
- openSheet(t.name,`${t.photoId?`<div class="ph" style="border-radius:var(--radius);margin-bottom:12px"><img data-photo="${t.photoId}" alt=""></div>`:''}
+ openSheet(t.name,`${t.photoId?`<div class="ph stretch" style="border-radius:var(--radius);margin-bottom:12px"><img data-photo="${t.photoId}" alt=""></div>`:''}
  <div class="card"><dl class="kv">${[['Marke',t.brand],['Kategorie',t.category],['Gekauft am',t.purchaseDate&&fmtD(t.purchaseDate)],['Kaufpreis',t.price!=null&&eur(t.price)],['Lagerort',t.location],['Verliehen an',t.lentTo&&(t.lentTo+(t.lentDate?' seit '+fmtD(t.lentDate):''))]].filter(x=>x[1]).map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl></div>
  ${(()=>{const w=toolWarranty(t);return w?`<div class="item st-${w.st==='exp'?'unknown':w.st}" style="cursor:default;border-left:5px solid var(--${w.st==='exp'?'muted':w.st==='soon'?'yellow':'green'})"><span class="cat" style="--c:var(--${w.st==='exp'?'muted':w.st==='soon'?'yellow':'green'})">🛡️</span><div class="grow"><b>Garantie ${w.life?'lebenslang':w.st==='exp'?'abgelaufen':'aktiv'}</b><div class="sub">${esc(w.text)}</div></div></div>`:''})()}
  ${(t.docs||[]).length?`<h4>🧾 Rechnung</h4>${t.docs.map(d=>`<div class="doc-row" data-a="toolDocView" data-id="${d.id}">${d.type==='pdf'?'<span class="doc-ic">📄</span>':`<img data-photo="${d.id}" alt="" class="doc-th">`}<span class="grow">${esc(d.name||'Rechnung')}</span><span class="muted">öffnen ›</span></div>`).join('')}`:`<p class="sub">Keine Rechnung hinterlegt – über „Bearbeiten“ als Foto oder PDF hinzufügen.</p>`}
@@ -2327,7 +2347,7 @@ function toolView(id){const t=S.tools.find(x=>x.id===id);if(!t)return;const r=to
  ${t.notes?`<p class="pre">${esc(t.notes)}</p>`:''}
  <h4>Verwendet bei (${used.length})</h4>${used.map(e=>entryHTML(e,true)).join('')||'<p class="sub">Noch bei keinem Eintrag ausgewählt. Wähle das Werkzeug beim Eintragen einer Wartung aus oder zähle Einsätze mit „+1“.</p>'}`,
  `<button class="btn" data-a="toolLend" data-id="${id}">${t.lentTo?'Zurückbekommen':'Verleihen'}</button><button class="btn primary grow" data-a="toolForm" data-id="${id}">Bearbeiten</button>`)}
-function toolForm(id){const t=id?S.tools.find(x=>x.id===id):{category:'Handwerkzeug'};draft={kind:'tool',id:id||null,photoId:t.photoId||null,photoData:null,photoChanged:false,docs:(t.docs||[]).map(d=>({...d}))};
+function toolForm(id){const t=id?S.tools.find(x=>x.id===id):{category:'Handwerkzeug',purchaseDate:today()};draft={kind:'tool',id:id||null,photoId:t.photoId||null,photoData:null,photoChanged:false,docs:(t.docs||[]).map(d=>({...d}))};
  const body=`<form id="fTool" data-form="tool"><div class="ph" id="toolPh" style="border-radius:var(--radius);margin-bottom:8px">${t.photoId?`<img data-photo="${t.photoId}" alt="">`:'<span style="font-size:42px">🔧</span>'}</div>
  <div class="grid2" style="margin-bottom:12px"><label class="btn">📷 Foto<input type="file" accept="image/*" data-file="toolPhoto" hidden></label><button type="button" class="btn" data-a="toolPhotoDel">Entfernen</button></div>
  <label class="f"><span>Bezeichnung</span><input name="name" required value="${esc(t.name)}" placeholder="z. B. Drehmomentschlüssel 40–200 Nm"></label>
