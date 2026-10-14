@@ -1842,11 +1842,20 @@ async function annotate(src){const img=await loadImg(src);const max=1600,sc=Math
 
 /* ================= Gespart · Abzeichen · Jahresrückblick ================= */
 const shopRate=()=>{const v=num(lsGet('garage.rate'));return v>0?v:null};
-function savedDIY(ents){const r=shopRate();const w=ents.filter(e=>e.diy&&!isPk(e)&&!isForeign(e.carId));const h=w.reduce((s,e)=>s+(e.hours||0),0);
- return{rate:r,hours:h,saved:r?h*r:null,noHours:w.filter(e=>!e.hours).length,count:w.length}}
+const shopFactor=()=>{const v=num(lsGet('garage.rateFactor'));return v>0&&v<=200?v:60};
+function savedDIY(ents){const r=shopRate(),f=shopFactor()/100;const w=ents.filter(e=>e.diy&&!isPk(e)&&!isForeign(e.carId));const h=w.reduce((s,e)=>s+(e.hours||0),0),wh=h*f;
+ return{rate:r,factor:f,hours:h,whours:wh,saved:r?wh*r:null,noHours:w.filter(e=>!e.hours).length,count:w.length}}
+function rateForm(){draft={kind:'rate'};openSheet('Werkstatt-Vergleich',`<form id="fRate" data-form="rate">
+ <label class="f"><span>Werkstatt-Stundensatz (€)</span><input name="rate" inputmode="decimal" value="${valN(shopRate())}" placeholder="z. B. 120"></label>
+ <label class="f"><span>Werkstatt braucht … % deiner Zeit</span><input name="factor" inputmode="numeric" value="${shopFactor()}" placeholder="60"></label>
+ <p class="sub">Ein Mechaniker mit Hebebühne, Spezialwerkzeug und Routine ist meist schneller. Bei 60 % wird aus 5 Stunden in deiner Garage 3 Werkstattstunden. Die Ersparnis rechnet mit diesen Werkstattstunden.</p></form>`,`<button class="btn primary grow" type="submit" form="fRate">Speichern</button>`)}
+async function saveRate(f){const fd=Object.fromEntries(new FormData(f));const r=num(fd.rate),k=num(fd.factor);
+ if(fd.rate.trim()&&!(r>0)){toast('Stundensatz: bitte eine Zahl');return}if(fd.factor.trim()&&!(k>0&&k<=200)){toast('Prozent: bitte 1–200');return}
+ if(r>0)lsSet('garage.rate',String(r));else try{localStorage.removeItem('garage.rate')}catch(e){}
+ if(k>0)lsSet('garage.rateFactor',String(k));closeSheet();toast('Gespeichert')}
 function savedCard(ents){const x=savedDIY(ents);if(!x.count)return'';
  return`<div class="card save-card"><div class="row between"><div><div class="sub">Durch Selbermachen gespart</div><div class="big">${x.rate?eur(x.saved):'–'}</div></div><span style="font-size:30px">💪</span></div>
- <div class="sub">${x.rate?`${fmtN(x.hours,1)} Schrauberstunden × ${eur(x.rate)} Werkstatt-Stundensatz${x.noHours?` · ${x.noHours} Arbeit${x.noHours>1?'en':''} ohne Zeitangabe zählen nicht`:''} · <button class="linkbtn" data-a="rateSet">ändern</button>`:`Leg einen Werkstatt-Stundensatz fest, dann rechnet die App mit deinen Schrauberstunden. <button class="linkbtn" data-a="rateSet">Festlegen</button>`}</div></div>`}
+ <div class="sub">${x.rate?`${fmtN(x.hours,1)} h selbst geschraubt → Werkstatt bräuchte ca. ${fmtN(x.whours,1)} h (${Math.round(x.factor*100)} %) × ${eur(x.rate)}/h${x.noHours?` · ${x.noHours} Arbeit${x.noHours>1?'en':''} ohne Zeitangabe zählen nicht`:''} · <button class="linkbtn" data-a="rateSet">ändern</button>`:`Leg einen Werkstatt-Stundensatz fest, dann rechnet die App mit deinen Schrauberstunden. <button class="linkbtn" data-a="rateSet">Festlegen</button>`}</div></div>`}
 const BADGES=[
  ['first','🔧','Erster Schritt','Ersten Eintrag angelegt',D=>D.ents.length>=1],
  ['e10','📒','Dokumentar','10 Einträge',D=>D.ents.length>=10],
@@ -2128,7 +2137,7 @@ function viewSettings(){const th=lsGet('garage.theme')||'dark';
  if(hasDemo())h+=`<h2>Beispieldaten</h2><div class="card"><p class="sub">Beim ersten Start wurden dein Audi A3 und dein BMW E36 mit Beispiel-Einträgen, To-dos, Lagerteilen und Tankungen angelegt.</p>
  <button class="btn primary block" data-a="demoKeepCars">Beispiele löschen, Autos behalten</button><p class="sub">Entfernt Einträge, Intervalle, To-dos, Lager, Tankungen, km-Stand und Termine. Die Technik-Liste bleibt zum Kontrollieren stehen.</p>
  <button class="btn block" data-a="demoAll">Alles Beispielhafte löschen (auch Autos)</button></div>`;
- h+=`<h2>Werkstatt-Stundensatz</h2><div class="card row between"><div><b>${shopRate()?eur(shopRate())+' / Stunde':'nicht festgelegt'}</b><div class="sub">Für „Durch Selbermachen gespart“ in der Statistik</div></div><button class="btn" data-a="rateSet">Ändern</button></div>`;
+ h+=`<h2>Werkstatt-Stundensatz</h2><div class="card row between"><div><b>${shopRate()?eur(shopRate())+' / Stunde · '+shopFactor()+' % Zeit':'nicht festgelegt'}</b><div class="sub">Für „Durch Selbermachen gespart“ in der Statistik</div></div><button class="btn" data-a="rateSet">Ändern</button></div>`;
  const bd=lsGet('garage.backupDays')??'14';h+=`<h2>Backup-Erinnerung</h2><div class="seg">${[['7','7 Tage'],['14','14 Tage'],['30','30 Tage'],['0','Nie']].map(([k,l])=>`<label><input type="radio" name="bd" value="${k}" ${bd===k?'checked':''} data-change="backupDays"><span>${l}</span></label>`).join('')}</div>`;
  h+=`<h2>Gefahrenzone</h2><button class="btn danger block" data-a="wipe">Alle Daten löschen</button>`;
  return{title:'Einstellungen',html:h,tab:'more',back:'#/more'}}
@@ -2527,7 +2536,7 @@ async function exportJSON(){download(`garage-backup-${today()}.json`,await backu
 async function importJSON(files){const file=files[0];if(!file)return;try{const d=JSON.parse(await file.text());if(d.app!=='garage-wartung'||!d.data)throw new Error('format');
  const n=(d.data.cars||[]).length,m=(d.data.entries||[]).length;if(!confirm(`Backup vom ${fmtD((d.exported||'').slice(0,10))} mit ${n} Autos und ${m} Einträgen wiederherstellen?\n\nAlle aktuellen Daten werden ERSETZT.`))return;
  await clearAll();for(const s of STORES){if(s==='photos')continue;for(const x of d.data[s]||[])await put(s,x)}for(const p of d.photos||[])await put('photos',p);
- if(d.prefs)for(const[k,v]of Object.entries(d.prefs))if(['garage.nav','garage.theme','garage.backupDays','garage.rate','garage.badges'].includes(k))lsSet(k,v);navSig='';applyTheme();lsSet('garage.seeded','1');toast('Backup wiederhergestellt');nav('#/home')}catch(e){console.error(e);toast('Datei ist kein gültiges Garage-Backup')}}
+ if(d.prefs)for(const[k,v]of Object.entries(d.prefs))if(['garage.nav','garage.theme','garage.backupDays','garage.rate','garage.rateFactor','garage.badges'].includes(k))lsSet(k,v);navSig='';applyTheme();lsSet('garage.seeded','1');toast('Backup wiederhergestellt');nav('#/home')}catch(e){console.error(e);toast('Datei ist kein gültiges Garage-Backup')}}
 function applyTheme(){const t=lsGet('garage.theme')||'dark';const dark=t==='system'?matchMedia('(prefers-color-scheme: dark)').matches:t==='dark';
  document.documentElement.dataset.theme=dark?'dark':'light';$('meta[name=theme-color]').content=dark?'#121417':'#f2f3f5'}
 
@@ -2783,7 +2792,7 @@ async function saveReceipt(f){const fd=Object.fromEntries(new FormData(f));const
  await put('entries',e);closeSheet();toast('Beleg gespeichert');nav(`#/car/${e.carId}/hist`)}
 
 /* ================= Backup teilen ================= */
-async function backupJSON(){const photos=await allPhotos();const prefs={};['garage.nav','garage.theme','garage.backupDays','garage.rate','garage.badges'].forEach(k=>{const v=lsGet(k);if(v!=null)prefs[k]=v});return JSON.stringify({app:'garage-wartung',version:2,exported:new Date().toISOString(),prefs,data:Object.fromEntries(STORES.filter(s=>s!=='photos').map(s=>[s,S[s]])),photos})}
+async function backupJSON(){const photos=await allPhotos();const prefs={};['garage.nav','garage.theme','garage.backupDays','garage.rate','garage.rateFactor','garage.badges'].forEach(k=>{const v=lsGet(k);if(v!=null)prefs[k]=v});return JSON.stringify({app:'garage-wartung',version:2,exported:new Date().toISOString(),prefs,data:Object.fromEntries(STORES.filter(s=>s!=='photos').map(s=>[s,S[s]])),photos})}
 async function shareBackup(){const json=await backupJSON(),base=`garage-backup-${today()}`;
  const tries=[new File([json],base+'.json',{type:'application/json'}),new File([json],base+'.txt',{type:'text/plain'})];
  const file=tries.find(f=>{try{return navigator.canShare?.({files:[f]})}catch(e){return false}});
@@ -3243,7 +3252,7 @@ const A={
  toolInfo:d=>{const all=S.tools;if(d.k==='lent'){const l=all.filter(t=>t.lentTo);openSheet('Verliehen',l.map(t=>`<div class="item" data-a="toolView" data-id="${t.id}">${ibox('wrench','var(--yellow)')}<div class="grow"><b>${esc(t.name)}</b><div class="sub">an ${esc(t.lentTo)}${t.lentDate?' seit '+fmtD(t.lentDate):''}</div></div><span class="muted">›</span></div>`).join(''))}
   else{const r=all.filter(t=>t.rentPrice&&toolPaid(t)!=null),val=r.reduce((s,t)=>s+toolPaid(t),0),sv=r.reduce((s,t)=>s+toolUses(t)*t.rentPrice,0);openSheet('Durch eigenes Werkzeug gespart',`<p>Statt Leihen oder Werkstatt: <b>${eur(sv)}</b> – ${sv>=val?'die Anschaffung hat sich <b>bezahlt gemacht</b> ✓':`zu ${Math.round(sv/val*100)} % bezahlt gemacht`}.</p>`+r.sort((a,b)=>toolUses(b)*b.rentPrice-toolUses(a)*a.rentPrice).map(t=>`<div class="row between sub" style="padding:5px 0"><span>${esc(t.name)} · ${toolUses(t)}× à ${eur(t.rentPrice)}</span><b style="color:var(--text)">${eur(toolUses(t)*t.rentPrice)}</b></div>`).join('')+`<p class="sub">Gerechnet mit dem Leih-/Werkstattpreis pro Einsatz, den du beim Werkzeug eingetragen hast.</p>`)}},
  wrapped:d=>{lsSet('garage.wrSeen',d.y);wrappedSheet(d.y)},
- rateSet:()=>{const v=prompt('Werkstatt-Stundensatz in € (so viel würde eine Werkstatt pro Stunde verlangen):',lsGet('garage.rate')||'');if(v==null)return;const n=num(v);if(v.trim()&&!(n>0)){toast('Bitte eine Zahl eingeben');return}if(n>0)lsSet('garage.rate',String(n));else try{localStorage.removeItem('garage.rate')}catch(e){}render();toast('Stundensatz gespeichert')},
+ rateSet:()=>rateForm(),
  badgeInfo:d=>{const b=BADGES.find(x=>x[0]===d.k);if(b)toast(`${b[1]} ${b[2]}: ${b[3]}`)},
  installApp:async()=>{if(installEvt){installEvt.prompt();const r=await installEvt.userChoice.catch(()=>null);installEvt=null;if(r?.outcome==='accepted')toast('Wird installiert …');render();return}
   openSheet('App installieren',`<ol style="padding-left:20px;line-height:1.7;margin-top:0"><li>Rechts oben im Browser auf <b>⋮</b> tippen</li><li><b>„App installieren“</b> oder <b>„Zum Startbildschirm hinzufügen“</b> wählen</li><li>Bestätigen – fertig. Die App liegt dann am Startbildschirm.</li></ol><p class="sub">Am besten in Chrome öffnen. Ist die App schon installiert, öffne sie einfach über ihr Symbol – dort erscheint dieser Hinweis nicht.</p>`,`<button class="btn block" data-a="installHide">Nicht mehr anzeigen</button>`)},
@@ -3319,7 +3328,7 @@ const A={
  wipe:async()=>{if(!confirm('Wirklich ALLE Daten löschen? Das kann nicht rückgängig gemacht werden.\n\nTipp: Vorher ein Backup speichern.'))return;await clearAll();toast('Alle Daten gelöscht');nav('#/home')},
 };
 document.addEventListener('click',e=>{if(e.target.id==='sheet'){closeSheet();return}const el=e.target.closest('[data-a]');if(!el)return;const f=A[el.dataset.a];if(f){e.preventDefault();const n=el.dataset.a;if(UNDO_LABEL[n])withUndo(n,()=>f(el.dataset,el,e));else f(el.dataset,el,e)}});
-const FORMS={dlNew:saveDlNew,carDoc:saveCarDoc,shopAdd,shopEdit:saveShopEdit,restock:saveRestock,pk:savePk,tool:saveTool,tyre:saveTyre,issue:saveIssue,guide:saveGuide,receipt:saveReceipt,expose:saveExpose,ivTpl:saveIvTpl,sell:saveSell,car:saveCar,entry:saveEntry,todo:saveTodo,inv:saveInv,fuel:saveFuel,odo:saveOdo,iv:saveIv,spec:saveSpecs,dl:saveDl};
+const FORMS={rate:saveRate,dlNew:saveDlNew,carDoc:saveCarDoc,shopAdd,shopEdit:saveShopEdit,restock:saveRestock,pk:savePk,tool:saveTool,tyre:saveTyre,issue:saveIssue,guide:saveGuide,receipt:saveReceipt,expose:saveExpose,ivTpl:saveIvTpl,sell:saveSell,car:saveCar,entry:saveEntry,todo:saveTodo,inv:saveInv,fuel:saveFuel,odo:saveOdo,iv:saveIv,spec:saveSpecs,dl:saveDl};
 let saving=false;
 document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target;const fn=FORMS[f.dataset.form];if(!fn||saving)return;saving=true;try{await fn(f)}catch(err){console.error(err);toast('Fehler beim Speichern: '+err.message)}finally{saving=false}});
 const CHANGES={
