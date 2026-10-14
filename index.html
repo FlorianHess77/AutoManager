@@ -121,6 +121,9 @@ input[type=checkbox],input[type=radio]{width:auto;min-height:0}
 #toast.show{transform:none;opacity:1;pointer-events:auto}
 #toast .tbtn{background:none;border:0;color:var(--accent);font-weight:800;font-size:15px;min-height:40px;font-family:inherit}
 #print{display:none}
+.thumb-pdf{display:grid;place-items:center;cursor:pointer;border:1px solid var(--line)}
+.pdf-ic{display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--accent);text-align:center;padding:6px 6px 22px}
+.pdf-ic b{font-size:12px}.pdf-ic small{font-size:10px;color:var(--muted);max-width:86px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .scanbig{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:58px;border-radius:14px;border:2px dashed color-mix(in srgb,var(--accent) 60%,transparent);background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent);font-weight:800;font-size:16px;cursor:pointer;margin-bottom:10px}
 .scanbig .ico{width:24px;height:24px}
 #ocrState{background:var(--surface2);border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:14px}
@@ -2050,7 +2053,7 @@ function entryForm(o={}){const old=o.id?S.entries.find(e=>e.id===o.id):null;let 
  <div class="total"><span>Gesamtkosten</span><b id="entryTotal"></b></div>
  <h4>Wartungsintervalle zurücksetzen</h4><div id="ivChecks"></div>
  <h4>Verwendetes Werkzeug</h4><div id="toolBox">${toolPicker()}</div>
- <h4>Fotos & Belege</h4><div id="photos" class="thumbs"></div><label class="btn block">📷 Foto / Beleg hinzufügen<input type="file" accept="image/*" multiple hidden data-file="entryPhotos"></label>
+ <h4>Fotos & Belege</h4><div id="photos" class="thumbs"></div><div class="grid2"><label class="btn">📷 Foto<input type="file" accept="image/*" multiple hidden data-file="entryPhotos"></label><label class="btn">${ic('receipt','ico s')} Rechnung (PDF/Bild)<input type="file" accept="application/pdf,image/*" multiple hidden data-file="entryPhotos"></label></div>
  <label class="f"><span>Notizen</span><textarea name="notes">${esc(d.notes)}</textarea></label>${datalists()}</form>`;
  openSheet(old?'Eintrag bearbeiten':'Neuer Eintrag',body,`${old?`<button type="button" class="btn danger" data-a="entryDelete" data-id="${old.id}">Löschen</button>`:''}<button class="btn primary grow" type="submit" form="fEntry">Speichern</button>`);
  renderParts();renderIvChecks();renderPhotos();updateTotal();if(!old)ivAutoMatch(true)}
@@ -2072,13 +2075,13 @@ function ivAutoMatch(silent){if(!$('#ivChecks')||draft?.kind!=='entry')return;co
   if(cb&&!cb.checked&&ivKeywords(iv).some(k=>txt.includes(k))){cb.checked=true;n.push(iv.name)}}
  if(n.length&&!silent)toast('Intervall angehakt: '+n.join(', '))}
 const checkedIv=()=>$$('#ivChecks input:checked').map(i=>i.value);
-function renderPhotos(){const box=$('#photos');if(!box)return;box.innerHTML=draft.photos.map((p,i)=>`<div class="thumb"><img ${p.data?`src="${p.data}"`:`data-photo="${p.id}"`} alt="" data-a="photoView"><button type="button" class="tag" data-a="photoTag" data-i="${i}">${esc(p.tag||'Foto')}</button><button type="button" class="x" data-a="photoDel" data-i="${i}" aria-label="Entfernen">✕</button></div>`).join('');hydratePhotos(box)}
+function renderPhotos(){const box=$('#photos');if(!box)return;box.innerHTML=draft.photos.map((p,i)=>p.type==='pdf'?`<div class="thumb thumb-pdf" data-a="photoPdf" data-i="${i}"><span class="pdf-ic">${ic('receipt','ico')}<b>PDF</b><small>${esc((p.name||'Rechnung.pdf').replace(/\.pdf$/i,''))}</small></span><button type="button" class="tag" data-a="photoTag" data-i="${i}">${esc(p.tag||'Beleg')}</button><button type="button" class="x" data-a="photoDel" data-i="${i}" aria-label="Entfernen">✕</button></div>`:`<div class="thumb"><img ${p.data?`src="${p.data}"`:`data-photo="${p.id}"`} alt="" data-a="photoView"><button type="button" class="tag" data-a="photoTag" data-i="${i}">${esc(p.tag||'Foto')}</button><button type="button" class="x" data-a="photoDel" data-i="${i}" aria-label="Entfernen">✕</button></div>`).join('');hydratePhotos(box)}
 async function saveEntry(f){const fd=Object.fromEntries(new FormData(f));const old=draft.id?S.entries.find(e=>e.id===draft.id):null;
  {const bad=readParts().find(p=>{const it=p.invId&&S.inventory.find(i=>i.id===p.invId);return it&&!sameDim(p.unit,it.unit)});if(bad){toast(`„${bad.name}“: Einheit ${bad.unit} passt nicht zum Lager (${S.inventory.find(i=>i.id===bad.invId).unit})`);return}}
  if(!fd.carId){toast('Bitte ein Auto wählen');return}if(!fd.date){toast('Bitte ein Datum angeben');return}
  const ivIds=checkedIv().filter(id=>S.intervals.some(i=>i.id===id&&i.carId===fd.carId));
  const e={id:draft.id||uid(),carId:fd.carId,date:fd.date,odo:num(fd.odo),category:fd.category,title:fd.title.trim()||fd.category,desc:fd.desc.trim(),diy:fd.diy==='1',workshop:fd.workshop.trim(),hours:num(fd.hours),labor:num(fd.labor),notes:fd.notes.trim(),
-  parts:readParts().filter(p=>p.name||p.partNo||p.price),photos:draft.photos.map(({id,tag})=>({id,tag})),intervalIds:ivIds,toolIds:(draft.toolIds||[]).filter(id=>S.tools.some(t=>t.id===id)),created:old?.created||new Date().toISOString()};
+  parts:readParts().filter(p=>p.name||p.partNo||p.price),photos:draft.photos.map(({id,tag,type,name})=>type==='pdf'?{id,tag,type,name}:{id,tag}),intervalIds:ivIds,toolIds:(draft.toolIds||[]).filter(id=>S.tools.some(t=>t.id===id)),created:old?.created||new Date().toISOString()};
  if(old?.demo)e.demo=true;
  const cur=carOdo(e.carId);if(!old&&e.odo!=null&&cur!=null&&e.odo<cur-50000&&!confirm(`km-Stand ${fmtN(e.odo)} liegt weit unter dem aktuellen Stand (${fmtN(cur)}). Trotzdem speichern?`))return;
  if(old)for(const p of old.parts||[])if(p.invId){const it=S.inventory.find(i=>i.id===p.invId);if(it){it.qty=r3((it.qty||0)+conv(p.qty||0,p.unit,it.unit));await put('inventory',it)}}
@@ -2102,7 +2105,7 @@ function entryView(id){const e=S.entries.find(x=>x.id===id);if(!e)return;if(isPk
  ${ivn.length?`<p class="sub">Intervalle zurückgesetzt: ${esc(ivn.join(', '))}</p>`:''}
  ${(e.toolIds||[]).length?`<p class="sub">🔧 Werkzeug: ${esc(e.toolIds.map(i=>S.tools.find(t=>t.id===i)?.name).filter(Boolean).join(', '))}</p>`:''}
  ${S.issues.filter(x=>x.solvedEntryId===e.id).map(x=>`<p class="sub">✓ Behebt Fehler: <b>${esc(x.title)}</b>${x.codes?' ('+esc(x.codes)+')':''}</p>`).join('')}
- ${e.photos?.length?`<h4>Fotos</h4><div class="thumbs">${e.photos.map(p=>`<div class="thumb"><img data-photo="${p.id}" alt="" data-a="photoView"><span class="tag">${esc(p.tag||'Foto')}</span></div>`).join('')}</div>`:''}
+ ${e.photos?.length?`<h4>Fotos & Belege</h4><div class="thumbs">${e.photos.map((p,i)=>p.type==='pdf'?`<div class="thumb thumb-pdf" data-a="docOpenId" data-id="${p.id}"><span class="pdf-ic">${ic('receipt','ico')}<b>PDF</b><small>${esc((p.name||'Rechnung.pdf').replace(/\.pdf$/i,''))}</small></span><span class="tag">${esc(p.tag||'Beleg')}</span></div>`:`<div class="thumb"><img data-photo="${p.id}" alt="" data-a="photoView"><span class="tag">${esc(p.tag||'Foto')}</span></div>`).join('')}</div>`:''}
  ${e.notes?`<h4>Notizen</h4><p class="pre">${esc(e.notes)}</p>`:''}`;
  openSheet(e.title||e.category,body,`<button class="btn" data-a="entryCopy" data-id="${id}">Kopieren</button><button class="btn primary grow" data-a="entryForm" data-id="${id}">Bearbeiten</button>`)}
 async function entryDelete(id){const e=S.entries.find(x=>x.id===id);if(!e||!confirm('Diesen Eintrag löschen? Lagerteile werden zurückgebucht.'))return;
@@ -2410,7 +2413,7 @@ function guideForm(carId,id){const g=id?S.guides.find(x=>x.id===id):{carId:carId
  <h4>Fotos</h4><div id="photos" class="thumbs"></div><label class="btn block">📷 Foto hinzufügen<input type="file" accept="image/*" multiple hidden data-file="entryPhotos"></label></form>`;
  openSheet(id?'Anleitung bearbeiten':'Neue Anleitung',body,`${id?`<button class="btn danger" data-a="guideDelete" data-id="${id}">Löschen</button>`:''}<button class="btn primary grow" type="submit" form="fGuide">Speichern</button>`);renderPhotos()}
 async function saveGuide(f){const fd=Object.fromEntries(new FormData(f));const old=draft.id?S.guides.find(x=>x.id===draft.id):null;
- const g={...(old||{}),id:draft.id||uid(),carId:fd.carId||null,title:fd.title.trim(),tools:fd.tools.trim(),parts:fd.parts.trim(),torque:fd.torque.trim(),steps:fd.steps.trim(),tips:fd.tips.trim(),photos:draft.photos.map(({id,tag})=>({id,tag})),created:old?.created||today()};
+ const g={...(old||{}),id:draft.id||uid(),carId:fd.carId||null,title:fd.title.trim(),tools:fd.tools.trim(),parts:fd.parts.trim(),torque:fd.torque.trim(),steps:fd.steps.trim(),tips:fd.tips.trim(),photos:draft.photos.map(({id,tag,type,name})=>type==='pdf'?{id,tag,type,name}:{id,tag}),created:old?.created||today()};
  if(!g.title){toast('Bitte einen Titel angeben');return}
  for(const p of draft.photos)if(p.data)await put('photos',{id:p.id,data:p.data});for(const p of old?.photos||[])if(!g.photos.some(x=>x.id===p.id))await del('photos',p.id);
  await put('guides',g);closeSheet();toast('Gespeichert')}
@@ -2520,7 +2523,7 @@ function exposeForm(id){const c=car(id),x=c.expose||{};const pk=pickerlStatus(c)
 async function saveExpose(f){const fd=Object.fromEntries(new FormData(f));const c=car(draft.carId);
  c.expose={headline:fd.headline.trim(),price:num(fd.price),vb:!!fd.vb,highlights:fd.highlights,desc:fd.desc.trim(),contact:fd.contact.trim(),phone:fd.phone.trim(),photos:!!fd.photos,history:!!fd.history};await put('cars',c);
  const x=c.expose,pk=pickerlStatus(c),ents=carEntries(c.id);let hero=null,pics=[];
- if(x.photos){if(c.photoId)hero=await getPhoto(c.photoId);const ids=[];ents.forEach(e=>(e.photos||[]).forEach(p=>{if(p.tag!=='Beleg'&&ids.length<6)ids.push(p.id)}));for(const i of ids){const d=await getPhoto(i);if(d)pics.push(d)}}
+ if(x.photos){if(c.photoId)hero=await getPhoto(c.photoId);const ids=[];ents.forEach(e=>(e.photos||[]).forEach(p=>{if(p.tag!=='Beleg'&&p.type!=='pdf'&&ids.length<6)ids.push(p.id)}));for(const i of ids){const d=await getPhoto(i);if(d)pics.push(d)}}
  const kv=[['Erstzulassung',c.firstReg&&fmtD(c.firstReg)],['Kilometerstand',kmT(carOdo(c.id))],['Leistung',c.power],['Kraftstoff',c.fuel],['Motor',c.engine&&c.engine.replace(/\s*–\s*bitte prüfen/i,'')],['Pickerl',pk&&`nächste Begutachtung ${fmtM(pk.due)}`],['In meinem Besitz seit',c.purchase&&fmtM(c.purchase)],['Dokumentierte Arbeiten',ents.length?`${ents.length}, zuletzt ${fmtD(ents[0].date)}`:'']].filter(r=>r[1]);
  $('#print').innerHTML=`<div class="ex"><h1>${esc(x.headline)}</h1>${x.price!=null?`<div class="ex-price">${eur(x.price)}${x.vb?' VB':''}</div>`:''}
  ${hero?`<img class="ex-hero" src="${hero}" alt="">`:''}<table>${kv.map(([k,v])=>`<tr><th style="width:38%">${k}</th><td>${esc(v)}</td></tr>`).join('')}</table>
@@ -2611,7 +2614,7 @@ function activityItems(){const out=[];const add=o=>out.push(o);
 function homeTabs(){return`<div class="hdr-seg" role="tablist"><button type="button" class="${homeTab==='ov'?'on':''}" data-a="homeTab" data-t="ov">Übersicht</button><button type="button" class="${homeTab==='log'?'on':''}" data-a="homeTab" data-t="log">Verlauf</button></div>`}
 function viewLog(){const cars=S.cars.slice().sort((a,b)=>(a.archived?1:0)-(b.archived?1:0)||byName(a,b));
  return`<label class="f"><input id="logQ" type="search" placeholder="Verlauf durchsuchen …" value="${esc(logQ)}"></label>
- <div class="chips"><button class="chip ${!logCar?'on':''}" data-a="logCar" data-c="">Alle Autos</button>${cars.map(c=>`<button class="chip ${logCar===c.id?'on':''}" data-a="logCar" data-c="${c.id}"><span class="cdot" style="background:${carColor(c.id)}"></span>${esc(dispName(c))}${c.archived?' (verkauft)':''}</button>`).join('')}<button class="chip ${logCar==='_none'?'on':''}" data-a="logCar" data-c="_none">Allgemein</button></div>
+ <div class="chips"><button class="chip ${!logCar?'on':''}" data-a="logCar" data-c="">Alle Autos</button>${cars.map(c=>`<button class="chip ${logCar===c.id?'on':''}" data-a="logCar" data-c="${c.id}"><span class="cdot" style="background:${carColor(c.id)}"></span>${esc(dispName(c))}${c.archived?' (verkauft)':''}</button>`).join('')}<button class="chip ${logCar==='_none'?'on':''}" data-a="logCar" data-c="_none"><span class="cdot" style="background:${generalColor()}"></span>Allgemein</button></div>
  <div class="chips"><button class="chip ${!logCat?'on':''}" data-a="logCat" data-c="">Alle</button>${LOG_CATS.map(k=>`<button class="chip ${logCat===k?'on':''}" data-a="logCat" data-c="${k}">${k}</button>`).join('')}</div><div id="logList"></div>`}
 function renderLog(){const box=$('#logList');if(!box)return;const w=logQ.toLowerCase().split(/\s+/).filter(Boolean);
  const all=activityItems().filter(i=>(!logCar||(logCar==='_none'?!i.carId:i.carId===logCar))&&(!logCat||i.cat===logCat)&&(!w.length||w.every(x=>[i.title,i.sub,i.cat,i.carId?carName(i.carId):''].join(' ').toLowerCase().includes(x))));
@@ -2719,7 +2722,10 @@ const carColor=id=>{const c=car(id);if(!c)return'var(--muted)';if(c.color)return
 function textOn(hex){const m=/^#?([0-9a-f]{6})$/i.exec(hex||'');if(!m)return'#111';const n=parseInt(m[1],16),r=n>>16,g=n>>8&255,b=n&255;return(r*299+g*587+b*114)/1000>150?'#111':'#fff'}
 function carShort(c){if(!c)return'';let n=dispName(c);if(c.make&&n.toLowerCase().startsWith(c.make.toLowerCase()+' '))n=n.slice(c.make.length+1);return n.length>12?n.slice(0,11)+'…':n}
 const carTag=id=>{const c=car(id);if(!c)return'';const col=carColor(id);return`<span class="ctag" style="background:${col};color:${textOn(col)}">${esc(carShort(c))}</span>`};
-const cbar=id=>`<span class="cbar" style="background:${id?carColor(id):'var(--line)'}"></span>`;
+function generalColor(){const rgb=h=>{const n=parseInt(h.slice(1),16);return[n>>16,n>>8&255,n&255]};const cars=S.cars.map(c=>carColor(c.id)).filter(h=>/^#[0-9a-f]{6}$/i.test(h)).map(rgb);
+ const cand=['#a855f7','#3b82f6','#ec4899','#f97316','#14b8a6'];let best=cand[0],bd=-1;
+ for(const c of cand){const v=rgb(c);const d=cars.length?Math.min(...cars.map(x=>Math.hypot(x[0]-v[0],x[1]-v[1],x[2]-v[2]))):999;if(d>bd){bd=d;best=c}}return best}
+const cbar=id=>`<span class="cbar" style="background:${id?carColor(id):generalColor()}"></span>`;
 function hexFromHsl(h,s,l){const k=n=>(n+h/30)%12,a=s*Math.min(l,1-l),f=n=>l-a*Math.max(-1,Math.min(k(n)-3,9-k(n),1));return'#'+[f(0),f(8),f(4)].map(x=>Math.round(x*255).toString(16).padStart(2,'0')).join('')}
 async function colorFromPhoto(data){try{const img=await loadImg(data);const W=80,H=45,c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');g.drawImage(img,0,0,W,H);const px=g.getImageData(0,0,W,H).data;
  const bins=new Array(24).fill(0).map(()=>({w:0,h:0,s:0,l:0}));let sat=0,neu=0,neuL=0;
@@ -2748,7 +2754,7 @@ const shortEur=v=>v>=1000?(v/1000).toLocaleString('de-AT',{maximumFractionDigits
 function costChart(items,months=6){const now=new Date();const keys=[];for(let i=months-1;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);keys.push(isoD(d).slice(0,7))}
  const series=new Map();for(const it of items){if(it.noSum||!it.amount)continue;const k=it.date.slice(0,7);if(!keys.includes(k))continue;const s=it.carId||'_';if(!series.has(s))series.set(s,{});series.get(s)[k]=(series.get(s)[k]||0)+it.amount}
  if(!series.size)return'';const ids=[...series.keys()].sort((a,b)=>a==='_'?1:b==='_'?-1:carName(a).localeCompare(carName(b),'de'));
- const max=niceMax(Math.max(...keys.map(k=>Math.max(...ids.map(s=>series.get(s)[k]||0)))));const col=s=>s==='_'?'var(--muted)':carColor(s);
+ const max=niceMax(Math.max(...keys.map(k=>Math.max(...ids.map(s=>series.get(s)[k]||0)))));const gc=generalColor(),col=s=>s==='_'?gc:carColor(s);
  return`<div class="chart"><div class="chart-head"><span>Kosten pro Monat</span><span class="legend">${ids.map(s=>`<i style="background:${col(s)}"></i>${esc(s==='_'?'Allgemein':carShort(car(s)))}`).join('')}</span></div>
  <div class="plot"><div class="yax">${[1,.5,0].map(f=>`<span style="bottom:${f*100}%">${shortEur(max*f)}</span>`).join('')}</div><div class="grid-l">${[1,.5,0].map(f=>`<i style="bottom:${f*100}%"></i>`).join('')}</div>
  <div class="cols">${keys.map(k=>`<div class="col">${ids.map(s=>{const v=series.get(s)[k]||0;return`<i style="height:${v/max*100}%;background:${col(s)}" title="${eur(v)}"></i>`}).join('')}</div>`).join('')}</div></div>
@@ -2945,6 +2951,7 @@ const A={
  partAdd:()=>{draft.parts=readParts();draft.parts.push({unit:'Stk'});renderParts();const p=$$('#parts .prow').pop();p.scrollIntoView({block:'center',behavior:'smooth'});$('[data-k=name]',p).focus()},
  partDel:d=>{draft.parts=readParts();draft.parts.splice(+d.i,1);renderParts()},
  photoDel:d=>{draft.photos.splice(+d.i,1);renderPhotos()},
+ photoPdf:d=>{const p=draft.photos[+d.i];if(p)openDoc(p.id,p.data)},docOpenId:d=>openDoc(d.id),
  photoTag:d=>{const p=draft.photos[+d.i];p.tag=PHOTO_TAGS[(PHOTO_TAGS.indexOf(p.tag||'Foto')+1)%PHOTO_TAGS.length];renderPhotos()},
  histCat:d=>{histCat=d.c;$$('[data-a=histCat]').forEach(b=>b.classList.toggle('on',b.dataset.c===histCat));renderHistList(parseHash().id)},
  ivForm:d=>ivForm(d.car,d.id),ivTplSheet:d=>ivTplSheet(d.car),ivOpen:d=>ivOpen(d.id),
@@ -3009,7 +3016,7 @@ const CHANGES={
 };
 const FILES={
  carPhoto:async fl=>{if(!fl[0])return;let big;try{big=await compressImage(fl[0],2000,.9)}catch(e){toast('Bild konnte nicht gelesen werden');return}const d=await openCropper(big);if(!d)return;draft.photoSrc=big;draft.photoData=d;draft.photoChanged=true;{const f=$('#fCar');if(f?.elements.namedItem('colorAuto')?.checked){colorFromPhoto(d).then(col=>{if(col){f.elements.namedItem('color').value=col;$$('#fCar .sw').forEach(b=>b.classList.toggle('on',b.dataset.c===col))}})}}$('#carPh').innerHTML=`<img src="${d}" alt="">`},
- entryPhotos:async fl=>{for(const f of fl){try{draft.photos.push({id:uid(),tag:'Foto',data:await compressImage(f)})}catch(e){toast('Bild konnte nicht gelesen werden')}}renderPhotos()},
+ entryPhotos:async fl=>{for(const f of fl){try{if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)){if(f.size>10e6){toast('PDF ist größer als 10 MB');continue}draft.photos.push({id:uid(),tag:'Beleg',type:'pdf',name:f.name,data:await readDataURL(f)})}else draft.photos.push({id:uid(),tag:'Foto',data:await compressImage(f)})}catch(e){toast('Datei konnte nicht gelesen werden')}}renderPhotos()},
  importJSON,
  toolDocs:addToolDocs,
  carDocFiles:addDocFiles,
