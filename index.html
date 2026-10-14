@@ -147,6 +147,7 @@ h2 .h2a{color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700
 .mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .mtile{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 6px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:13px;font-weight:600;text-align:center;cursor:pointer;color:var(--text)}
 #navcfg{scroll-margin-top:80px}.navcfg .item{cursor:default}.navcfg .item.off .cat,.navcfg .item.off .grow{opacity:.6}.navcfg .item.off .btn.primary{background:transparent;color:var(--accent);border:1px solid var(--accent)}.navcfg .mv{display:flex;gap:4px}.navcfg .iconbtn{width:40px;height:40px}
+.searchbar{display:flex;align-items:center;gap:10px;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;color:var(--muted);font:inherit;font-size:15px;margin-bottom:6px;cursor:pointer;text-align:left}
 .mtile .mi{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,transparent)}
 .mtile .mi .ico{width:25px;height:25px}.mtile small{color:var(--muted);font-weight:500;font-size:11px;margin-top:-4px}
 .qbtn .ico{width:28px;height:28px;color:var(--accent)}
@@ -1524,6 +1525,7 @@ const addMonths=(s,m)=>{const d=new Date(s+'T12:00:00');const day=d.getDate();d.
 const daysUntil=s=>Math.round((new Date(s+'T12:00:00')-new Date(today()+'T12:00:00'))/864e5);
 const relDays=n=>n===0?'heute':n>0?(n===1?'morgen':`in ${n} Tagen`):(n===-1?'seit gestern':`seit ${-n} Tagen`);
 const fmtM=s=>s?s.slice(5,7)+'/'+s.slice(0,4):'–';
+const MONN=['Jänner','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];const fmtMonY=s=>s?MONN[+s.slice(5,7)-1]+' '+s.slice(0,4):'–';
 const fmtMonths=m=>m<12?`${m} Monat${m===1?'':'e'}`:`${Math.floor(m/12)} J.${m%12?' '+(m%12)+' M.':''}`;
 const fmtAgo=d=>d<45?`${d} Tagen`:d<730?`${Math.round(d/30.4)} Monaten`:`${(d/365).toFixed(1).replace('.',',')} Jahren`;
 const byName=(a,b)=>(a.name||'').localeCompare(b.name||'','de');
@@ -1633,16 +1635,17 @@ function ivStatus(iv){const last=ivLast(iv);const cur=carOdo(iv.carId);let kmLef
  else if((kmLeft!=null&&kmLeft<=(iv.warnKm??1000))||(daysLeft!=null&&daysLeft<=(iv.warnDays??30)))st='soon';else st='ok';
  const p=[];if(kmLeft!=null)p.push(kmLeft<0?`${fmtN(-kmLeft)} km überfällig`:`noch ${fmtN(kmLeft)} km`);
  if(daysLeft!=null)p.push(daysLeft<0?`seit ${fmtD(dueDate)} fällig`:`bis ${fmtD(dueDate)}`);
+ let estDate=null;if(kmLeft!=null&&kmLeft>=0){const kpd=kmPerDay(iv.carId);if(kpd){estDate=isoD(new Date(Date.now()+kmLeft/kpd*864e5));if(!dueDate||estDate<dueDate)p.push('≈ '+fmtMonY(estDate))}}
  let pct=0;if(kmLeft!=null)pct=Math.max(pct,(cur-last.odo)/iv.km);
  if(daysLeft!=null){const tot=daysUntil(dueDate)-daysUntil(last.date);pct=Math.max(pct,tot>0?-daysUntil(last.date)/tot:1)}
- return{st,kmLeft,daysLeft,dueKm,dueDate,last,pct,text:st==='unknown'?'Letzte Durchführung unbekannt':p.join(' · ')}}
+ return{st,kmLeft,daysLeft,dueKm,dueDate,estDate,last,pct,text:st==='unknown'?'Letzte Durchführung unbekannt':p.join(' · ')}}
 const ivRule=iv=>{const a=[];if(iv.km)a.push(`alle ${fmtN(iv.km)} km`);if(iv.months)a.push(`${iv.months} Monate`);return a.join(' / ')+(a.length>1?' (was zuerst kommt)':'')||'kein Intervall'};
 function dlStatus(d){if(!d.date)return{st:'unknown',days:null,text:'kein Datum'};const days=daysUntil(d.date);
  return{st:days<0?'over':days<=30?'soon':'ok',days,text:days<0?`seit ${fmtD(d.date)} überfällig`:`${fmtD(d.date)} (${relDays(days)})`}}
 function dueItems(carId){const out=[];for(const c of(carId?activeCars():remCars())){if(carId&&c.id!==carId)continue;
  for(const iv of S.intervals.filter(i=>i.carId===c.id)){const s=ivStatus(iv);out.push({kind:'iv',id:iv.id,carId:c.id,label:iv.name,st:s.st,text:s.text,score:Math.min(s.daysLeft??1e9,s.kmLeft!=null?s.kmLeft/40:1e9)})}
  const pk=pickerlStatus(c);if(pk)out.push({kind:'pk',id:'pk',carId:c.id,label:pk.label,st:pk.st,text:pk.text,score:daysUntil(pk.ws)});
- const ty=tyreDue(c);if(ty)out.push({kind:'ty',id:'ty',carId:c.id,label:ty.label,st:ty.st,text:ty.text,score:daysUntil(ty.date)});
+ const ty=tyreDue(c);if(ty)out.push({kind:ty.generic?'tg':'ty',id:'ty',carId:c.id,label:ty.label,st:ty.st,text:ty.text,score:daysUntil(ty.date)});
  for(const t of S.tyres.filter(t=>t.carId===c.id)){const w=tyreWarn(t)[0];if(w)out.push({kind:'ty',id:t.id,carId:c.id,label:`${t.season}reifen${t.brand?' '+t.brand:''}`,st:w.st,text:w.t,score:0})}
  for(const d of c.deadlines||[]){const s=dlStatus(d);out.push({kind:'dl',id:d.id,carId:c.id,label:d.label,st:s.st,text:s.text,score:s.days??1e9})}}
  const ord={over:0,soon:1,ok:2,unknown:3};return out.sort((a,b)=>ord[a.st]-ord[b.st]||a.score-b.score)}
@@ -1661,7 +1664,8 @@ function pickerlStatus(c){if(!c?.firstReg)return null;const sch=pickerlSchedule(
 function ownCost(c){const maint=S.entries.filter(e=>e.carId===c.id).reduce((s,e)=>s+entryCost(e),0),fuel=fuelCalc(c.id).cost,buy=c.purchasePrice??null,sell=c.sold?.price??null;
  let months=null;if(c.purchase){const a=new Date(c.purchase+'T12:00:00'),b=new Date((c.sold?.date||today())+'T12:00:00');months=Math.max(0,(b.getFullYear()-a.getFullYear())*12+b.getMonth()-a.getMonth())}
  const endOdo=c.sold?.odo??carOdo(c.id);const kmDriven=endOdo!=null&&c.purchaseOdo!=null?endOdo-c.purchaseOdo:null;
- return{maint,fuel,buy,sell,total:(buy||0)-(sell||0)+maint+fuel,months,kmDriven}}
+ const ins=c.insYear&&months!=null?c.insYear*months/12:0;
+ return{maint,fuel,buy,sell,ins,total:(buy||0)-(sell||0)+maint+fuel+ins,run:maint+fuel+ins,months,kmDriven}}
 const nextDue=id=>dueItems(id).find(d=>d.st!=='unknown');
 const sortTodos=a=>a.sort((x,y)=>(x.prio||2)-(y.prio||2)||(x.due||'9999').localeCompare(y.due||'9999')||(x.created||'').localeCompare(y.created||''));
 const openTodos=()=>sortTodos(S.todos.filter(t=>!t.done&&(!t.carId||!car(t.carId)?.archived)));
@@ -1742,6 +1746,7 @@ const NAV_ITEMS=[
  {k:'tools',h:'#/tools',i:'wrench',l:'Werkstatt',tab:'inv',r:['tools','inv','shop']},
  {k:'inv',h:'#/inv',i:'box',l:'Teilelager',tab:'inv2',r:['inv']},
  {k:'shop',h:'#/shop',i:'cart',l:'Einkauf',tab:'shop',r:['shop']},
+ {k:'search',h:'#/search',i:'search',l:'Suche',tab:'search',r:['search']},
  {k:'calendar',h:'#/calendar',i:'cal',l:'Kalender',tab:'calendar',r:['calendar']},
  {k:'stats',h:'#/stats',i:'chart',l:'Statistik',tab:'stats',r:['stats']},
  {k:'prices',h:'#/prices',i:'fuel',l:'Spritpreise',tab:'prices',r:['prices']},
@@ -1772,7 +1777,7 @@ function parseHash(){const p=(location.hash||'#/home').replace(/^#\/?/,'').split
 function render(){const r=parseHash();let o;
  switch(r.v){case'cars':o=viewCars();break;case'car':o=car(r.id)?viewCar(r.id,r.tab||'ov'):viewHome();break;case'todos':o=viewTodos();break;
   case'inv':o=viewInv();break;case'more':o=viewMore();break;case'stats':o=viewStats();break;case'backup':o=viewBackup();break;
-  case'settings':o=viewSettings();if(r.id==='nav'){const a=o.after;o.after=()=>{a&&a();setTimeout(()=>$('#navcfg')?.scrollIntoView({block:'start'}),0)}}break;case'shop':o=viewShop();break;case'tools':o=viewTools();break;case'calendar':o=viewCalendar();break;case'prices':o=viewPrices();break;case'warranty':o=viewWarranty();break;case'archive':o=viewArchive();break;case'help':o=viewHelp();break;default:o=viewHome()}
+  case'settings':o=viewSettings();if(r.id==='nav'){const a=o.after;o.after=()=>{a&&a();setTimeout(()=>$('#navcfg')?.scrollIntoView({block:'start'}),0)}}break;case'shop':o=viewShop();break;case'tools':o=viewTools();break;case'calendar':o=viewCalendar();break;case'prices':o=viewPrices();break;case'warranty':o=viewWarranty();break;case'archive':o=viewArchive();break;case'help':o=viewHelp();break;case'search':o=viewSearch();break;default:o=viewHome()}
  $('#title').textContent=o.title;document.title=o.title==='Garage'?'Garage':o.title+' · Garage';
  const b=$('#backBtn');b.hidden=!o.back;b.dataset.h=o.back||'';
  $('#hdrActions').innerHTML=o.actions||'';$('header.top').classList.toggle('with-tabs',!!o.hdrTabs);
@@ -1785,7 +1790,7 @@ function tileHTML(c){const nd=nextDue(c.id);
  <div class="row between"><b class="t">${esc(dispName(c))}</b>${c.plate?`<span class="plate">${esc(c.plate)}</span>`:''}</div>
  <div class="sub">${esc([[c.make,c.model].filter(Boolean).join(' '),carOdo(c.id)!=null?kmT(carOdo(c.id)):''].filter(Boolean).join(' · '))||'Noch keine Daten'}</div>
  ${nd?`<div class="due st-${nd.st}"><span class="dot"></span><span>${esc(nd.label)}: ${esc(nd.text)}</span></div>`:''}</div></div>`}
-const dueItemHTML=(d,showCar=true)=>`<div class="item st-${d.st}" data-a="${({iv:'ivOpen',dl:'dlOpen',pk:'pkOpen',ty:'tyOpen'})[d.kind]}" data-id="${d.id}" data-car="${d.carId}"><span class="dot"></span><div class="grow"><b>${esc(d.label)}</b><div class="sub">${showCar?carTag(d.carId)+' ':''}${esc(d.text)}</div></div><span class="muted">›</span></div>`;
+const dueItemHTML=(d,showCar=true)=>`<div class="item st-${d.st}" data-a="${({iv:'ivOpen',dl:'dlOpen',pk:'pkOpen',ty:'tyOpen',tg:'tyGenOpen',km:'odoForm'})[d.kind]}" data-id="${d.id}" data-car="${d.carId}"><span class="dot"></span><div class="grow"><b>${esc(d.label)}</b><div class="sub">${showCar?carTag(d.carId)+' ':''}${esc(d.text)}</div></div><span class="muted">›</span></div>`;
 function todoHTML(t,showCar=true){const meta=[prioBadge(t.prio)];if(showCar)meta.push(t.carId?carTag(t.carId):'Allgemein');
  if(t.due&&!t.done){const d=daysUntil(t.due);meta.push(`<span style="${d<0?'color:var(--red);font-weight:700':''}">fällig ${fmtD(t.due)}</span>`)}
  if(t.done&&t.doneAt)meta.push('erledigt '+fmtD(t.doneAt));if(t.parts?.length)meta.push(`${t.parts.length} Teil${t.parts.length>1?'e':''}`);
@@ -1798,11 +1803,12 @@ function entryHTML(e,showCar=false){const parts=(e.parts||[]).map(p=>[p.name,p.m
  ${isPk(e)&&e.pk?.defects?`<div class="sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Mängel: ${esc(e.pk.defects.split('\n')[0])}</div>`:''}${parts.length?`<div class="sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(parts.join(', '))}</div>`:''}</div><span class="amt">${entryCost(e)?eur(entryCost(e)):''}</span></div>`}
 
 function viewHome(){if(homeTab==='log')return{title:'Garage',html:viewLog(),tab:'home',after:renderLog,actions:homeTabs(),hdrTabs:true};const cars=myCars();let h='';
+ h+=`<button class="searchbar" data-a="go" data-h="#/search">${ic('search','ico s')}<span>Suchen – Teile, Einträge, Werkzeug …</span></button>`;
  if(memOnly)h+=`<div class="note warn"><b>Vorschau-Modus:</b> Der Browser erlaubt hier keinen dauerhaften Speicher. Änderungen gehen beim Schließen verloren. Installiere die App wie unter „Mehr › Installation“ beschrieben.</div>`;
  if(hasDemo())h+=`<div class="note">Beispieldaten aktiv (Werte zum Ausprobieren). Entfernen unter <button class="linkbtn" data-a="go" data-h="#/settings">Mehr › Einstellungen</button>.</div>`;
  else if(backupDue())h+=`<div class="note warn">Letzte Sicherung: ${lsGet('garage.lastBackup')?fmtD(lsGet('garage.lastBackup').slice(0,10)):'noch nie'}. <button class="linkbtn" data-a="go" data-h="#/backup">Jetzt sichern</button></div>`;
  h+=cars.length?`<h2>Meine Autos <button class="h2a" data-a="go" data-h="#/cars">Alle ›</button></h2>${cars.map(carCard).join('')}`:empty('Noch keine Autos in der Garage.','Auto hinzufügen','carForm');
- const due=dueItems().filter(d=>d.st==='over'||d.st==='soon');
+ const due=[...dueItems().filter(d=>d.st==='over'||d.st==='soon'),...kmReminders()];
  h+=`<h2>Fällig & überfällig</h2>`+(due.length?due.map(d=>dueItemHTML(d)).join(''):`<p class="muted">Alles im grünen Bereich.</p>`)+`<button class="btn block" data-a="go" data-h="#/calendar">${ic('cal')} Kalender – nächste 12 Monate</button>`;
  const oi=S.issues.filter(x=>x.status!=='solved'&&car(x.carId)&&!car(x.carId).archived&&!isForeign(x.carId));if(oi.length)h+=`<h2>Offene Fehler</h2>`+oi.map(issueHTML).join('');
  const td=openTodos();h+=`<h2>Offene To-dos${td.length?` <button class="h2a" data-a="go" data-h="#/todos">${td.length} ›</button>`:''}</h2>`+(td.length?td.slice(0,5).map(t=>todoHTML(t)).join('')+(td.length>5?`<button class="btn block" data-a="go" data-h="#/todos">Alle ${td.length} anzeigen</button>`:''):`<p class="muted">Keine offenen Aufgaben.</p>`);
@@ -1831,13 +1837,13 @@ function viewCar(id,tab){const c=car(id);
   <div class="card row between"><div><div class="sub">Kilometerstand</div><div class="big">${kmT(carOdo(id))}</div></div>${c.archived?'':`<button class="btn" data-a="odoForm" data-car="${id}">km aktualisieren</button>`}</div>
   ${c.archived?'':`<div class="grid3" style="margin-bottom:12px"><button class="btn" data-a="entryForm" data-car="${id}">+ Eintrag</button><button class="btn" data-a="todoForm" data-car="${id}">+ To-do</button><button class="btn" data-a="fuelForm" data-car="${id}">⛽ Tanken</button></div>
   ${(()=>{const n=S.issues.filter(x=>x.carId===id&&x.status!=='solved').length;return n?`<div class="note warn">⚠ ${n} offene${n>1?'':'r'} Fehler – <button class="linkbtn" data-a="go" data-h="#/car/${id}/issue">ansehen</button></div>`:''})()}
-  ${c.foreign&&!c.reminders?'':`<h2>Termine & Fälligkeiten</h2>${!c.firstReg&&!c.foreign?`<div class="note warn">Erstzulassung fehlt – ohne sie kann das Pickerl nicht berechnet werden. <button class="linkbtn" data-a="carForm" data-id="${id}">Jetzt eintragen</button></div>`:''}${dueItems(id).filter(d=>d.st!=='unknown'||d.kind==='dl').slice(0,6).map(d=>dueItemHTML(d,false)).join('')||'<p class="muted">Keine Termine. Über ✎ oben eintragen.</p>'}`}`}
+  ${c.foreign&&!c.reminders?'':`<h2>Termine & Fälligkeiten</h2>${!c.firstReg&&!c.foreign?`<div class="note warn">Erstzulassung fehlt – ohne sie kann das Pickerl nicht berechnet werden. <button class="linkbtn" data-a="carForm" data-id="${id}">Jetzt eintragen</button></div>`:''}${dueItems(id).filter(d=>d.st!=='unknown'||d.kind==='dl').slice(0,6).map(d=>dueItemHTML(d,false)).join('')||'<p class="muted">Keine Termine.</p>'}<button class="btn block" data-a="dlNew" data-car="${id}">+ Frist (Vignette, Versicherung …)</button>`}`}
   <h2>Fahrzeugdaten</h2><div class="card"><dl class="kv">${[['Marke / Modell',[c.make,c.model].filter(Boolean).join(' ')],['Baujahr',c.year],['Kennzeichen',c.plate],['FIN',c.vin],['Typenschein-Nr.',c.hsn],['Motorcode',c.engine],['Leistung',c.power],['Kraftstoff',c.fuel],['Erstzulassung',c.firstReg&&fmtD(c.firstReg)],['Pickerl-Monat (Lochung)',c.firstReg&&c.firstReg.slice(5,7)],['Kaufdatum',c.purchase&&fmtD(c.purchase)],['km beim Kauf',c.purchaseOdo!=null&&kmT(c.purchaseOdo)]].filter(x=>x[1]).map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl></div>
   ${c.foreign?`<h2>Arbeiten an diesem Auto</h2><div class="card"><dl class="kv"><dt>Einträge</dt><dd>${ents.length}</dd><dt>Teile & Material</dt><dd>${eur(ents.reduce((s,e)=>s+partsCost(e),0))}</dd><dt>Arbeitszeit</dt><dd>${fmtN(ents.reduce((s,e)=>s+(e.hours||0),0),1)} h</dd>${ents[0]?`<dt>Zuletzt</dt><dd>${fmtD(ents[0].date)}</dd>`:''}</dl></div>`:`<h2>Kosten & Bilanz</h2><div class="card"><dl class="kv">${oc.buy!=null?`<dt>Kaufpreis</dt><dd>${eur(oc.buy)}</dd>`:''}${oc.sell!=null?`<dt>Verkaufspreis</dt><dd>${eur(oc.sell)}</dd>`:''}${oc.buy!=null&&oc.sell!=null?`<dt>Wertverlust</dt><dd>${eur(oc.buy-oc.sell)}</dd>`:''}
-  <dt>Wartung & Reparatur</dt><dd>${eur(tot)}</dd>${c.archived?'':`<dt>davon ${y}</dt><dd>${eur(totY)}</dd>`}<dt>Kraftstoff</dt><dd>${eur(fc.cost)}</dd>
+  <dt>Wartung & Reparatur</dt><dd>${eur(tot)}</dd>${c.archived?'':`<dt>davon ${y}</dt><dd>${eur(totY)}</dd>`}<dt>Kraftstoff</dt><dd>${eur(fc.cost)}</dd>${oc.ins?`<dt>Versicherung & Steuer</dt><dd>${eur(oc.ins)}<div class="sub">${eur(c.insYear)} / Jahr anteilig</div></dd>`:''}
   ${oc.buy!=null?`<dt><b>Gesamtkosten${c.sold?'':' bisher'}</b></dt><dd><b>${eur(oc.total)}</b></dd>`:''}${oc.buy!=null&&oc.months>0?`<dt>pro Monat</dt><dd>${eur(oc.total/oc.months)}</dd>`:''}
-  ${oc.months!=null?`<dt>Besitzdauer</dt><dd>${fmtMonths(oc.months)}</dd>`:''}${oc.kmDriven>0?`<dt>Gefahren seit Kauf</dt><dd>${kmT(oc.kmDriven)}</dd>${oc.buy!=null?`<dt>pro km</dt><dd>${eur(oc.total/oc.kmDriven)}</dd>`:''}`:''}</dl>
-  ${oc.buy==null?`<p class="sub">Tipp: Kaufpreis unter ✎ eintragen, dann siehst du die Gesamtbilanz.</p>`:''}</div>`}`;
+  ${oc.months!=null?`<dt>Besitzdauer</dt><dd>${fmtMonths(oc.months)}</dd>`:''}${oc.kmDriven>0?`<dt>Gefahren seit Kauf</dt><dd>${kmT(oc.kmDriven)}</dd>${oc.buy!=null?`<dt>pro km</dt><dd>${eur(oc.total/oc.kmDriven)}</dd>`:''}<dt>Laufende Kosten pro km</dt><dd>${eur(oc.run/oc.kmDriven)}<div class="sub">ohne Kaufpreis / Wertverlust</div></dd>`:''}</dl>
+  ${oc.buy==null?`<p class="sub">Tipp: Kaufpreis unter ✎ eintragen, dann siehst du die Gesamtbilanz.</p>`:!c.insYear&&!c.archived?`<p class="sub">Tipp: Versicherung + Steuer pro Jahr unter ✎ eintragen, dann ist die Rechnung vollständig.</p>`:''}</div>`}`;
   const td=sortTodos(S.todos.filter(t=>t.carId===id&&!t.done));if(!c.archived)h+=`<h2>Offene To-dos</h2>${td.map(t=>todoHTML(t,false)).join('')||'<p class="muted">Keine.</p>'}`;
   h+=carDocsHTML(c);h+=`<h2>Export & Verwaltung</h2><button class="btn block" data-a="printBook" data-car="${id}">🖨️ Scheckheft drucken / als PDF</button><button class="btn block" data-a="exportCSV" data-car="${id}">Historie als CSV</button>
   <div class="grid2" style="margin-bottom:8px"><button class="btn" data-a="qrSheet" data-car="${id}">🔳 QR-Aufkleber</button>${c.archived||c.foreign?'':`<button class="btn" data-a="exposeForm" data-car="${id}">📄 Exposé</button>`}</div>
@@ -1902,6 +1908,23 @@ function renderInvList(){const box=$('#invList');if(!box)return;const w=invQ.toL
  <div class="sub">${esc([i.maker,i.partNo,i.spec].filter(Boolean).join(' · '))}</div><div class="sub">${[i.price!=null?esc(upLabel(i.price,i.unit)):'',i.location?'📍 '+esc(i.location):'',(i.fits||[]).length?'für '+esc(i.fits.map(carName).join(', ')):''].filter(Boolean).join(' · ')}</div>${i.minQty!=null&&(i.qty||0)<i.minQty?`<div class="sub low">⚠ unter Mindestbestand (${fmtQ(i.minQty)} ${esc(i.unit)}) – nachkaufen</div>`:''}</div>
  <div class="qty"><button class="iconbtn sm" data-a="invQty" data-id="${i.id}" data-d="-1" aria-label="weniger">−</button><span data-a="invSet" data-id="${i.id}" style="cursor:pointer">${fmtQ(i.qty||0)} ${esc(i.unit||'')}</span><button class="iconbtn sm" data-a="invQty" data-id="${i.id}" data-d="1" aria-label="mehr">+</button></div></div>`).join('')||`<p class="muted">${w.length?'Keine Treffer.':'Das Lager ist leer.'}</p>`}
 
+let gQ='';
+function viewSearch(){return{title:'Suche',tab:'search',back:'#/home',html:`<input id="gq" type="search" placeholder="Was suchst du? z. B. Zündkerze, Bremse, 5W-40 …" value="${esc(gQ)}" autocomplete="off" enterkeyhint="search" style="width:100%;margin-bottom:12px"><div id="gRes"></div>`,after:()=>{renderSearch();const i=$('#gq');i.focus();i.setSelectionRange(i.value.length,i.value.length)}}}
+function renderSearch(){const box=$('#gRes');if(!box)return;const w=gQ.toLowerCase().split(/\s+/).filter(Boolean);
+ if(!w.length){box.innerHTML=`<p class="sub">Durchsucht Einträge (auch Teile und Teilenummern), To-dos, Teilelager, Werkzeug, Anleitungen, Fehler, Reifen und Autos.</p>`;return}
+ const hit=a=>{const hay=a.filter(x=>x!=null&&x!=='').join(' ').toLowerCase();return w.every(x=>hay.includes(x))};
+ const parts=ps=>(ps||[]).flatMap(p=>[p.name,p.partNo,p.maker,p.shop]);
+ const G=[];const grp=(t,rows)=>{if(rows.length)G.push(`<h2>${t} <span class="muted">${rows.length}</span></h2>`+rows.slice(0,25).join('')+(rows.length>25?`<p class="sub">… und ${rows.length-25} weitere – Suche genauer eingeben.</p>`:''))};
+ const row=(act,icon,title,sub,carId)=>`<div class="item" ${act}>${icon}<div class="grow"><b>${esc(title)}</b><div class="sub">${carId?carTag(carId)+' ':''}${sub}</div></div><span class="muted">›</span></div>`;
+ grp('Autos',S.cars.filter(c=>hit([c.name,c.make,c.model,c.plate,c.vin,c.engine,c.owner?.name])).map(c=>row(`data-a="go" data-h="#/car/${c.id}"`,ibox('car',carColor(c.id)),dispName(c),esc([c.make,c.model,c.plate].filter(Boolean).join(' · '))+(c.archived?' · Archiv':''))));
+ grp('Einträge',S.entries.filter(e=>hit([e.title,e.category,e.desc,e.notes,e.workshop,...parts(e.parts)])).sort((a,b)=>b.date.localeCompare(a.date)).map(e=>{const pm=(e.parts||[]).filter(p=>hit([p.name,p.partNo,p.maker,p.shop])).map(p=>p.name+(p.partNo?' ('+p.partNo+')':''));return row(`data-a="${isPk(e)?'pkView':'entryView'}" data-id="${e.id}"`,ibox('clipboard','var(--accent)'),e.title||e.category,`${fmtD(e.date)}${e.odo!=null?' · '+kmT(e.odo):''}${pm.length?' · '+esc(pm.slice(0,2).join(', ')):''}`,e.carId)}));
+ grp('To-dos',S.todos.filter(t=>hit([t.title,t.note,t.tools,...parts(t.parts)])).map(t=>row(`data-a="todoForm" data-id="${t.id}"`,ibox('list','var(--accent)'),t.title,t.done?'erledigt':'offen',t.carId)));
+ grp('Teilelager',S.inventory.filter(i=>hit([i.name,i.maker,i.partNo,i.spec,i.location,i.ean])).map(i=>row(`data-a="invForm" data-id="${i.id}"`,ibox('box','#b07cf0'),i.name,`${fmtQ(i.qty||0)} ${esc(i.unit||'Stk')}${i.location?' · 📍 '+esc(i.location):''}`)));
+ grp('Werkzeug',S.tools.filter(t=>hit([t.name,t.brand,t.category,t.location,t.notes])).map(t=>row(`data-a="toolView" data-id="${t.id}"`,ibox('wrench','var(--accent)'),t.name,esc([t.brand,t.location&&'📍 '+t.location].filter(Boolean).join(' · ')))));
+ grp('Anleitungen',S.guides.filter(g=>hit([g.title,g.text,g.notes,g.steps&&JSON.stringify(g.steps)])).map(g=>row(`data-a="guideView" data-id="${g.id}"`,ibox('book','var(--accent)'),g.title,'',g.carId)));
+ grp('Fehler',S.issues.filter(x=>hit([x.title,x.code,x.desc,x.notes])).map(x=>row(`data-a="issueForm" data-id="${x.id}" data-car="${x.carId}"`,ibox('alert','var(--yellow)'),x.title||x.code,x.status==='solved'?'gelöst':'offen',x.carId)));
+ grp('Reifen',S.tyres.filter(t=>hit([t.brand,t.model,t.size,t.dot,t.season,t.location])).map(t=>row(`data-a="tyOpen" data-car="${t.carId}"`,ibox('tire','var(--accent)'),`${t.season}reifen ${t.brand||''}`,esc([t.model,t.size].filter(Boolean).join(' · ')),t.carId)));
+ box.innerHTML=G.join('')||`<p class="muted">Nichts gefunden für „${esc(gQ)}“.</p>`}
 function viewArchive(){const arch=S.cars.filter(c=>c.archived).sort((a,b)=>(b.sold?.date||'').localeCompare(a.sold?.date||''));
  const h=arch.map(c=>{const o=ownCost(c);return`<div class="item" data-a="go" data-h="#/car/${c.id}"><div class="cat" style="--c:var(--muted)">${c.photoId?`<img data-photo="${c.photoId}" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:12px">`:'🚗'}</div>
  <div class="grow"><b>${esc(dispName(c))}</b><div class="sub">${c.sold?`Verkauft ${fmtD(c.sold.date)}${c.sold.price!=null?' für '+eur(c.sold.price):''}`:'Archiviert, nicht verkauft'}</div>
@@ -2003,7 +2026,7 @@ function carForm(id,foreign){const isF=id?!!car(id)?.foreign:!!foreign;const c=i
  <label class="checkline"><input type="checkbox" name="reminders" ${c.reminders?'checked':''}> Erinnerungen anzeigen (Pickerl, Intervalle, Termine auf Startseite und im Kalender)</label>`:''}<h4>Pickerl (§57a)</h4><div class="grid2">${isF?f('firstReg','Erstzulassung','date'):f('firstReg','Erstzulassung *','date','required')}<label class="f"><span>Letztes Pickerl (optional)</span><input type="date" name="pickerlLast" value="${esc(c.pickerlLast||'')}"></label></div>
  <p class="sub" style="margin-top:0">Aus der Erstzulassung berechnet die App das Pickerl: 3 Jahre, dann 2 Jahre, danach jährlich – im Monat der Erstzulassung.</p>
  ${isF?'':`<h4>Kauf</h4><div class="grid2">${f('purchase','Kaufdatum','date')}<label class="f"><span>Kaufpreis (€)</span><input name="purchasePrice" inputmode="decimal" value="${valN(c.purchasePrice)}"></label></div>
- <label class="f"><span>km-Stand beim Kauf</span><input name="purchaseOdo" inputmode="numeric" value="${valN(c.purchaseOdo)}"></label>`}
+ <div class="grid2"><label class="f"><span>km-Stand beim Kauf</span><input name="purchaseOdo" inputmode="numeric" value="${valN(c.purchaseOdo)}"></label><label class="f"><span>Versicherung + Steuer (€/Jahr)</span><input name="insYear" inputmode="decimal" value="${valN(c.insYear)}" placeholder="optional"></label></div>`}
  <h4>Weitere Termine</h4><p class="sub">Versicherung, Reifenwechsel, Vignette … – erscheinen auf der Startseite, wenn sie näherrücken. Das Pickerl kommt automatisch dazu.</p><div id="dlRows"></div>
  <button type="button" class="btn block" data-a="dlAdd">+ Termin</button>
  ${!id?`<label class="checkline"><input type="checkbox" name="stdIv" ${isF?'':'checked'}> Standard-Wartungsintervalle anlegen (Öl, Bremsflüssigkeit, Filter …)</label>`:''}</form>`;
@@ -2011,7 +2034,7 @@ function carForm(id,foreign){const isF=id?!!car(id)?.foreign:!!foreign;const c=i
 function renderDlRows(){$('#dlRows').innerHTML=draft.deadlines.map((d,i)=>`<div class="srow" data-dl="${i}"><input data-k="label" value="${esc(d.label)}" placeholder="Bezeichnung"><input data-k="date" type="date" value="${esc(d.date)}"><button type="button" class="iconbtn sm" data-a="dlDel" data-i="${i}" aria-label="Entfernen">✕</button></div>`).join('')}
 function syncDl(){draft.deadlines=$$('#dlRows .srow').map((r,i)=>({id:draft.deadlines[i]?.id||uid(),label:$('[data-k=label]',r).value.trim(),date:$('[data-k=date]',r).value}))}
 async function saveCar(f){syncDl();const fd=Object.fromEntries(new FormData(f));const old=draft.id?car(draft.id):null;
- const c={...(old||{}),id:draft.id||uid(),name:fd.name.trim(),make:fd.make.trim(),model:fd.model.trim(),year:fd.year.trim(),plate:fd.plate.trim().toUpperCase(),vin:fd.vin.trim().toUpperCase(),hsn:fd.hsn.trim(),tsn:old?.tsn||'',pickerlLast:fd.pickerlLast||null,purchasePrice:num(fd.purchasePrice),purchaseOdo:num(fd.purchaseOdo),engine:fd.engine.trim(),power:fd.power.trim(),fuel:fd.fuel,firstReg:fd.firstReg,purchase:fd.purchase,odo:num(fd.odo),deadlines:draft.deadlines.filter(d=>d.label),specs:old?.specs||[],archived:old?.archived||false,created:old?.created||today()};
+ const c={...(old||{}),id:draft.id||uid(),name:fd.name.trim(),make:fd.make.trim(),model:fd.model.trim(),year:fd.year.trim(),plate:fd.plate.trim().toUpperCase(),vin:fd.vin.trim().toUpperCase(),hsn:fd.hsn.trim(),tsn:old?.tsn||'',pickerlLast:fd.pickerlLast||null,purchasePrice:num(fd.purchasePrice),purchaseOdo:num(fd.purchaseOdo),insYear:fd.insYear===undefined?(old?.insYear??null):num(fd.insYear),engine:fd.engine.trim(),power:fd.power.trim(),fuel:fd.fuel,firstReg:fd.firstReg,purchase:fd.purchase,odo:num(fd.odo),deadlines:draft.deadlines.filter(d=>d.label),specs:old?.specs||[],archived:old?.archived||false,created:old?.created||today()};
  if(!c.name&&!c.make&&!c.model){toast('Bitte Name oder Marke/Modell angeben');return}
  c.foreign=!!fd.foreign;if(c.foreign){c.owner={name:(fd.ownerName||'').trim(),phone:(fd.ownerPhone||'').trim(),note:(fd.ownerNote||'').trim()};c.reminders=!!fd.reminders}
  if(!c.firstReg&&!c.foreign){toast('Bitte die Erstzulassung eintragen (fürs Pickerl)');return}
@@ -2227,6 +2250,12 @@ function dlOpen(carId,id){const c=car(carId);const d=(c.deadlines||[]).find(x=>x
  <form id="fDl" data-form="dl"><label class="f"><span>Neues Datum</span><input type="date" name="date" id="dlDate" value="${esc(d.date)}"></label></form>
  <p class="sub">Erledigt? Nächsten Termin setzen:</p><div class="grid3">${[12,24,36].map(m=>`<button type="button" class="btn" data-a="dlSet" data-m="${m}">+${m} Mon.</button>`).join('')}</div>`,
  `<button class="btn danger" data-a="dlRemove">Löschen</button><button class="btn primary grow" type="submit" form="fDl">Speichern</button>`)}
+function dlNew(carId){draft={kind:'dlNew',carId};const y=today().slice(0,4);const vig=today().slice(5)>='12-01'?(+y+2)+'-01-31':(+y+1)+'-01-31';
+ const P=[['Vignette',vig],['Versicherung',''],['Pannendienst',''],['Reifenwechsel Winter',y+'-10-15'],['Reifenwechsel Sommer',(+y+1)+'-04-10']];const have=new Set((car(carId).deadlines||[]).map(d=>d.label));
+ openSheet('Neue Frist',`<form id="fDlNew" data-form="dlNew"><div class="chips" style="flex-wrap:wrap">${P.filter(p=>!have.has(p[0])).map(([l,d])=>`<button type="button" class="chip" data-a="dlPreset" data-l="${l}" data-d="${d}">${l}</button>`).join('')}</div>
+ <label class="f"><span>Bezeichnung</span><input name="label" required placeholder="z. B. Vignette"></label><label class="f"><span>Fällig am</span><input type="date" name="date" required></label>
+ <p class="sub">Die Frist erscheint auf der Startseite, sobald sie näherrückt. Wenn erledigt: antippen und „+12 Mon.“ wählen. Die Vignette gilt jeweils bis 31. Jänner des Folgejahres.</p></form>`,`<button class="btn primary grow" type="submit" form="fDlNew">Speichern</button>`)}
+async function saveDlNew(f){const fd=Object.fromEntries(new FormData(f));const c=car(draft.carId);if(!fd.label.trim())return;(c.deadlines=c.deadlines||[]).push({id:uid(),label:fd.label.trim(),date:fd.date});await put('cars',c);closeSheet();toast('Frist gespeichert');render()}
 async function saveDl(f){const c=car(draft.carId);const d=c.deadlines.find(x=>x.id===draft.id);d.date=new FormData(f).get('date');await put('cars',c);closeSheet();toast('Termin gespeichert')}
 
 /* ================= To-dos ================= */
@@ -2344,7 +2373,7 @@ async function exportJSON(){download(`garage-backup-${today()}.json`,await backu
 async function importJSON(files){const file=files[0];if(!file)return;try{const d=JSON.parse(await file.text());if(d.app!=='garage-wartung'||!d.data)throw new Error('format');
  const n=(d.data.cars||[]).length,m=(d.data.entries||[]).length;if(!confirm(`Backup vom ${fmtD((d.exported||'').slice(0,10))} mit ${n} Autos und ${m} Einträgen wiederherstellen?\n\nAlle aktuellen Daten werden ERSETZT.`))return;
  await clearAll();for(const s of STORES){if(s==='photos')continue;for(const x of d.data[s]||[])await put(s,x)}for(const p of d.photos||[])await put('photos',p);
- lsSet('garage.seeded','1');toast('Backup wiederhergestellt');nav('#/home')}catch(e){console.error(e);toast('Datei ist kein gültiges Garage-Backup')}}
+ if(d.prefs)for(const[k,v]of Object.entries(d.prefs))if(['garage.nav','garage.theme','garage.backupDays'].includes(k))lsSet(k,v);navSig='';applyTheme();lsSet('garage.seeded','1');toast('Backup wiederhergestellt');nav('#/home')}catch(e){console.error(e);toast('Datei ist kein gültiges Garage-Backup')}}
 function applyTheme(){const t=lsGet('garage.theme')||'dark';const dark=t==='system'?matchMedia('(prefers-color-scheme: dark)').matches:t==='dark';
  document.documentElement.dataset.theme=dark?'dark':'light';$('meta[name=theme-color]').content=dark?'#121417':'#f2f3f5'}
 
@@ -2424,7 +2453,7 @@ const tyreLimit=t=>t.season==='Sommer'?1.6:4;
 function tyreKm(t){const cur=carOdo(t.carId);return(t.kmTotal||0)+(t.mounted&&t.mountedOdo!=null&&cur!=null?Math.max(0,cur-t.mountedOdo):0)}
 function tyreWarn(t){const w=[];const a=dotAge(t.dot);if(a!=null&&a>=8)w.push({st:'over',t:`${fmtN(a,1)} Jahre alt – Tausch empfohlen`});else if(a!=null&&a>=6)w.push({st:'soon',t:`${fmtN(a,1)} Jahre alt`});
  const m=tyreMin(t),lim=tyreLimit(t);if(m!=null&&m<lim)w.push({st:'over',t:`Profil ${fmtN(m,1)} mm – unter ${fmtN(lim,1)} mm`});else if(m!=null&&m<lim+1)w.push({st:'soon',t:`Profil ${fmtN(m,1)} mm – bald am Limit (${fmtN(lim,1)} mm)`});return w}
-function tyreDue(c){const sets=S.tyres.filter(t=>t.carId===c.id);if(!sets.length)return null;const md=today().slice(5),mounted=sets.find(t=>t.mounted),winterTime=md>='11-01'||md<='04-15';
+function tyreDue(c){const sets=S.tyres.filter(t=>t.carId===c.id);if(!sets.length)return tyreGeneric(c);const md=today().slice(5),mounted=sets.find(t=>t.mounted),winterTime=md>='11-01'||md<='04-15';
  if(sets.some(t=>t.season==='Winter')&&!['Winter','Ganzjahr'].includes(mounted?.season)&&(md>='10-01'||md<='04-15'))
   return{label:'Winterreifen montieren',st:'soon',text:winterTime?'situative Winterreifenpflicht 1.11.–15.4.':'Wechsel einplanen – Pflicht bei Winterwetter ab 1.11.',date:winterTime?today():today().slice(0,4)+'-11-01'};
  if(mounted?.season==='Winter'&&sets.some(t=>t.season==='Sommer')&&md>'04-15'&&md<'10-01')return{label:'Sommerreifen montieren',st:'soon',text:'Die Winterreifen-Saison ist vorbei',date:today()};
@@ -2525,6 +2554,21 @@ function viewWarranty(){const t=today();const rows=[];S.entries.forEach(e=>(e.pa
  return{title:'Garantien',tab:'more',back:'#/more',html:`<h2>Teile</h2>`+(act.length?act.map(li).join(''):'<p class="muted">Keine Teile mit laufender Garantie.</p>')+(exp.length?`<h2>Teile – kürzlich abgelaufen</h2>`+exp.map(li).join(''):'')+`<h2>Werkzeug</h2>`+(tw.length?tw.map(tl).join(''):'<p class="muted">Kein Werkzeug mit laufender Garantie.</p>')}}
 
 /* ================= Kalender ================= */
+function tyreGeneric(c){if(c.foreign||c.archived)return null;const t=today(),y=t.slice(0,4),md=t.slice(5);let w=null;
+ if(md>='10-01'&&md<='11-30')w={k:y+'W',from:y+'-09-15',label:'Winterreifen montieren?',text:md>='11-01'?'Situative Winterreifenpflicht seit 1.11.':'Situative Winterreifenpflicht ab 1.11. – Wechsel einplanen',date:md>='11-01'?t:y+'-11-01',to:'Winter'};
+ else if(md>='04-01'&&md<='05-15')w={k:y+'S',from:y+'-03-15',label:'Sommerreifen montieren?',text:md>'04-15'?'Die Winterreifen-Saison ist vorbei':'Winterreifenpflicht endet am 15.4.',date:md>'04-15'?t:y+'-04-15',to:'Sommer'};
+ if(!w)return null;if((c.tyreAck||[]).includes(w.k))return null;
+ if(S.entries.some(e=>e.carId===c.id&&e.category==='Reifen'&&e.date>=w.from))return null;
+ return{...w,st:'soon',generic:true}}
+async function tyreAck(carId,k){const c=car(carId);c.tyreAck=[...(c.tyreAck||[]).slice(-3),k];await put('cars',c)}
+function tyGenOpen(carId){const c=car(carId),g=tyreGeneric(c);if(!g){nav(`#/car/${carId}/tyre`);return}
+ openSheet(g.label,`<p>${esc(g.text)}.</p><p class="sub">Für ${esc(dispName(c))} sind noch keine Reifensätze angelegt. Mit Reifensätzen weiß die App, was montiert ist, und erinnert genauer.</p>
+ <button class="btn primary block" data-a="tyGenEntry" data-car="${carId}" data-k="${g.k}" data-to="${g.to}">Gewechselt – als Eintrag speichern</button>
+ <button class="btn block" data-a="tyGenAck" data-car="${carId}" data-k="${g.k}">Nicht nötig / schon erledigt</button>
+ <button class="btn block" data-a="tyOpen" data-car="${carId}">Reifensätze anlegen</button>`)}
+function lastOdoDate(id){const c=car(id);let d=null;const up=x=>{if(x&&(!d||x>d))d=x};S.entries.forEach(e=>{if(e.carId===id&&e.odo!=null)up(e.date)});S.fuel.forEach(f=>{if(f.carId===id&&f.odo!=null)up(f.date)});S.odo.forEach(o=>{if(o.carId===id)up(o.date)});if(c?.purchaseOdo!=null)up(c.purchase);return d}
+function kmReminders(){return myCars().map(c=>{const d=lastOdoDate(c.id);const days=d?-daysUntil(d):null;if(days!=null&&days<28)return null;
+ return{kind:'km',id:'km',carId:c.id,label:'km-Stand eintragen',st:'soon',text:d?`zuletzt am ${fmtD(d)} (vor ${days>=60?Math.round(days/30)+' Monaten':Math.round(days/7)+' Wochen'})`:'noch kein km-Stand',score:0}}).filter(Boolean)}
 function kmPerDay(carId){const pts=[...S.entries.filter(e=>e.carId===carId&&e.odo!=null).map(e=>[e.date,e.odo]),...S.fuel.filter(f=>f.carId===carId&&f.odo!=null).map(f=>[f.date,f.odo]),...S.odo.filter(o=>o.carId===carId).map(o=>[o.date,o.odo])]
  .filter(p=>daysUntil(p[0])>=-400).sort((a,b)=>a[0].localeCompare(b[0]));if(pts.length<2)return null;
  const d=daysUntil(pts[pts.length-1][0])-daysUntil(pts[0][0]),km=pts[pts.length-1][1]-pts[0][1];return d>=30&&km>0?km/d:null}
@@ -2535,7 +2579,7 @@ function calendarItems(){const out=[],t=today(),end=addMonths(t,12);const add=(o
   for(const iv of S.intervals.filter(i=>i.carId===c.id)){const s=ivStatus(iv);if(s.st==='unknown')continue;let date=s.dueDate,est=false;
    if(s.kmLeft!=null){const kd=s.kmLeft<0?t:kpd?isoD(new Date(Date.now()+s.kmLeft/kpd*864e5)):null;if(kd&&(!date||kd<date)){date=kd;est=s.kmLeft>=0}}
    if(!date)continue;if(s.st==='over'&&date>t)date=t;add({date,label:iv.name,sub:s.text,st:s.st,est,carId:c.id,act:`data-a="ivOpen" data-id="${iv.id}"`})}
-  const ty=tyreDue(c);if(ty)add({date:ty.date,label:ty.label,sub:ty.text,st:ty.st,carId:c.id,act:`data-a="tyOpen" data-car="${c.id}"`});
+  const ty=tyreDue(c);if(ty)add({date:ty.date,label:ty.label,sub:ty.text,st:ty.st,carId:c.id,act:`data-a="${ty.generic?'tyGenOpen':'tyOpen'}" data-car="${c.id}"`});
   S.entries.filter(e=>e.carId===c.id).forEach(e=>(e.parts||[]).forEach(p=>{if(p.warranty){const we=addMonths(e.date,p.warranty);if(we>=t)add({date:we,label:'Garantie endet: '+p.name,sub:p.shop||'',st:'ok',carId:c.id,act:`data-a="entryView" data-id="${e.id}"`})}}))}
  S.tools.forEach(x=>{if(x.warrantyUntil&&x.warrantyUntil>=t)add({date:x.warrantyUntil,label:'Garantie endet: '+x.name,sub:x.brand||'Werkzeug',st:daysUntil(x.warrantyUntil)<=60?'soon':'ok',carId:null,act:`data-a="toolView" data-id="${x.id}"`})});
  S.todos.filter(x=>!x.done&&x.due).forEach(x=>add({date:x.due,label:'To-do: '+x.title,sub:prioLabel(x.prio),st:x.due<t?'over':'ok',carId:x.carId,act:`data-a="todoForm" data-id="${x.id}"`}));
@@ -2580,7 +2624,7 @@ async function saveReceipt(f){const fd=Object.fromEntries(new FormData(f));const
  await put('entries',e);closeSheet();toast('Beleg gespeichert');nav(`#/car/${e.carId}/hist`)}
 
 /* ================= Backup teilen ================= */
-async function backupJSON(){const photos=await allPhotos();return JSON.stringify({app:'garage-wartung',version:2,exported:new Date().toISOString(),data:Object.fromEntries(STORES.filter(s=>s!=='photos').map(s=>[s,S[s]])),photos})}
+async function backupJSON(){const photos=await allPhotos();const prefs={};['garage.nav','garage.theme','garage.backupDays'].forEach(k=>{const v=lsGet(k);if(v!=null)prefs[k]=v});return JSON.stringify({app:'garage-wartung',version:2,exported:new Date().toISOString(),prefs,data:Object.fromEntries(STORES.filter(s=>s!=='photos').map(s=>[s,S[s]])),photos})}
 async function shareBackup(){const json=await backupJSON(),base=`garage-backup-${today()}`;
  const tries=[new File([json],base+'.json',{type:'application/json'}),new File([json],base+'.txt',{type:'text/plain'})];
  const file=tries.find(f=>{try{return navigator.canShare?.({files:[f]})}catch(e){return false}});
@@ -2767,6 +2811,7 @@ function shopList(){const h=location.hash||'#/home';if(!h.startsWith('#/shop'))s
 async function shopShare(){const txt=shopShareText();try{if(navigator.share){await navigator.share({title:'Einkaufsliste',text:txt});return}await navigator.clipboard.writeText(txt);toast('In Zwischenablage kopiert')}catch(e){if(e.name!=='AbortError')toast('Teilen nicht möglich')}}
 /* ================= Symbole ================= */
 const ICONS={
+ search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
  home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
  car:'<path d="M5 17H3v-5l2-5h14l2 5v5h-2M9 17h6"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M4 12h16"/>',
  list:'<path d="M10 6h10M10 12h10M10 18h10M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5 2.5-2.5M3.5 18l1.5 1.5 2.5-2.5"/>',
@@ -3028,6 +3073,10 @@ const A={
  navPin:d=>{let a=navPinned();if(a.includes(d.k)){if(a.length<=1){toast('Mindestens ein Menü muss angepinnt bleiben');return}a=a.filter(k=>k!==d.k)}else{if(a.length>=NAV_MAX){toast(`Maximal ${NAV_MAX} Menüs – zuerst eines lösen`);return}a.push(d.k)}navSave(a);navRefresh()},
  navMove:d=>{const a=navPinned(),i=a.indexOf(d.k),j=i+ +d.d;if(i<0||j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];navSave(a);navRefresh()},
  navReset:()=>{navSave(NAV_DEFAULT.slice());navRefresh();toast('Leiste auf Standard zurückgesetzt')},
+ tyGenOpen:d=>tyGenOpen(d.car),
+ tyGenAck:async d=>{await tyreAck(d.car,d.k);closeSheet();render();toast('Erledigt – bis zur nächsten Saison')},
+ tyGenEntry:async d=>{await tyreAck(d.car,d.k);closeSheet();entryForm({carId:d.car,category:'Reifen',title:`Reifenwechsel auf ${d.to}reifen`})},
+ dlNew:d=>dlNew(d.car),dlPreset:d=>{const f=$('#fDlNew');f.elements.namedItem('label').value=d.l;if(d.d)f.elements.namedItem('date').value=d.d;else f.elements.namedItem('date').focus()},
  closeLightbox:()=>{$('#lightbox').classList.add('hidden')},
  photoView:(d,el)=>{if(!el.src)return;$('#lightbox img').src=el.src;$('#lightbox').classList.remove('hidden')},
  toggleArchived:()=>{showArchived=!showArchived;render()},
@@ -3098,7 +3147,7 @@ const A={
  wipe:async()=>{if(!confirm('Wirklich ALLE Daten löschen? Das kann nicht rückgängig gemacht werden.\n\nTipp: Vorher ein Backup speichern.'))return;await clearAll();toast('Alle Daten gelöscht');nav('#/home')},
 };
 document.addEventListener('click',e=>{if(e.target.id==='sheet'){closeSheet();return}const el=e.target.closest('[data-a]');if(!el)return;const f=A[el.dataset.a];if(f){e.preventDefault();const n=el.dataset.a;if(UNDO_LABEL[n])withUndo(n,()=>f(el.dataset,el,e));else f(el.dataset,el,e)}});
-const FORMS={carDoc:saveCarDoc,shopAdd,shopEdit:saveShopEdit,restock:saveRestock,pk:savePk,tool:saveTool,tyre:saveTyre,issue:saveIssue,guide:saveGuide,receipt:saveReceipt,expose:saveExpose,ivTpl:saveIvTpl,sell:saveSell,car:saveCar,entry:saveEntry,todo:saveTodo,inv:saveInv,fuel:saveFuel,odo:saveOdo,iv:saveIv,spec:saveSpecs,dl:saveDl};
+const FORMS={dlNew:saveDlNew,carDoc:saveCarDoc,shopAdd,shopEdit:saveShopEdit,restock:saveRestock,pk:savePk,tool:saveTool,tyre:saveTyre,issue:saveIssue,guide:saveGuide,receipt:saveReceipt,expose:saveExpose,ivTpl:saveIvTpl,sell:saveSell,car:saveCar,entry:saveEntry,todo:saveTodo,inv:saveInv,fuel:saveFuel,odo:saveOdo,iv:saveIv,spec:saveSpecs,dl:saveDl};
 let saving=false;
 document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target;const fn=FORMS[f.dataset.form];if(!fn||saving)return;saving=true;try{await fn(f)}catch(err){console.error(err);toast('Fehler beim Speichern: '+err.message)}finally{saving=false}});
 const CHANGES={
@@ -3138,6 +3187,7 @@ document.addEventListener('change',async e=>{const t=e.target;
 document.addEventListener('input',e=>{const t=e.target;
  if(t.id==='histQ'){histQ=t.value;renderHistList(parseHash().id)}
  else if(t.id==='invQ'){invQ=t.value;renderInvList()}
+ else if(t.id==='gq'){gQ=t.value;renderSearch()}
  else if(t.id==='toolQ'){toolQ=t.value;renderToolList()}
  else if(t.id==='toolPickQ'){const q=t.value.toLowerCase();$$('#toolPick .chip').forEach(b=>b.hidden=!!q&&!b.textContent.toLowerCase().includes(q))}
  if(t.matches('[data-ac]'))acRender(t);
