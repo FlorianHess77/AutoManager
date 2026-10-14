@@ -1455,8 +1455,13 @@ const byName=(a,b)=>(a.name||'').localeCompare(b.name||'','de');
 const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
 
-const CATS=['Ölwechsel','Inspektion','Pickerl','Bremsen','Reifen','Reparatur','Tuning','Sonstiges'];
-const CAT_COL={'Ölwechsel':'#d4a72c','Inspektion':'#5aa9e6','Bremsen':'#ef5350','Reifen':'#9aa6b8','Reparatur':'#f5a524','Tuning':'#b07cf0','Pickerl':'#4caf7a','Sonstiges':'#7d8794'};
+const WARTUNG_SUB=['Ölwechsel','Bremsen','Inspektion','Filter','Flüssigkeiten'];
+const MAIN_CATS=['Wartung','Reparatur','Reifen','Pickerl','Tuning','Sonstiges'];
+const CATS=['Wartung',...WARTUNG_SUB,'Reparatur','Reifen','Pickerl','Tuning','Sonstiges'];
+const mainCat=c=>WARTUNG_SUB.includes(c)?'Wartung':(c||'Sonstiges');
+const catLabel=c=>WARTUNG_SUB.includes(c)?'Wartung · '+c:(c||'');
+const catOptions=(sel,none)=>(none?`<option value="">${esc(none)}</option>`:'')+`<optgroup label="Wartung"><option value="Wartung" ${sel==='Wartung'?'selected':''}>Wartung (allgemein)</option>${WARTUNG_SUB.map(k=>`<option value="${k}" ${sel===k?'selected':''}>${k}</option>`).join('')}</optgroup><optgroup label="Weitere">${MAIN_CATS.slice(1).map(k=>`<option value="${k}" ${sel===k?'selected':''}>${k}</option>`).join('')}</optgroup>`;
+const CAT_COL={'Wartung':'#5aa9e6','Filter':'#5aa9e6','Flüssigkeiten':'#4fc3c7','Ölwechsel':'#d4a72c','Inspektion':'#5aa9e6','Bremsen':'#ef5350','Reifen':'#9aa6b8','Reparatur':'#f5a524','Tuning':'#b07cf0','Pickerl':'#4caf7a','Sonstiges':'#7d8794'};
 const UNITS=['Stk','Satz','Paar','l','ml','kg','g','m','Dose'];
 const ST_LABEL={over:'Überfällig',soon:'Bald fällig',ok:'OK',unknown:'Unbekannt'};
 const PHOTO_TAGS=['Foto','Vorher','Nachher','Beleg'];
@@ -1579,7 +1584,7 @@ function fuelCalc(carId){const list=S.fuel.filter(f=>f.carId===carId).sort((a,b)
  for(const f of list){if(prev){acc+=f.liters||0;if(f.full&&f.odo!=null&&prev.odo!=null&&f.odo>prev.odo){const dist=f.odo-prev.odo;cons[f.id]=acc/dist*100;totL+=acc;totKm+=dist}}
   if(f.full){prev=f;acc=0}}
  return{list,cons,avg:totKm?totL/totKm*100:null,cost:list.reduce((s,f)=>s+(f.price||0),0),liters:list.reduce((s,f)=>s+(f.liters||0),0)}}
-const guessCat=n=>/brems/i.test(n)?'Bremsen':/öl/i.test(n)?'Ölwechsel':/reifen/i.test(n)?'Reifen':/inspektion/i.test(n)?'Inspektion':'Inspektion';
+const guessCat=n=>/motoröl|ölwechsel/i.test(n)?'Ölwechsel':/brems/i.test(n)?'Bremsen':/reifen/i.test(n)?'Reifen':/inspektion/i.test(n)?'Inspektion':/filter/i.test(n)?'Filter':/öl|flüssigkeit|kühlmittel|atf|klima/i.test(n)?'Flüssigkeiten':'Wartung';
 const autoIvIds=(carId,cat)=>S.intervals.filter(i=>i.carId===carId&&i.category&&i.category===cat).map(i=>i.id);
 const stdIntervals=fuel=>IV_TPL.filter(t=>t.std&&(!t.fuel||(fuel||'').includes(t.fuel)));
 const hasDemo=()=>['cars','entries','intervals','todos','inventory','fuel','odo','tyres','issues','guides','tools'].some(s=>S[s].some(x=>x.demo));
@@ -1687,7 +1692,7 @@ function viewCar(id,tab){const c=car(id);
    :`<button class="btn primary block" data-a="sellForm" data-car="${id}">💶 Als verkauft markieren</button><button class="btn block" data-a="carArchive" data-car="${id}">Ins Archiv (ohne Verkauf, z. B. abgemeldet)</button>`}
   <button class="btn danger block" data-a="carDelete" data-car="${id}">Endgültig löschen</button>`}
  if(tab==='hist'){h+=`<label class="f"><input id="histQ" type="search" placeholder="Suchen: Bremsflüssigkeit, Mann, 5W-30 …" value="${esc(histQ)}"></label>
-  <div class="chips"><button class="chip ${!histCat?'on':''}" data-a="histCat" data-c="">Alle</button>${CATS.map(k=>`<button class="chip ${histCat===k?'on':''}" data-a="histCat" data-c="${k}">${k}</button>`).join('')}</div><div id="histList"></div>
+  <div class="chips"><button class="chip ${!histCat?'on':''}" data-a="histCat" data-c="">Alle</button>${MAIN_CATS.map(k=>`<button class="chip ${histCat===k?'on':''}" data-a="histCat" data-c="${k}">${k}</button>`).join('')}</div><div id="histList"></div>
   <button class="btn primary block" data-a="entryForm" data-car="${id}">+ Wartung / Reparatur</button>`;after=()=>renderHistList(id)}
  if(tab==='iv'){const SO={over:0,soon:1,ok:2,unknown:3};const ivs=S.intervals.filter(i=>i.carId===id).map(iv=>({iv,s:ivStatus(iv),g:ivGroup(iv)}));
   const card=({iv,s})=>`<div class="item col st-${s.st}" data-a="ivOpen" data-id="${iv.id}"><div class="row between"><b>${esc(iv.name)}</b><span class="badge st">${ST_LABEL[s.st]}</span></div>
@@ -1719,7 +1724,7 @@ function viewCar(id,tab){const c=car(id);
    return`<div class="item" ${r.id?`data-a="odoDelete" data-id="${r.id}"`:''}><div class="grow"><b>${kmT(r.odo)}</b><div class="sub">${fmtD(r.date)} · ${esc(r.src)}</div></div>${diff>0?`<span class="sub">+${fmtN(diff)} km</span>`:''}${r.id?'<span class="muted">✕</span>':''}</div>`}).join('')||empty('Noch keine km-Stände.','','')}
  return{title:dispName(c),html:h,tab:c.archived?'more':'cars',back:c.archived?'#/archive':'#/cars',actions:`<button class="iconbtn" data-a="torqueSheet" data-car="${id}" aria-label="Drehmomente">🔩</button> <button class="iconbtn" data-a="carForm" data-id="${id}" aria-label="Bearbeiten">✎</button>`,after}}
 function renderHistList(id){const box=$('#histList');if(!box)return;const words=histQ.toLowerCase().split(/\s+/).filter(Boolean);
- const list=carEntries(id).filter(e=>(!histCat||e.category===histCat)&&(!words.length||(()=>{const hay=[e.title,e.desc,e.notes,e.category,e.workshop,...(e.parts||[]).flatMap(p=>[p.name,p.maker,p.partNo,p.spec,p.shop])].join(' ').toLowerCase();return words.every(w=>hay.includes(w))})()));
+ const list=carEntries(id).filter(e=>(!histCat||mainCat(e.category)===histCat)&&(!words.length||(()=>{const hay=[e.title,e.desc,e.notes,e.category,mainCat(e.category),e.workshop,...(e.parts||[]).flatMap(p=>[p.name,p.maker,p.partNo,p.spec,p.shop])].join(' ').toLowerCase();return words.every(w=>hay.includes(w))})()));
  let h='';if(words.length&&list.length){const l=list[0];const ago=-daysUntil(l.date);const cur=carOdo(id);
   h+=`<div class="note">Zuletzt: <b>${fmtD(l.date)}</b>${l.odo!=null?` bei ${kmT(l.odo)}`:''} – vor ${fmtAgo(Math.max(0,ago))}${l.odo!=null&&cur!=null?`, seitdem ${fmtN(cur-l.odo)} km`:''}</div>`}
  h+=list.map(e=>entryHTML(e)).join('')||`<p class="muted">${words.length||histCat?'Keine Treffer.':'Noch keine Einträge.'}</p>`;
@@ -1761,7 +1766,9 @@ function viewStats(){const years=[...new Set([...S.entries.map(e=>e.date.slice(0
  <div class="card"><dl class="kv"><dt>Einträge</dt><dd>${ents.length}</dd><dt>Selbst gemacht</dt><dd>${diy.length} (${ents.length?Math.round(diy.length/ents.length*100):0} %)</dd><dt>Schrauberstunden</dt><dd>${fmtN(diy.reduce((s,e)=>s+(e.hours||0),0),1)} h</dd><dt>Davon Teilekosten</dt><dd>${eur(ents.reduce((s,e)=>s+partsCost(e),0))}</dd><dt>Davon Arbeitslohn</dt><dd>${eur(ents.reduce((s,e)=>s+(e.labor||0),0))}</dd></dl></div>`;
  const cars=S.cars.slice().sort(byName);
  h+=`<h2>Pro Auto (Wartung + Kraftstoff)</h2><div class="card">${barsHTML(cars.map(c=>({l:dispName(c),v:ents.filter(e=>e.carId===c.id).reduce((s,e)=>s+entryCost(e),0)+fuel.filter(f=>f.carId===c.id).reduce((s,f)=>s+(f.price||0),0)})).filter(r=>r.v>0))}</div>`;
- h+=`<h2>Nach Kategorie</h2><div class="card">${barsHTML(CATS.map(k=>({l:k,v:ents.filter(e=>e.category===k).reduce((s,e)=>s+entryCost(e),0)})).filter(r=>r.v>0).sort((a,b)=>b.v-a.v))}</div>`;
+ h+=`<h2>Nach Kategorie</h2><div class="card">${barsHTML(MAIN_CATS.map(k=>({l:k,v:ents.filter(e=>mainCat(e.category)===k).reduce((s,e)=>s+entryCost(e),0)})).filter(r=>r.v>0).sort((a,b)=>b.v-a.v))}</div>`;
+ const wr=['Wartung',...WARTUNG_SUB].map(k=>({l:k==='Wartung'?'Allgemein':k,v:ents.filter(e=>e.category===k).reduce((s,e)=>s+entryCost(e),0)})).filter(r=>r.v>0).sort((a,b)=>b.v-a.v);
+ if(wr.length>1)h+=`<h2>Wartung im Detail</h2><div class="card">${barsHTML(wr)}</div>`;
  if(!statsYear){h+=`<h2>Pro Jahr (Wartung)</h2><div class="card">${barsHTML(years.slice().reverse().map(y=>({l:y,v:S.entries.filter(e=>e.date.startsWith(y)).reduce((s,e)=>s+entryCost(e),0)})))}</div>`;
   h+=`<h2>Kosten pro km</h2><div class="card"><dl class="kv">${cars.map(c=>{const od=[c.odo,...S.entries.filter(e=>e.carId===c.id).map(e=>e.odo),...S.fuel.filter(f=>f.carId===c.id).map(f=>f.odo),...S.odo.filter(o=>o.carId===c.id).map(o=>o.odo)].filter(v=>v!=null);
    const dr=od.length?Math.max(...od)-Math.min(...od):0;const cost=S.entries.filter(e=>e.carId===c.id).reduce((s,e)=>s+entryCost(e),0)+fuelCalc(c.id).cost;
@@ -1896,7 +1903,7 @@ function openCropper(src,aspect=16/9){return new Promise(resolve=>{const ov=$('#
 function entryForm(o={}){const old=o.id?S.entries.find(e=>e.id===o.id):null;let base;
  if(old)base=structuredClone(old);
  else if(o.copyOf){const src=S.entries.find(e=>e.id===o.copyOf);base={...structuredClone(src),date:today(),odo:carOdo(src.carId),photos:[]};delete base.id;delete base.demo}
- else base={carId:o.carId||defaultCarId(),date:today(),odo:null,category:o.category||'Ölwechsel',title:o.title||'',desc:'',diy:o.diy??true,workshop:'',hours:null,labor:null,notes:o.notes||'',parts:o.parts||[],photos:[],intervalIds:o.intervalIds||[],toolIds:o.toolIds||[]};
+ else base={carId:o.carId||defaultCarId(),date:today(),odo:null,category:o.category||'Wartung',title:o.title||'',desc:'',diy:o.diy??true,workshop:'',hours:null,labor:null,notes:o.notes||'',parts:o.parts||[],photos:[],intervalIds:o.intervalIds||[],toolIds:o.toolIds||[]};
  if(!S.cars.length){toast('Lege zuerst ein Auto an');return carForm()}
  if(!base.carId)base.carId=defaultCarId();if(!old&&base.odo==null)base.odo=carOdo(base.carId);
  draft={kind:'entry',...base,toolIds:[...(base.toolIds||[])],id:old?old.id:null,todoId:o.todoId||null,issueId:o.issueId||null,photos:(base.photos||[]).map(p=>({...p}))};
@@ -1905,7 +1912,7 @@ function entryForm(o={}){const old=o.id?S.entries.find(e=>e.id===o.id):null;let 
  const body=`<form id="fEntry" data-form="entry">
  <label class="f"><span>Auto</span><select name="carId" data-change="entryCar">${carOptions(d.carId)}</select></label>
  <div class="grid2"><label class="f"><span>Datum</span><input type="date" name="date" value="${esc(d.date)}" required></label><label class="f"><span>km-Stand</span><input name="odo" inputmode="numeric" value="${valN(d.odo)}"></label></div>
- <label class="f"><span>Kategorie</span><select name="category" data-change="entryCat">${CATS.map(k=>`<option ${d.category===k?'selected':''}>${k}</option>`).join('')}</select></label>
+ <label class="f"><span>Kategorie</span><select name="category" data-change="entryCat">${catOptions(d.category)}</select></label>
  <label class="f"><span>Titel</span><input name="title" value="${esc(d.title)}" placeholder="z. B. Ölwechsel mit Filter"></label>
  <label class="f"><span>Beschreibung / Arbeitsschritte</span><textarea name="desc">${esc(d.desc)}</textarea></label>
  <div class="seg"><label><input type="radio" name="diy" value="1" ${d.diy?'checked':''}><span>🔧 Selbst gemacht</span></label><label><input type="radio" name="diy" value="0" ${!d.diy?'checked':''}><span>🏭 Werkstatt</span></label></div>
@@ -1958,7 +1965,7 @@ function entryView(id){const e=S.entries.find(x=>x.id===id);if(!e)return;
  const parts=(e.parts||[]).map(p=>`<div class="prow" style="padding-bottom:10px"><div class="row between"><b>${esc(p.name||'Teil')}</b><span class="amt">${p.price!=null?eur(p.price):''}</span></div>
  <div class="sub">${esc([p.qty!=null?fmtQ(p.qty)+' '+(p.unit||''):'',p.maker,p.partNo&&'Nr. '+p.partNo].filter(Boolean).join(' · '))}</div>${p.spec?`<div class="sub">Spezifikation: ${esc(p.spec)}</div>`:''}${p.shop?`<div class="sub">Bezug: ${esc(p.shop)}</div>`:''}${p.invId?'<div class="sub">📦 aus dem Lager</div>':''}${p.warranty?(()=>{const we=addMonths(e.date,p.warranty);return`<div class="sub" style="color:${we>=today()?'var(--green)':'var(--muted)'}">🛡️ Garantie bis ${fmtD(we)}${we>=today()?'':' (abgelaufen)'}</div>`})():''}</div>`).join('');
  const ivn=(e.intervalIds||[]).map(i=>S.intervals.find(x=>x.id===i)?.name).filter(Boolean);
- const body=`<div class="row" style="margin-bottom:10px">${catBadge(e.category)}<div class="grow"><div><b>${esc(e.category)}</b> · ${esc(carName(e.carId))}</div><div class="sub">${fmtD(e.date)} · ${kmT(e.odo)}</div></div></div>
+ const body=`<div class="row" style="margin-bottom:10px">${catBadge(e.category)}<div class="grow"><div><b>${esc(catLabel(e.category))}</b> · ${esc(carName(e.carId))}</div><div class="sub">${fmtD(e.date)} · ${kmT(e.odo)}</div></div></div>
  <div class="note">${e.diy?'🔧 Selbst gemacht':'🏭 Werkstatt'+(e.workshop?': '+esc(e.workshop):'')}${e.hours?` · ${fmtQ(e.hours)} h`:''}</div>
  ${e.desc?`<p class="pre">${esc(e.desc)}</p>`:''}${parts?`<h4>Teile & Betriebsstoffe</h4>${parts}`:''}
  ${e.labor?`<div class="row between"><span>Arbeitslohn</span><b>${eur(e.labor)}</b></div>`:''}<div class="total"><span>Gesamt</span><b>${eur(entryCost(e))}</b></div>
@@ -1982,7 +1989,7 @@ function ivForm(carId,id){const iv=id?S.intervals.find(i=>i.id===id):{carId,warn
  <div class="grid2"><label class="f"><span>alle … km</span><input name="km" inputmode="numeric" value="${valN(iv.km)}"></label><label class="f"><span>alle … Monate</span><input name="months" inputmode="numeric" value="${valN(iv.months)}"></label></div>
  <p class="sub" style="margin-top:-4px">Nur km, nur Monate oder beides – dann zählt, was zuerst eintritt.</p>
  <label class="f"><span>Automatisch anhaken, wenn Teil oder Titel enthält</span><input name="match" value="${esc(kw)}" placeholder="z. B. getriebeöl, 75w-90 (mit Komma trennen)"></label>
- <label class="f"><span>… oder bei Eintrags-Kategorie</span><select name="category"><option value="">— keine —</option>${CATS.map(k=>`<option ${iv.category===k?'selected':''}>${k}</option>`).join('')}</select></label>
+ <label class="f"><span>… oder bei Eintrags-Kategorie</span><select name="category">${catOptions(iv.category,'— keine —')}</select></label>
  <h4>Zuletzt erledigt</h4><p class="sub">Nur nötig, wenn es noch keinen passenden Eintrag in der Historie gibt.</p>
  <div class="grid2"><label class="f"><span>Datum</span><input type="date" name="baseDate" value="${esc(iv.baseDate||'')}"></label><label class="f"><span>bei km</span><input name="baseOdo" inputmode="numeric" value="${valN(iv.baseOdo)}"></label></div>
  <h4>Vorwarnung</h4><div class="grid2"><label class="f"><span>km vorher</span><input name="warnKm" inputmode="numeric" value="${valN(iv.warnKm)}"></label><label class="f"><span>Tage vorher</span><input name="warnDays" inputmode="numeric" value="${valN(iv.warnDays)}"></label></div></form>`;
@@ -2076,7 +2083,7 @@ function download(name,content,type){const b=new Blob([content],{type});const u=
 const fileSafe=s=>String(s).replace(/[^\wäöüÄÖÜß-]+/g,'_');
 function exportCSV(carId){const c=car(carId);const q=v=>{const s=String(v??'');return /[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};const n=v=>v==null?'':String(v).replace('.',',');
  const rows=[['Datum','km','Kategorie','Titel','Ausgeführt','Werkstatt','Arbeitszeit h','Teile','Teilekosten €','Arbeitslohn €','Gesamt €','Beschreibung','Notizen']];
- carEntries(carId).slice().reverse().forEach(e=>rows.push([fmtD(e.date),e.odo??'',e.category,e.title,e.diy?'selbst':'Werkstatt',e.workshop,n(e.hours),(e.parts||[]).map(p=>`${p.qty!=null?fmtQ(p.qty)+' '+(p.unit||'')+' ':''}${p.name}${p.maker?' ('+p.maker+(p.partNo?', '+p.partNo:'')+')':p.partNo?' ('+p.partNo+')':''}${p.spec?' ['+p.spec+']':''}`).join(' | '),n(r3(partsCost(e))),n(e.labor),n(r3(entryCost(e))),e.desc,e.notes]));
+ carEntries(carId).slice().reverse().forEach(e=>rows.push([fmtD(e.date),e.odo??'',catLabel(e.category),e.title,e.diy?'selbst':'Werkstatt',e.workshop,n(e.hours),(e.parts||[]).map(p=>`${p.qty!=null?fmtQ(p.qty)+' '+(p.unit||'')+' ':''}${p.name}${p.maker?' ('+p.maker+(p.partNo?', '+p.partNo:'')+')':p.partNo?' ('+p.partNo+')':''}${p.spec?' ['+p.spec+']':''}`).join(' | '),n(r3(partsCost(e))),n(e.labor),n(r3(entryCost(e))),e.desc,e.notes]));
  download(`Wartung_${fileSafe(dispName(c))}_${today()}.csv`,'﻿'+rows.map(r=>r.map(q).join(';')).join('\r\n'),'text/csv;charset=utf-8');toast('CSV erstellt')}
 function printBook(carId){draft={kind:'print',carId};openSheet('Scheckheft / PDF',`<p>Erstellt eine druckbare Wartungshistorie – ideal für den Verkauf oder fürs Pickerl. Im Druckdialog „Als PDF speichern“ wählen.</p>
  <label class="checkline"><input type="checkbox" id="pbCost" checked> Kosten anzeigen</label><label class="checkline"><input type="checkbox" id="pbParts" checked> Teile & Hersteller anzeigen</label>`,
@@ -2085,7 +2092,7 @@ function doPrint(carId){const c=car(carId),cost=$('#pbCost').checked,parts=$('#p
  const kv=[['Fahrzeug',[c.make,c.model].filter(Boolean).join(' ')],['Baujahr',c.year],['Kennzeichen',c.plate],['FIN',c.vin],['Motorcode',c.engine],['Leistung',c.power],['Erstzulassung',c.firstReg&&fmtD(c.firstReg)],['km-Stand',kmT(carOdo(carId))+' (Stand '+fmtD(today())+')']].filter(x=>x[1]);
  $('#print').innerHTML=`<h1>Wartungsnachweis – ${esc(dispName(c))}</h1><table>${kv.map(([k,v])=>`<tr><th style="width:30%">${k}</th><td>${esc(v)}</td></tr>`).join('')}</table>
  <h2>Durchgeführte Arbeiten (${ents.length})</h2><table><tr><th>Datum</th><th>km</th><th>Arbeit</th>${parts?'<th>Teile / Betriebsstoffe</th>':''}<th>Ausgeführt</th>${cost?'<th>Kosten</th>':''}</tr>
- ${ents.map(e=>`<tr><td>${fmtD(e.date)}</td><td>${e.odo!=null?fmtN(e.odo):''}</td><td><b>${esc(e.title)}</b><br>${esc(e.category)}${e.desc?'<br>'+esc(e.desc):''}</td>${parts?`<td>${(e.parts||[]).map(p=>esc(`${p.qty!=null?fmtQ(p.qty)+' '+(p.unit||'')+' ':''}${p.name}${p.maker?' – '+p.maker:''}${p.partNo?' ('+p.partNo+')':''}${p.spec?', '+p.spec:''}`)).join('<br>')}</td>`:''}<td>${e.diy?'selbst':'Werkstatt'+(e.workshop?'<br>'+esc(e.workshop):'')}</td>${cost?`<td>${eur(entryCost(e))}</td>`:''}</tr>`).join('')}</table>
+ ${ents.map(e=>`<tr><td>${fmtD(e.date)}</td><td>${e.odo!=null?fmtN(e.odo):''}</td><td><b>${esc(e.title)}</b><br>${esc(catLabel(e.category))}${e.desc?'<br>'+esc(e.desc):''}</td>${parts?`<td>${(e.parts||[]).map(p=>esc(`${p.qty!=null?fmtQ(p.qty)+' '+(p.unit||'')+' ':''}${p.name}${p.maker?' – '+p.maker:''}${p.partNo?' ('+p.partNo+')':''}${p.spec?', '+p.spec:''}`)).join('<br>')}</td>`:''}<td>${e.diy?'selbst':'Werkstatt'+(e.workshop?'<br>'+esc(e.workshop):'')}</td>${cost?`<td>${eur(entryCost(e))}</td>`:''}</tr>`).join('')}</table>
  ${cost?`<p><b>Summe: ${eur(ents.reduce((s,e)=>s+entryCost(e),0))}</b></p>`:''}<p style="color:#666;font-size:9pt">Erstellt am ${fmtD(today())} mit Garage & Wartungsmanager.</p>`;
  closeSheet();setTimeout(()=>window.print(),350)}
 async function exportJSON(){download(`garage-backup-${today()}.json`,await backupJSON(),'application/json');lsSet('garage.lastBackup',new Date().toISOString());toast('Backup gespeichert (Downloads)');render()}
@@ -2307,7 +2314,7 @@ function receiptForm(data){const cid=draft?.carId||defaultCarId();draft={kind:'r
  <div class="grid2"><label class="f"><span>Datum</span><input type="date" name="date" value="${today()}"></label><label class="f"><span>km-Stand</span><input name="odo" inputmode="numeric" value="${valN(carOdo(cid))}"></label></div>
  <label class="f"><span>Was wurde gekauft / gemacht?</span><input name="title" required placeholder="z. B. Bremsbeläge, Pickerl, Ölwechsel"></label>
  <div class="grid2"><label class="f"><span>Betrag (€)</span><input name="amount" inputmode="decimal"></label><label class="f"><span>Händler / Werkstatt</span><input name="shop" list="dl-shops"></label></div>
- <label class="f"><span>Kategorie</span><select name="category">${CATS.map(k=>`<option ${k==='Reparatur'?'selected':''}>${k}</option>`).join('')}</select></label>
+ <label class="f"><span>Kategorie</span><select name="category">${catOptions('Wartung')}</select></label>
  <div class="seg"><label><input type="radio" name="diy" value="1" checked><span>🔧 Teile für mich</span></label><label><input type="radio" name="diy" value="0"><span>🏭 Werkstatt</span></label></div>${datalists()}</form>
  <p class="sub">Details wie Teilenummer oder Intervalle kannst du später im Eintrag ergänzen.</p>`,`<button class="btn primary grow" type="submit" form="fReceipt">Speichern</button>`)}
 async function saveReceipt(f){const fd=Object.fromEntries(new FormData(f));const amt=num(fd.amount),diy=fd.diy==='1';if(!fd.title.trim()){toast('Bitte kurz beschreiben, was es war');return}
@@ -2326,7 +2333,7 @@ async function shareBackup(){const json=await backupJSON(),base=`garage-backup-$
 
 /* ================= Verkaufs-Exposé ================= */
 function exposeForm(id){const c=car(id),x=c.expose||{};const pk=pickerlStatus(c);
- const auto=carEntries(id).filter(e=>['Reparatur','Inspektion','Bremsen','Ölwechsel'].includes(e.category)&&daysUntil(e.date)>-1100).slice(0,5).map(e=>`${e.title} (${fmtM(e.date)}${e.odo!=null?', '+fmtN(e.odo)+' km':''})`);
+ const auto=carEntries(id).filter(e=>['Reparatur','Wartung'].includes(mainCat(e.category))&&daysUntil(e.date)>-1100).slice(0,5).map(e=>`${e.title} (${fmtM(e.date)}${e.odo!=null?', '+fmtN(e.odo)+' km':''})`);
  const hl=x.highlights??[pk?`Pickerl: nächste Begutachtung ${fmtM(pk.due)}`:'',...auto].filter(Boolean).join('\n');
  openSheet('Verkaufs-Exposé',`<form id="fExpose" data-form="expose"><label class="f"><span>Überschrift</span><input name="headline" value="${esc(x.headline||[c.make,c.model].filter(Boolean).join(' ')+' zu verkaufen')}"></label>
  <div class="grid2"><label class="f"><span>Preis (€)</span><input name="price" inputmode="decimal" value="${valN(x.price)}"></label><label class="checkline" style="margin-top:18px"><input type="checkbox" name="vb" ${x.vb!==false?'checked':''}> VB</label></div>
