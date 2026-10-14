@@ -121,6 +121,24 @@ input[type=checkbox],input[type=radio]{width:auto;min-height:0}
 #toast.show{transform:none;opacity:1;pointer-events:auto}
 #toast .tbtn{background:none;border:0;color:var(--accent);font-weight:800;font-size:15px;min-height:40px;font-family:inherit}
 #print{display:none}
+.big-seg button{flex:1;min-height:50px;border:0;border-radius:9px;background:none;color:var(--muted);font:inherit;font-size:16px;font-weight:700;cursor:pointer}
+.big-seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.log-month{display:flex;justify-content:space-between;align-items:baseline;margin:20px 2px 8px;font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700}
+.log-month b{color:var(--text);font-size:14px;letter-spacing:0}
+#undo{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:55;background:#2c313a;color:#fff;border-radius:16px;padding:12px 12px 12px 18px;display:flex;align-items:center;gap:12px;
+ box-shadow:0 8px 28px rgba(0,0,0,.5);transform:translateY(30px);opacity:0;pointer-events:none;transition:.2s;max-width:620px;margin:0 auto;overflow:hidden;font-size:16px;font-weight:600}
+#undo.show{transform:none;opacity:1;pointer-events:auto}
+#undo span{flex:1;min-width:0}
+#undo button{min-height:56px;padding:0 20px;border:0;border-radius:12px;background:var(--accent);color:var(--on-accent);font:inherit;font-size:18px;font-weight:800;white-space:nowrap;cursor:pointer}
+#undo i{position:absolute;left:0;bottom:0;height:4px;background:var(--accent);width:100%}
+#undo.show i{animation:undoBar 10s linear forwards}
+@keyframes undoBar{to{width:0}}
+#scanner{position:fixed;inset:0;z-index:65;background:#000;display:flex;flex-direction:column}
+#scanner.hidden{display:none}
+#scanner video{flex:1;width:100%;object-fit:cover;min-height:0}
+.scan-frame{position:absolute;left:10%;right:10%;top:30%;height:22%;border:3px solid var(--accent);border-radius:14px;box-shadow:0 0 0 9999px rgba(0,0,0,.45);pointer-events:none}
+.scan-bar{padding:14px 16px calc(16px + env(safe-area-inset-bottom));background:#000;color:#fff;text-align:center}.scan-bar p{margin:0 0 12px}
+.low{color:var(--yellow);font-weight:700}
 .tq-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 2px;border-bottom:1px solid var(--line);font-size:18px}
 .tq-row span{flex:1;min-width:0}.tq-row b{font-size:26px;color:var(--accent);text-align:right;max-width:60%;line-height:1.15}
 .steps{padding:0;margin:0 0 8px;list-style:none;counter-reset:s}
@@ -176,6 +194,8 @@ input[type=checkbox],input[type=radio]{width:auto;min-height:0}
 <div id="toast" role="status"></div>
 <div id="print"></div>
 <div id="cropper" class="hidden"></div>
+<div id="scanner" class="hidden"></div>
+<div id="undo" role="status"></div>
 <input type="file" id="importFile" accept="application/json,.json,text/plain,.txt" hidden data-file="importJSON">
 
 <script>
@@ -1519,6 +1539,7 @@ async function put(store,obj){
  else{const a=S[store];const i=a.findIndex(x=>x.id===obj.id);if(i>=0)a[i]=obj;else a.push(obj)}
  if(memOnly)return;const t=db.transaction(store,'readwrite');t.objectStore(store).put(obj);await txDone(t)}
 async function del(store,id){
+ if(store==='photos'&&undoActive){const d=memPhotos.get(id)??await getPhoto(id);if(d)undoPhotos.push({id,data:d})}
  if(store==='photos')memPhotos.delete(id);else S[store]=S[store].filter(x=>x.id!==id);
  if(memOnly)return;const t=db.transaction(store,'readwrite');t.objectStore(store).delete(id);await txDone(t)}
 async function getPhoto(id){if(memPhotos.has(id))return memPhotos.get(id);if(memOnly)return null;
@@ -1654,7 +1675,7 @@ function entryHTML(e,showCar=false){const parts=(e.parts||[]).map(p=>[p.name,p.m
  <div class="sub">${fmtD(e.date)} · ${kmT(e.odo)}${showCar?' · '+esc(carName(e.carId)):''} · ${isPk(e)?pkRes(e).i+' '+esc(e.workshop||'Prüfstelle'):e.diy?'selbst':'Werkstatt'}</div>
  ${isPk(e)&&e.pk?.defects?`<div class="sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Mängel: ${esc(e.pk.defects.split('\n')[0])}</div>`:''}${parts.length?`<div class="sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(parts.join(', '))}</div>`:''}</div><span class="amt">${entryCost(e)?eur(entryCost(e)):''}</span></div>`}
 
-function viewHome(){const cars=activeCars();let h='';
+function viewHome(){if(homeTab==='log')return{title:'Garage',html:viewLog(),tab:'home',after:renderLog};const cars=activeCars();let h=homeTabs();
  if(memOnly)h+=`<div class="note warn"><b>Vorschau-Modus:</b> Der Browser erlaubt hier keinen dauerhaften Speicher. Änderungen gehen beim Schließen verloren. Installiere die App wie unter „Mehr › Installation“ beschrieben.</div>`;
  if(hasDemo())h+=`<div class="note">Beispieldaten aktiv (Werte zum Ausprobieren). Entfernen unter <button class="linkbtn" data-a="go" data-h="#/settings">Mehr › Einstellungen</button>.</div>`;
  else if(backupDue())h+=`<div class="note warn">Letzte Sicherung: ${lsGet('garage.lastBackup')?fmtD(lsGet('garage.lastBackup').slice(0,10)):'noch nie'}. <button class="linkbtn" data-a="go" data-h="#/backup">Jetzt sichern</button></div>`;
@@ -1743,16 +1764,16 @@ function viewTodos(){let list=S.todos.filter(t=>todoFilter===''?true:todoFilter=
  h+=open.map(t=>todoHTML(t)).join('')||empty('Keine offenen Aufgaben. 👍','','');
  h+=`<button class="btn primary block" data-a="todoForm" data-car="${todoFilter.startsWith('_')?'':todoFilter}">+ Aufgabe</button>`;
  if(done.length)h+=`<h2><button class="linkbtn" data-a="todoShowDone">${todoShowDone?'▾':'▸'} Erledigt (${done.length})</button></h2>`+(todoShowDone?done.map(t=>todoHTML(t)).join(''):'');
- return{title:'To-dos',html:h,tab:'todos',actions:`<button class="iconbtn" data-a="shopList" aria-label="Einkaufsliste">🛒</button>`}}
+ return{title:'To-dos',html:h,tab:'todos',actions:`<button class="iconbtn" data-a="shopList" aria-label="Einkaufsliste">🛒${lowStock().length+openTodos().reduce((n,t)=>n+(t.parts||[]).length,0)||''}</button>`}}
 
 let invQ='';
-function viewInv(){let h=workshopChips('inv')+`<label class="f"><input id="invQ" type="search" placeholder="Lager durchsuchen …" value="${esc(invQ)}"></label><div id="invList"></div><button class="btn primary block" data-a="invForm">+ Teil / Betriebsstoff</button>`;
+function viewInv(){const low=lowStock();let h=workshopChips('inv')+(low.length?`<div class="note warn">⚠ ${low.length} Artikel unter Mindestbestand – <button class="linkbtn" data-a="shopList">Einkaufsliste</button></div>`:'')+`<div class="row" style="gap:8px;margin-bottom:10px;flex-wrap:nowrap"><input id="invQ" type="search" placeholder="Lager durchsuchen …" value="${esc(invQ)}" style="flex:1"><button class="btn" data-a="scanInv" style="flex:none">📷 Scan</button></div><div id="invList"></div><button class="btn primary block" data-a="invForm">+ Teil / Betriebsstoff</button>`;
  return{title:'Werkstatt',html:h,tab:'inv',after:renderInvList}}
 function renderInvList(){const box=$('#invList');if(!box)return;const w=invQ.toLowerCase().split(/\s+/).filter(Boolean);
  const list=S.inventory.filter(i=>{const hay=[i.name,i.maker,i.partNo,i.location,i.spec,...(i.fits||[]).map(carName)].join(' ').toLowerCase();return w.every(x=>hay.includes(x))}).sort(byName);
  box.innerHTML=list.map(i=>`<div class="item ${(i.qty||0)<=0?'empty-stock':''}"><div class="grow" data-a="invForm" data-id="${i.id}"><b>${esc(i.name)}</b>
- <div class="sub">${esc([i.maker,i.partNo,i.spec].filter(Boolean).join(' · '))}</div><div class="sub">${i.location?'📍 '+esc(i.location):''}${(i.fits||[]).length?' · für '+esc(i.fits.map(carName).join(', ')):''}</div></div>
- <div class="qty"><button class="iconbtn sm" data-a="invQty" data-id="${i.id}" data-d="-1" aria-label="weniger">−</button><span>${fmtQ(i.qty||0)} ${esc(i.unit||'')}</span><button class="iconbtn sm" data-a="invQty" data-id="${i.id}" data-d="1" aria-label="mehr">+</button></div></div>`).join('')||`<p class="muted">${w.length?'Keine Treffer.':'Das Lager ist leer.'}</p>`}
+ <div class="sub">${esc([i.maker,i.partNo,i.spec].filter(Boolean).join(' · '))}</div><div class="sub">${[i.price!=null?esc(upLabel(i.price,i.unit)):'',i.location?'📍 '+esc(i.location):'',(i.fits||[]).length?'für '+esc(i.fits.map(carName).join(', ')):''].filter(Boolean).join(' · ')}</div>${i.minQty!=null&&(i.qty||0)<i.minQty?`<div class="sub low">⚠ unter Mindestbestand (${fmtQ(i.minQty)} ${esc(i.unit)}) – nachkaufen</div>`:''}</div>
+ <div class="qty"><button class="iconbtn sm" data-a="invQty" data-id="${i.id}" data-d="-1" aria-label="weniger">−</button><span data-a="invSet" data-id="${i.id}" style="cursor:pointer">${fmtQ(i.qty||0)} ${esc(i.unit||'')}</span><button class="iconbtn sm" data-a="invQty" data-id="${i.id}" data-d="1" aria-label="mehr">+</button></div></div>`).join('')||`<p class="muted">${w.length?'Keine Treffer.':'Das Lager ist leer.'}</p>`}
 
 function viewArchive(){const arch=S.cars.filter(c=>c.archived).sort((a,b)=>(b.sold?.date||'').localeCompare(a.sold?.date||''));
  const h=arch.map(c=>{const o=ownCost(c);return`<div class="item" data-a="go" data-h="#/car/${c.id}"><div class="cat" style="--c:var(--muted)">${c.photoId?`<img data-photo="${c.photoId}" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:12px">`:'🚗'}</div>
@@ -1810,7 +1831,9 @@ function viewHelp(){return{title:'Installation & Hilfe',tab:'more',back:'#/more'
 <li>Ein erledigtes To-do lässt sich mit „→ Eintrag“ direkt in die Historie übernehmen, inklusive Teile.</li>
 <li>„Kopieren“ in einem Eintrag spart Tipparbeit beim nächsten Ölwechsel.</li>
 <li>In der Historie nach „Bremsflüssigkeit“ suchen zeigt sofort, wann es zuletzt war.</li>
-<li>Teile, die du aus dem Lager nimmst, werden automatisch abgebucht.</li>
+<li>Teile, die du aus dem Lager nimmst, werden automatisch abgebucht – auch in anderen Einheiten (z. B. 500 ml aus einem Lager in Litern).</li>
+<li>Lager: Preis so eintragen wie bezahlt (z. B. 12 € für 250 g). Barcode scannen mit 📷 – der Code wird dem Artikel zugeordnet.</li>
+<li>Versehentlich gelöscht? Unten erscheint 10 Sekunden lang „Rückgängig“.</li>
 <li>Beim Tippen eines Teilenamens erscheinen alle bereits verwendeten Artikel mit Hersteller, Nummer, Spezifikation und letztem Preis – antippen füllt alles aus.</li>
 <li>Eigene Wartungsintervalle für jedes Bauteil oder jede Flüssigkeit: Auto › Intervalle › „+ Eigenes Bauteil“.</li>
 <li>Das Pickerl wird aus der Erstzulassung berechnet. Nach der Begutachtung einen Eintrag mit Kategorie „Pickerl“ anlegen – dann springt es aufs nächste Jahr.</li>
@@ -1969,7 +1992,7 @@ function entryForm(o={}){const old=o.id?S.entries.find(e=>e.id===o.id):null;let 
  renderParts();renderIvChecks();renderPhotos();updateTotal();if(!old)ivAutoMatch(true)}
 function partRow(p,i){const mode=draft.kind;
  const inv=mode==='entry'&&S.inventory.length?`<label class="f"><span>Aus dem Lager nehmen</span><select data-k="invId" data-change="partInv" data-i="${i}"><option value="">— nicht aus dem Lager —</option>${S.inventory.slice().sort(byName).map(it=>`<option value="${it.id}" ${p.invId===it.id?'selected':''}>${esc(it.name)}${it.maker?' · '+esc(it.maker):''} (${fmtQ(it.qty||0)} ${esc(it.unit||'')})</option>`).join('')}</select></label>`:'';
- return`<div class="prow"><div class="prow-head"><b>Position ${i+1}</b><button type="button" class="iconbtn sm" data-a="partDel" data-i="${i}" aria-label="Entfernen">✕</button></div>${inv}
+ return`<div class="prow"><div class="prow-head"><b>Position ${i+1}</b><span>${mode==='entry'&&S.inventory.some(x=>x.ean)?`<button type="button" class="iconbtn sm" data-a="scanPart" aria-label="Barcode scannen">📷</button> `:''}<button type="button" class="iconbtn sm" data-a="partDel" data-i="${i}" aria-label="Entfernen">✕</button></span></div>${inv}
  <label class="f"><span>Bezeichnung</span><input data-k="name" data-ac="part" autocomplete="off" value="${esc(p.name)}" placeholder="Tippen – bereits verwendete Artikel erscheinen"></label>
  <div class="grid2"><label class="f"><span>Hersteller</span><input data-k="maker" list="dl-makers" value="${esc(p.maker)}"></label><label class="f"><span>Teilenummer</span><input data-k="partNo" value="${esc(p.partNo)}"></label></div>
  <div class="grid3"><label class="f"><span>Menge</span><input data-k="qty" inputmode="decimal" value="${valN(p.qty)}"></label><label class="f"><span>Einheit</span><select data-k="unit">${UNITS.map(u=>`<option ${(p.unit||'Stk')===u?'selected':''}>${u}</option>`).join('')}</select></label><label class="f"><span>Preis ges. €</span><input data-k="price" inputmode="decimal" value="${valN(p.price)}"></label></div>
@@ -1987,14 +2010,16 @@ function ivAutoMatch(silent){if(!$('#ivChecks')||draft?.kind!=='entry')return;co
 const checkedIv=()=>$$('#ivChecks input:checked').map(i=>i.value);
 function renderPhotos(){const box=$('#photos');if(!box)return;box.innerHTML=draft.photos.map((p,i)=>`<div class="thumb"><img ${p.data?`src="${p.data}"`:`data-photo="${p.id}"`} alt="" data-a="photoView"><button type="button" class="tag" data-a="photoTag" data-i="${i}">${esc(p.tag||'Foto')}</button><button type="button" class="x" data-a="photoDel" data-i="${i}" aria-label="Entfernen">✕</button></div>`).join('');hydratePhotos(box)}
 async function saveEntry(f){const fd=Object.fromEntries(new FormData(f));const old=draft.id?S.entries.find(e=>e.id===draft.id):null;
+ {const bad=readParts().find(p=>{const it=p.invId&&S.inventory.find(i=>i.id===p.invId);return it&&!sameDim(p.unit,it.unit)});if(bad){toast(`„${bad.name}“: Einheit ${bad.unit} passt nicht zum Lager (${S.inventory.find(i=>i.id===bad.invId).unit})`);return}}
  if(!fd.carId){toast('Bitte ein Auto wählen');return}if(!fd.date){toast('Bitte ein Datum angeben');return}
  const ivIds=checkedIv().filter(id=>S.intervals.some(i=>i.id===id&&i.carId===fd.carId));
  const e={id:draft.id||uid(),carId:fd.carId,date:fd.date,odo:num(fd.odo),category:fd.category,title:fd.title.trim()||fd.category,desc:fd.desc.trim(),diy:fd.diy==='1',workshop:fd.workshop.trim(),hours:num(fd.hours),labor:num(fd.labor),notes:fd.notes.trim(),
   parts:readParts().filter(p=>p.name||p.partNo||p.price),photos:draft.photos.map(({id,tag})=>({id,tag})),intervalIds:ivIds,toolIds:(draft.toolIds||[]).filter(id=>S.tools.some(t=>t.id===id)),created:old?.created||new Date().toISOString()};
  if(old?.demo)e.demo=true;
  const cur=carOdo(e.carId);if(!old&&e.odo!=null&&cur!=null&&e.odo<cur-50000&&!confirm(`km-Stand ${fmtN(e.odo)} liegt weit unter dem aktuellen Stand (${fmtN(cur)}). Trotzdem speichern?`))return;
- if(old)for(const p of old.parts||[])if(p.invId){const it=S.inventory.find(i=>i.id===p.invId);if(it){it.qty=r3((it.qty||0)+(p.qty||0));await put('inventory',it)}}
- for(const p of e.parts)if(p.invId){const it=S.inventory.find(i=>i.id===p.invId);if(it){it.qty=Math.max(0,r3((it.qty||0)-(p.qty||0)));await put('inventory',it)}}
+ if(old)for(const p of old.parts||[])if(p.invId){const it=S.inventory.find(i=>i.id===p.invId);if(it){it.qty=r3((it.qty||0)+conv(p.qty||0,p.unit,it.unit));await put('inventory',it)}}
+ for(const p of e.parts)if(p.invId){const it=S.inventory.find(i=>i.id===p.invId);if(it){it.qty=Math.max(0,r3((it.qty||0)-conv(p.qty||0,p.unit,it.unit)));await put('inventory',it)}}
+ const lowNow=e.parts.map(p=>p.invId&&S.inventory.find(i=>i.id===p.invId)).filter(i=>i&&i.minQty!=null&&i.qty<i.minQty);if(lowNow.length)setTimeout(()=>toast(`⚠ ${lowNow.map(i=>i.name).join(', ')} unter Mindestbestand – steht auf der Einkaufsliste`),2600);
  for(const p of draft.photos)if(p.data)await put('photos',{id:p.id,data:p.data});
  for(const p of old?.photos||[])if(!e.photos.some(x=>x.id===p.id))await del('photos',p.id);
  await put('entries',e);
@@ -2017,7 +2042,7 @@ function entryView(id){const e=S.entries.find(x=>x.id===id);if(!e)return;if(isPk
  ${e.notes?`<h4>Notizen</h4><p class="pre">${esc(e.notes)}</p>`:''}`;
  openSheet(e.title||e.category,body,`<button class="btn" data-a="entryCopy" data-id="${id}">Kopieren</button><button class="btn primary grow" data-a="entryForm" data-id="${id}">Bearbeiten</button>`)}
 async function entryDelete(id){const e=S.entries.find(x=>x.id===id);if(!e||!confirm('Diesen Eintrag löschen? Lagerteile werden zurückgebucht.'))return;
- for(const p of e.parts||[])if(p.invId){const it=S.inventory.find(i=>i.id===p.invId);if(it){it.qty=r3((it.qty||0)+(p.qty||0));await put('inventory',it)}}
+ for(const p of e.parts||[])if(p.invId){const it=S.inventory.find(i=>i.id===p.invId);if(it){it.qty=r3((it.qty||0)+conv(p.qty||0,p.unit,it.unit));await put('inventory',it)}}
  for(const p of e.photos||[])await del('photos',p.id);await del('entries',id);
  for(const t of S.todos.filter(t=>t.entryId===id)){delete t.entryId;await put('todos',t)}closeSheet();toast('Gelöscht')}
 
@@ -2077,25 +2102,49 @@ async function todoToggle(id){const t=S.todos.find(x=>x.id===id);t.done=!t.done;
 function todoToEntry(id){const t=S.todos.find(x=>x.id===id);
  entryForm({carId:t.carId||defaultCarId(),title:t.title,category:/brems/i.test(t.title)?'Bremsen':/reifen/i.test(t.title)?'Reifen':/öl/i.test(t.title)?'Ölwechsel':'Reparatur',notes:[t.note,t.tools&&'Werkzeug: '+t.tools].filter(Boolean).join('\n'),parts:(t.parts||[]).map(p=>({...p,invId:''})),toolIds:t.toolIds||[],todoId:t.id,issueId:t.issueId||null})}
 function shopText(){const groups={};openTodos().forEach(t=>(t.parts||[]).forEach(p=>{const k=t.carId?carName(t.carId):'Allgemein';(groups[k]=groups[k]||[]).push({p,t})}));return groups}
-function shopList(){const g=shopText();const keys=Object.keys(g);
+function shopList(){const g=shopText();const keys=Object.keys(g);const low=lowStock();
  const inStock=p=>S.inventory.find(i=>(p.partNo&&i.partNo&&i.partNo.replace(/\s/g,'').toLowerCase()===p.partNo.replace(/\s/g,'').toLowerCase())||(p.name&&i.name.toLowerCase()===p.name.toLowerCase()));
- const body=keys.length?keys.map(k=>`<h4>${esc(k)}</h4>${g[k].map(({p,t})=>{const s=inStock(p);return`<div class="item" data-a="todoForm" data-id="${t.id}"><div class="grow"><b>${p.qty!=null?fmtQ(p.qty)+' '+esc(p.unit||'')+' ':''}${esc(p.name)}</b><div class="sub">${esc([p.maker,p.partNo&&'Nr. '+p.partNo,p.spec].filter(Boolean).join(' · '))}</div><div class="sub">für: ${esc(t.title)}</div></div>${s&&(s.qty||0)>0?`<span class="badge st-ok st">im Lager: ${fmtQ(s.qty)}</span>`:''}</div>`}).join('')}`).join(''):'<p class="muted">Keine Teile in offenen To-dos.</p>';
- openSheet('Einkaufsliste',`<p class="sub">Alle Teile aus offenen To-dos.</p>${body}`,keys.length?`<button class="btn primary grow" data-a="shopShare">Teilen / Kopieren</button>`:'')}
-async function shopShare(){const g=shopText();const txt='Einkaufsliste Garage\n'+Object.entries(g).map(([k,a])=>`\n${k}:\n`+a.map(({p})=>`- ${p.qty!=null?fmtQ(p.qty)+' '+(p.unit||'')+' ':''}${p.name}${p.maker?' ('+p.maker+')':''}${p.partNo?' Nr. '+p.partNo:''}`).join('\n')).join('\n');
+ const lowH=low.length?`<h4>📦 Lager auffüllen</h4>${low.map(i=>`<div class="item"><div class="grow" data-a="invForm" data-id="${i.id}"><b>${esc(i.name)}</b><div class="sub">${esc([i.maker,i.spec].filter(Boolean).join(' · '))}</div><div class="sub low">Bestand ${fmtQ(i.qty||0)} / Minimum ${fmtQ(i.minQty)} ${esc(i.unit)}</div></div><button class="btn" style="min-height:40px;padding:0 10px" data-a="restockForm" data-id="${i.id}">+ gekauft</button></div>`).join('')}`:'';
+ const body=lowH+(keys.length?keys.map(k=>`<h4>${esc(k)}</h4>${g[k].map(({p,t})=>{const s=inStock(p);return`<div class="item" data-a="todoForm" data-id="${t.id}"><div class="grow"><b>${p.qty!=null?fmtQ(p.qty)+' '+esc(p.unit||'')+' ':''}${esc(p.name)}</b><div class="sub">${esc([p.maker,p.partNo&&'Nr. '+p.partNo,p.spec].filter(Boolean).join(' · '))}</div><div class="sub">für: ${esc(t.title)}</div></div>${s&&(s.qty||0)>0?`<span class="badge st-ok st">im Lager: ${fmtQ(s.qty)}</span>`:''}</div>`}).join('')}`).join(''):low.length?'':'<p class="muted">Keine Teile in offenen To-dos und nichts unter Mindestbestand.</p>');
+ openSheet('Einkaufsliste',`<p class="sub">Teile aus offenen To-dos und Lagerartikel unter Mindestbestand.</p>${body}`,keys.length||low.length?`<button class="btn primary grow" data-a="shopShare">Teilen / Kopieren</button>`:'')}
+async function shopShare(){const g=shopText();const low=lowStock();const txt='Einkaufsliste Garage\n'+(low.length?'\nLager auffüllen:\n'+low.map(i=>`- ${i.name}${i.maker?' ('+i.maker+')':''} – Bestand ${fmtQ(i.qty||0)}/${fmtQ(i.minQty)} ${i.unit}`).join('\n')+'\n':'')+Object.entries(g).map(([k,a])=>`\n${k}:\n`+a.map(({p})=>`- ${p.qty!=null?fmtQ(p.qty)+' '+(p.unit||'')+' ':''}${p.name}${p.maker?' ('+p.maker+')':''}${p.partNo?' Nr. '+p.partNo:''}`).join('\n')).join('\n');
  try{if(navigator.share){await navigator.share({title:'Einkaufsliste',text:txt});return}await navigator.clipboard.writeText(txt);toast('In Zwischenablage kopiert')}catch(e){if(e.name!=='AbortError')toast('Teilen nicht möglich')}}
 
 /* ================= Lager, Tanken, km ================= */
-function invForm(id){const it=id?S.inventory.find(i=>i.id===id):{qty:1,unit:'Stk',fits:[]};draft={kind:'inv',id:id||null};
+function invForm(id,ean){const it=id?S.inventory.find(i=>i.id===id):{qty:1,unit:'Stk',fits:[],ean:ean||''};draft={kind:'inv',id:id||null};invPqTouched=false;
+ const has=it.packPrice!=null;const pq=has?(it.packUnitQty??it.packQty):it.price!=null?it.qty:null,pp=has?it.packPrice:it.price!=null&&it.qty?Math.round(it.price*it.qty*100)/100:null,pu=has&&it.packUnit?it.packUnit:it.unit;
  const body=`<form id="fInv" data-form="inv"><label class="f"><span>Bezeichnung</span><input name="name" required data-ac="inv" autocomplete="off" value="${esc(it.name)}" placeholder="Tippen – bereits verwendete Artikel erscheinen"></label>
  <div class="grid2"><label class="f"><span>Hersteller</span><input name="maker" list="dl-makers" value="${esc(it.maker)}"></label><label class="f"><span>Teilenummer</span><input name="partNo" value="${esc(it.partNo)}"></label></div>
- <div class="grid3"><label class="f"><span>Bestand</span><input name="qty" inputmode="decimal" value="${valN(it.qty)}"></label><label class="f"><span>Einheit</span><select name="unit">${UNITS.map(u=>`<option ${(it.unit||'Stk')===u?'selected':''}>${u}</option>`).join('')}</select></label><label class="f"><span>€ je Einheit</span><input name="price" inputmode="decimal" value="${valN(it.price)}"></label></div>
+ <div class="grid2"><label class="f"><span>Bestand</span><input name="qty" inputmode="decimal" value="${valN(it.qty)}" data-inv="qty"></label><label class="f"><span>Einheit</span><select name="unit" data-inv="unit">${UNITS.map(u=>`<option ${(it.unit||'Stk')===u?'selected':''}>${u}</option>`).join('')}</select></label></div>
+ <h4 style="margin-top:4px">Preis – so wie bezahlt</h4><div class="grid3"><label class="f"><span>Bezahlt (€)</span><input name="packPrice" inputmode="decimal" value="${valN(pp)}" data-inv="pp" placeholder="z. B. 12"></label>
+ <label class="f"><span>für Menge</span><input name="packQty" inputmode="decimal" value="${valN(pq)}" data-inv="pq" placeholder="z. B. 250"></label><label class="f"><span>Einheit</span><select name="packUnit" data-inv="pu">${UNITS.map(u=>`<option ${pu===u?'selected':''}>${u}</option>`).join('')}</select></label></div>
+ <p class="sub" id="invUP" style="margin-top:-4px"></p>
+ <div class="grid2"><label class="f"><span>Mindestbestand</span><input name="minQty" inputmode="decimal" value="${valN(it.minQty)}" placeholder="optional"></label><label class="f"><span>Barcode (EAN)</span><span class="row" style="flex-wrap:nowrap;gap:6px;display:flex;margin:0"><input name="ean" inputmode="numeric" value="${esc(it.ean)}" style="flex:1;min-width:0"><button type="button" class="iconbtn" data-a="scanEan" aria-label="Scannen">📷</button></span></label></div>
+ <p class="sub" style="margin-top:-4px">Fällt der Bestand unter den Mindestbestand, kommt der Artikel automatisch auf die Einkaufsliste.</p>
  <label class="f"><span>Spezifikation</span><input name="spec" value="${esc(it.spec)}"></label><label class="f"><span>Lagerort</span><input name="location" value="${esc(it.location)}" placeholder="z. B. Regal 2, Kiste Bremse"></label>
  <span class="sub">Passt für</span>${S.cars.sort(byName).map(c=>`<label class="checkline"><input type="checkbox" name="fits" value="${c.id}" ${(it.fits||[]).includes(c.id)?'checked':''}> ${esc(dispName(c))}</label>`).join('')}
- <label class="f" style="margin-top:8px"><span>Notiz</span><textarea name="note">${esc(it.note)}</textarea></label>${datalists()}</form>`;
- openSheet(id?'Lagerteil bearbeiten':'Neues Lagerteil',body,`${id?`<button class="btn danger" data-a="invDelete" data-id="${id}">Löschen</button>`:''}<button class="btn primary grow" type="submit" form="fInv">Speichern</button>`)}
+ <label class="f" style="margin-top:8px"><span>Notiz</span><textarea name="note">${esc(it.note)}</textarea></label>${datalists()}</form>
+ ${id&&(it.buys||[]).length?`<h4>Käufe</h4>${it.buys.slice().reverse().slice(0,8).map(b=>`<div class="row between sub" style="padding:4px 0"><span>${fmtD(b.date)} · +${fmtQ(b.qty)} ${esc(b.unit)}${b.shop?' · '+esc(b.shop):''}</span><span>${b.price!=null?eur(b.price):''}</span></div>`).join('')}`:''}`;
+ openSheet(id?'Lagerteil bearbeiten':'Neues Lagerteil',body,`${id?`<button class="btn danger" data-a="invDelete" data-id="${id}">Löschen</button><button class="btn" data-a="restockForm" data-id="${id}">📦 + Packung</button>`:''}<button class="btn primary grow" type="submit" form="fInv">Speichern</button>`);invPreview()}
+let invPqTouched=false;
+function invPreview(){const f=$('#fInv');if(!f)return;const F=n=>f.elements.namedItem(n);const u=F('unit').value;
+ if(!draft.id&&!invPqTouched){F('packQty').value=F('qty').value;F('packUnit').value=u}
+ const pp=num(F('packPrice').value),pq=num(F('packQty').value),pu=F('packUnit').value;const el=$('#invUP');
+ if(pp!=null&&pq){if(!sameDim(pu,u)){el.innerHTML=`<span class="low">Einheit „${esc(pu)}“ passt nicht zum Bestand in „${esc(u)}“.</span>`;return}
+  const up=pp/conv(pq,pu,u);el.innerHTML=`= <b style="color:var(--text)">${esc(upLabel(up,u))}</b>${u==='g'?' · '+eur(up*1000)+' / kg':''}`}
+ else el.textContent='Trag ein, was du bezahlt hast – die App rechnet den Preis pro Einheit selbst aus.'}
 async function saveInv(f){const fdo=new FormData(f);const fd=Object.fromEntries(fdo);const old=draft.id?S.inventory.find(i=>i.id===draft.id):null;
- const it={...(old||{}),id:draft.id||uid(),name:fd.name.trim(),maker:fd.maker.trim(),partNo:fd.partNo.trim(),qty:num(fd.qty)??0,unit:fd.unit,price:num(fd.price),spec:fd.spec.trim(),location:fd.location.trim(),fits:fdo.getAll('fits'),note:fd.note.trim()};
- if(!it.name){toast('Bitte Bezeichnung angeben');return}await put('inventory',it);closeSheet();toast('Gespeichert')}
+ const unit=fd.unit,pp=num(fd.packPrice),pq=num(fd.packQty)||num(fd.qty),pu=fd.packUnit||unit;
+ if(pp!=null&&pq&&!sameDim(pu,unit)){toast(`Einheit „${pu}“ passt nicht zu „${unit}“`);return}
+ let price=old?.price??null;
+ if(pp!=null&&pq)price=pp/conv(pq,pu,unit);
+ else if(pp==null&&old&&old.unit!==unit&&price!=null&&sameDim(old.unit,unit))price=price/conv(1,old.unit,unit);
+ else if(pp==null)price=null;
+ const ean=fd.ean.trim();const dup=ean&&S.inventory.find(i=>i.ean===ean&&i.id!==draft.id);if(dup){toast(`Barcode gehört schon zu „${dup.name}“`);return}
+ const it={...(old||{}),id:draft.id||uid(),name:fd.name.trim(),maker:fd.maker.trim(),partNo:fd.partNo.trim(),qty:num(fd.qty)??0,unit,price,packPrice:pp,packQty:pq!=null&&sameDim(pu,unit)?r3(conv(pq,pu,unit)):null,packUnitQty:pq,packUnit:pu,minQty:num(fd.minQty),ean,spec:fd.spec.trim(),location:fd.location.trim(),fits:fdo.getAll('fits'),note:fd.note.trim()};
+ if(!it.name){toast('Bitte Bezeichnung angeben');return}
+ if(!old&&pp!=null)it.buys=[{id:uid(),date:today(),qty:pq,unit:pu,price:pp,shop:''}];
+ await put('inventory',it);invPqTouched=false;closeSheet();toast('Gespeichert');render()}
 function fuelForm(id,carId){const f=id?S.fuel.find(x=>x.id===id):{carId:carId||defaultCarId(),date:today(),full:true};if(!S.cars.length){toast('Lege zuerst ein Auto an');return carForm()}draft={kind:'fuel',id:id||null};
  openSheet(id?'Tankung bearbeiten':'Tankung',`<form id="fFuel" data-form="fuel"><label class="f"><span>Auto</span><select name="carId">${carOptions(f.carId)}</select></label>
  <div class="grid2"><label class="f"><span>Datum</span><input type="date" name="date" value="${esc(f.date)}"></label><label class="f"><span>km-Stand</span><input name="odo" inputmode="numeric" value="${valN(f.odo)}" placeholder="${esc(fmtN(carOdo(f.carId)))}"></label></div>
@@ -2398,6 +2447,97 @@ async function saveExpose(f){const fd=Object.fromEntries(new FormData(f));const 
  ${x.contact||x.phone?`<div class="ex-contact">Kontakt: <b>${esc(x.contact)}</b>${x.phone?' · '+esc(x.phone):''}</div>`:''}</div>`;
  closeSheet();setTimeout(()=>window.print(),450)}
 
+/* ================= Einheiten & Preise ================= */
+const UDIM={g:['m',1],kg:['m',1000],ml:['v',1],l:['v',1000]};
+const sameDim=(a,b)=>a===b||(UDIM[a]&&UDIM[b]&&UDIM[a][0]===UDIM[b][0]);
+const conv=(q,from,to)=>{if(q==null||from===to||!UDIM[from]||!UDIM[to]||UDIM[from][0]!==UDIM[to][0])return q;return q*UDIM[from][1]/UDIM[to][1]};
+const compatUnits=u=>UDIM[u]?Object.keys(UDIM).filter(x=>UDIM[x][0]===UDIM[u][0]):[u];
+function upLabel(p,u){if(p==null)return'';if(u==='g')return eur(p*100)+' / 100 g';if(u==='ml')return eur(p*1000)+' / l';return eur(p)+' / '+(u||'Stk')}
+const invStep=u=>({g:50,ml:100,l:.5,kg:.5})[u]||1;
+const lowStock=()=>S.inventory.filter(i=>i.minQty!=null&&(i.qty||0)<i.minQty);
+function invPriceFor(it,q,u){return it?.price!=null&&q!=null?Math.round(it.price*conv(q,u||it.unit,it.unit)*100)/100:null}
+
+function restockForm(id){const it=S.inventory.find(i=>i.id===id);if(!it)return;draft={kind:'restock',id};const u=it.packUnit&&sameDim(it.packUnit,it.unit)?it.packUnit:it.unit;
+ openSheet('📦 Packung gekauft',`<p class="sub" style="margin-top:0"><b>${esc(it.name)}</b>${it.maker?' · '+esc(it.maker):''}<br>Bestand jetzt: ${fmtQ(it.qty||0)} ${esc(it.unit)}${it.price!=null?' · Ø '+upLabel(it.price,it.unit):''}</p>
+ <form id="fRestock" data-form="restock"><div class="grid2"><label class="f"><span>Menge</span><input name="qty" inputmode="decimal" required value="${valN(it.packUnitQty??it.packQty??'')}" autofocus></label>
+ <label class="f"><span>Einheit</span><select name="unit">${compatUnits(it.unit).map(x=>`<option ${x===u?'selected':''}>${x}</option>`).join('')}</select></label></div>
+ <div class="grid2"><label class="f"><span>Bezahlt (€)</span><input name="price" inputmode="decimal" value="${valN(it.packPrice)}"></label><label class="f"><span>Datum</span><input type="date" name="date" value="${today()}"></label></div>
+ <label class="f"><span>Händler</span><input name="shop" list="dl-shops" value="${esc(it.lastShop)}"></label>${datalists()}</form>
+ <p class="sub">Der Bestand steigt, der Preis pro Einheit wird als Durchschnitt aus altem Bestand und neuer Packung berechnet.</p>`,`<button class="btn primary grow" type="submit" form="fRestock">Zum Bestand hinzufügen</button>`)}
+async function saveRestock(f){const fd=Object.fromEntries(new FormData(f));const it=S.inventory.find(i=>i.id===draft.id);const q=num(fd.qty);if(!q||q<=0){toast('Bitte Menge angeben');return}
+ const add=conv(q,fd.unit,it.unit),paid=num(fd.price),old=Math.max(0,it.qty||0);
+ if(paid!=null){const op=it.price??paid/add;it.price=(old*op+paid)/(old+add);it.packPrice=paid}
+ it.qty=r3(old+add);it.packQty=r3(add);it.packUnitQty=q;it.packUnit=fd.unit;it.lastShop=fd.shop.trim();
+ (it.buys=it.buys||[]).push({id:uid(),date:fd.date||today(),qty:q,unit:fd.unit,price:paid,shop:fd.shop.trim()});
+ await put('inventory',it);closeSheet();toast(`+${fmtQ(q)} ${fd.unit} · Bestand ${fmtQ(it.qty)} ${it.unit}`);render()}
+
+/* ================= Barcode-Scanner ================= */
+let scanStream=null,scanTimer=null;
+function stopScan(){clearInterval(scanTimer);scanTimer=null;scanStream?.getTracks().forEach(t=>t.stop());scanStream=null;const o=$('#scanner');o.classList.add('hidden');o.innerHTML=''}
+function manualCode(msg){const v=prompt(msg||'Barcode-Nummer eintippen:','');return v&&v.trim()?v.trim():null}
+async function openScanner(){
+ if(!('BarcodeDetector' in window)||!navigator.mediaDevices?.getUserMedia)return manualCode('Der Kamera-Scanner wird von diesem Browser nicht unterstützt (am Handy in Chrome geht es).\nBarcode-Nummer eintippen:');
+ let det;try{const want=['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code'];const sup=await BarcodeDetector.getSupportedFormats();det=new BarcodeDetector({formats:want.filter(x=>sup.includes(x))})}catch(e){return manualCode()}
+ try{scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false})}catch(e){return manualCode('Kein Zugriff auf die Kamera. Barcode-Nummer eintippen:')}
+ return new Promise(res=>{const o=$('#scanner');o.classList.remove('hidden');
+  o.innerHTML=`<video playsinline muted autoplay></video><div class="scan-frame"></div><div class="scan-bar"><p>Barcode in den Rahmen halten</p><div class="grid2"><button type="button" class="btn" data-x="type">⌨️ Eintippen</button><button type="button" class="btn primary" data-x="cancel">Abbrechen</button></div></div>`;
+  const v=$('video',o);v.srcObject=scanStream;let done=false;const fin=c=>{if(done)return;done=true;stopScan();res(c)};
+  o.onclick=e=>{const b=e.target.closest('[data-x]');if(!b)return;if(b.dataset.x==='cancel')fin(null);else{const c=manualCode();if(c)fin(c)}};
+  scanTimer=setInterval(async()=>{if(done||v.readyState<2)return;try{const r=await det.detect(v);if(r.length&&r[0].rawValue){navigator.vibrate?.(80);fin(r[0].rawValue)}}catch(e){}},250)})}
+const invByCode=c=>S.inventory.find(i=>i.ean&&i.ean===c);
+async function scanInv(){const c=await openScanner();if(!c)return;const it=invByCode(c);
+ if(it){openSheet('📷 Gefunden',`<div class="item" style="cursor:default"><span class="cat" style="--c:var(--green)">✓</span><div class="grow"><b>${esc(it.name)}</b><div class="sub">${esc([it.maker,it.spec].filter(Boolean).join(' · '))}</div><div class="sub">Bestand: <b style="color:var(--text)">${fmtQ(it.qty||0)} ${esc(it.unit)}</b>${it.location?' · 📍 '+esc(it.location):''}</div></div></div>
+  <div class="grid2"><button class="btn" data-a="invQty" data-id="${it.id}" data-d="-1" data-close="1">− ${fmtQ(invStep(it.unit))} ${esc(it.unit)} entnehmen</button><button class="btn primary" data-a="restockForm" data-id="${it.id}">📦 Packung gekauft</button></div>`,`<button class="btn grow" data-a="invForm" data-id="${it.id}">Bearbeiten</button>`);return}
+ const free=S.inventory.filter(i=>!i.ean).sort(byName);
+ openSheet('Unbekannter Barcode',`<p>Code <b>${esc(c)}</b> ist noch keinem Artikel zugeordnet.</p><button class="btn primary block" data-a="invForm" data-ean="${esc(c)}">+ Neuer Artikel mit diesem Code</button>
+ ${free.length?`<h4>Oder einem vorhandenen Artikel zuordnen</h4>${free.map(i=>`<div class="item" data-a="eanAssign" data-id="${i.id}" data-ean="${esc(c)}"><div class="grow"><b>${esc(i.name)}</b><div class="sub">${esc([i.maker,i.spec].filter(Boolean).join(' · '))}</div></div><span class="muted">›</span></div>`).join('')}`:''}`)}
+async function scanPart(row){const c=await openScanner();if(!c)return;const it=invByCode(c);if(!it){toast('Dieser Code ist keinem Lagerartikel zugeordnet');return}
+ const sel=$('[data-k=invId]',row);if(sel){sel.value=it.id;CHANGES.partInv(sel)}else{const g=k=>$(`[data-k="${k}"]`,row);g('name').value=it.name;g('maker').value=it.maker||'';g('spec').value=it.spec||''}toast(it.name+' übernommen')}
+
+/* ================= Rückgängig ================= */
+let undoActive=false,undoPhotos=[],undoT=null,undoData=null;
+const UNDO_LABEL={entryDelete:'Eintrag',carDelete:'Auto',ivDelete:'Intervall',todoDelete:'Aufgabe',invDelete:'Lagerteil',fuelDelete:'Tankung',odoDelete:'km-Stand',dlRemove:'Termin',tyreDelete:'Reifensatz',issueDelete:'Fehler',guideDelete:'Anleitung',toolDelete:'Werkzeug'};
+async function withUndo(name,fn){const snap=structuredClone(Object.fromEntries(STORES.filter(s=>s!=='photos').map(s=>[s,S[s]])));const before=JSON.stringify(snap);
+ undoPhotos=[];undoActive=true;try{await fn()}finally{undoActive=false}
+ const now=JSON.stringify(Object.fromEntries(STORES.filter(s=>s!=='photos').map(s=>[s,S[s]])));if(now===before&&!undoPhotos.length)return;
+ undoData={snap,photos:undoPhotos};undoPhotos=[];showUndo(`${UNDO_LABEL[name]||'Eintrag'} gelöscht`)}
+function showUndo(msg){const u=$('#undo');u.innerHTML=`<span>🗑️ ${esc(msg)}</span><button type="button" id="undoBtn">↶ Rückgängig</button><i></i>`;u.classList.remove('show');void u.offsetWidth;u.classList.add('show');
+ $('#undoBtn').onclick=doUndo;clearTimeout(undoT);undoT=setTimeout(()=>{u.classList.remove('show');undoData=null},10000)}
+async function doUndo(){const d=undoData;if(!d)return;undoData=null;clearTimeout(undoT);$('#undo').classList.remove('show');
+ for(const s of Object.keys(d.snap)){const old=new Map(d.snap[s].map(x=>[x.id,x]));
+  for(const x of[...S[s]])if(!old.has(x.id))await del(s,x.id);
+  for(const x of d.snap[s]){const cur=S[s].find(y=>y.id===x.id);if(!cur||JSON.stringify(cur)!==JSON.stringify(x))await put(s,x)}}
+ for(const p of d.photos)await put('photos',p);toast('Wiederhergestellt');render()}
+
+/* ================= Verlauf ================= */
+let homeTab=lsGet('garage.homeTab')||'ov',logCar='',logCat='',logQ='',logLimit=60;
+const LOG_CATS=[...MAIN_CATS,'Tanken','Lager','Fehler','To-do','km-Stand','Auto'];
+function activityItems(){const out=[];const add=o=>out.push(o);
+ for(const e of S.entries)add({date:e.date,cat:mainCat(e.category),carId:e.carId,icon:catBadge(e.category),title:e.title||e.category,
+  sub:[catLabel(e.category)!==(e.title||e.category)?catLabel(e.category):'',e.odo!=null?kmT(e.odo):'',isPk(e)?pkRes(e).i+' '+(e.workshop||'Prüfstelle'):e.diy?'selbst':'Werkstatt'].filter(Boolean).join(' · '),amount:entryCost(e)||null,act:`data-a="entryView" data-id="${e.id}"`});
+ const cons={};for(const c of S.cars)Object.assign(cons,fuelCalc(c.id).cons);
+ for(const f of S.fuel)add({date:f.date,cat:'Tanken',carId:f.carId,icon:'<span class="cat" style="--c:#5aa9e6">⛽</span>',title:`Getankt ${fmtN(f.liters,1)} l`,sub:[kmT(f.odo),cons[f.id]?fmtN(cons[f.id],1)+' l/100 km':''].filter(Boolean).join(' · '),amount:f.price,act:`data-a="fuelForm" data-id="${f.id}"`});
+ for(const o of S.odo)add({date:o.date,cat:'km-Stand',carId:o.carId,icon:'<span class="cat" style="--c:var(--muted)">📏</span>',title:`km-Stand ${kmT(o.odo)}`,sub:'manuell eingetragen',act:`data-a="go" data-h="#/car/${o.carId}/odo"`});
+ for(const x of S.issues)add({date:x.date,cat:'Fehler',carId:x.carId,icon:`<span class="cat" style="--c:${x.status==='solved'?'var(--green)':'var(--yellow)'}">${x.status==='solved'?'✓':'!'}</span>`,title:x.title,sub:['Fehler erfasst',x.codes,x.status==='solved'?'gelöst':'offen'].filter(Boolean).join(' · '),act:`data-a="issueForm" data-id="${x.id}" data-car="${x.carId}"`});
+ for(const t of S.todos)if(t.done&&t.doneAt&&!t.entryId)add({date:t.doneAt,cat:'To-do',carId:t.carId,icon:'<span class="cat" style="--c:var(--green)">✓</span>',title:t.title,sub:'Aufgabe erledigt',act:`data-a="todoForm" data-id="${t.id}"`});
+ for(const i of S.inventory)for(const b of i.buys||[])add({date:b.date,cat:'Lager',carId:null,icon:'<span class="cat" style="--c:#b07cf0">📦</span>',title:`${i.name} gekauft`,sub:[`+${fmtQ(b.qty)} ${b.unit}`,i.maker,b.shop].filter(Boolean).join(' · '),amount:b.price,act:`data-a="invForm" data-id="${i.id}"`});
+ for(const c of S.cars){if(c.purchase)add({date:c.purchase,cat:'Auto',carId:c.id,icon:'<span class="cat" style="--c:var(--accent)">🚗</span>',title:`${dispName(c)} gekauft`,sub:c.purchaseOdo!=null?kmT(c.purchaseOdo):'',amount:c.purchasePrice,noSum:true,act:`data-a="go" data-h="#/car/${c.id}"`});
+  if(c.sold)add({date:c.sold.date,cat:'Auto',carId:c.id,icon:'<span class="cat" style="--c:var(--green)">💶</span>',title:`${dispName(c)} verkauft`,sub:[c.sold.odo!=null?kmT(c.sold.odo):'',c.sold.buyer].filter(Boolean).join(' · '),amount:c.sold.price,plus:true,noSum:true,act:`data-a="go" data-h="#/car/${c.id}"`})}
+ return out.sort((a,b)=>b.date.localeCompare(a.date))}
+function homeTabs(){return`<div class="seg big-seg"><button type="button" class="${homeTab==='ov'?'on':''}" data-a="homeTab" data-t="ov">🏠 Übersicht</button><button type="button" class="${homeTab==='log'?'on':''}" data-a="homeTab" data-t="log">📜 Verlauf</button></div>`}
+function viewLog(){const cars=S.cars.slice().sort((a,b)=>(a.archived?1:0)-(b.archived?1:0)||byName(a,b));
+ return homeTabs()+`<label class="f"><input id="logQ" type="search" placeholder="Verlauf durchsuchen …" value="${esc(logQ)}"></label>
+ <div class="chips"><button class="chip ${!logCar?'on':''}" data-a="logCar" data-c="">Alle Autos</button>${cars.map(c=>`<button class="chip ${logCar===c.id?'on':''}" data-a="logCar" data-c="${c.id}">${esc(dispName(c))}${c.archived?' 🗄️':''}</button>`).join('')}<button class="chip ${logCar==='_none'?'on':''}" data-a="logCar" data-c="_none">Allgemein</button></div>
+ <div class="chips"><button class="chip ${!logCat?'on':''}" data-a="logCat" data-c="">Alle</button>${LOG_CATS.map(k=>`<button class="chip ${logCat===k?'on':''}" data-a="logCat" data-c="${k}">${k}</button>`).join('')}</div><div id="logList"></div>`}
+function renderLog(){const box=$('#logList');if(!box)return;const w=logQ.toLowerCase().split(/\s+/).filter(Boolean);
+ const all=activityItems().filter(i=>(!logCar||(logCar==='_none'?!i.carId:i.carId===logCar))&&(!logCat||i.cat===logCat)&&(!w.length||w.every(x=>[i.title,i.sub,i.cat,i.carId?carName(i.carId):''].join(' ').toLowerCase().includes(x))));
+ const list=all.slice(0,logLimit);let h='',m='';const sums={};all.forEach(i=>{if(!i.noSum&&i.amount)sums[i.date.slice(0,7)]=(sums[i.date.slice(0,7)]||0)+i.amount});
+ for(const i of list){const k=i.date.slice(0,7);if(k!==m){m=k;h+=`<div class="log-month"><span>${new Date(k+'-01T12:00:00').toLocaleDateString('de-AT',{month:'long',year:'numeric'})}</span>${sums[k]?`<b>${eur(sums[k])}</b>`:''}</div>`}
+  h+=`<div class="item" ${i.act}>${i.icon}<div class="grow"><b>${esc(i.title)}</b><div class="sub">${fmtD(i.date)}${!logCar&&i.carId?' · '+esc(carName(i.carId)):''}${i.sub?' · '+esc(i.sub):''}</div></div>${i.amount?`<span class="amt" style="${i.plus?'color:var(--green)':''}">${i.plus?'+':''}${eur(i.amount)}</span>`:''}</div>`}
+ if(all.length>logLimit)h+=`<button class="btn block" data-a="logMore">Weitere ${Math.min(60,all.length-logLimit)} anzeigen (${all.length-logLimit} übrig)</button>`;
+ box.innerHTML=h||`<p class="muted">${w.length||logCar||logCat?'Keine Treffer.':'Noch keine Aktivitäten.'}</p>`;
+ if(all.length&&(logCar||logCat||w.length)){const tot=all.filter(i=>!i.noSum).reduce((s,i)=>s+(i.amount||0),0);box.insertAdjacentHTML('afterbegin',`<p class="sub" style="text-align:right;margin:0 0 8px">${all.length} Treffer · ${eur(tot)}</p>`)}}
+
 /* ================= Artikel-Vorschläge (Autofill) ================= */
 function partCatalog(){const map=new Map();const key=p=>[p.name,p.maker,p.partNo,p.spec].map(x=>String(x||'').trim().toLowerCase()).join('|');
  const add=(p,date,carId)=>{if(!p?.name)return;const k=key(p);const o=map.get(k);
@@ -2426,7 +2566,7 @@ function acPick(input,it){const mode=input.dataset.ac;
   if(g('shop')&&it.shop)g('shop').value=it.shop;if(g('warranty')&&it.warranty)g('warranty').value=String(it.warranty);
   if(g('invId')&&it.invId&&it.stock>0){g('invId').value=it.invId;toast(`Wird aus dem Lager abgebucht (Bestand ${fmtQ(it.stock)} ${it.unit}) – oben in der Position änderbar`)}
   updateTotal();ivAutoMatch()}
- else if(mode==='inv'){const f=input.form,F=n=>f.elements.namedItem(n);F('name').value=it.name;F('maker').value=it.maker;F('partNo').value=it.partNo;F('spec').value=it.spec;F('unit').value=UNITS.includes(it.unit)?it.unit:'Stk';const up=unitPrice(it);if(up!=null)F('price').value=valN(Math.round(up*100)/100)}}
+ else if(mode==='inv'){const f=input.form,F=n=>f.elements.namedItem(n);F('name').value=it.name;F('maker').value=it.maker;F('partNo').value=it.partNo;F('spec').value=it.spec;F('unit').value=UNITS.includes(it.unit)?it.unit:'Stk';invPreview()}}
 document.addEventListener('focusin',e=>{if(e.target.matches?.('[data-ac]'))acRender(e.target)});
 document.addEventListener('focusout',e=>{if(!e.target.matches?.('[data-ac]'))return;if(acBox&&e.relatedTarget&&acBox.contains(e.relatedTarget))return;const t=e.target;setTimeout(()=>{if(acInput===t&&document.activeElement!==t)acClose()},250)});
 document.addEventListener('pointerdown',e=>{if(e.target.closest('.ac-item'))e.preventDefault()});
@@ -2459,7 +2599,7 @@ const A={
   else{if(!confirm('Auto ohne Verkauf ins Archiv verschieben?'))return;c.archived=true;await put('cars',c);toast('Ins Archiv verschoben');render()}},
  sellForm:d=>sellForm(d.car),pkOpen:d=>pkOpen(d.car),
  pkDone:d=>pkForm({carId:d.car}),
- quickWs:()=>openSheet('Werkzeug / Lager',`<div class="qgrid"><button class="qbtn" data-a="toolForm"><b>🔧</b>Neues Werkzeug</button><button class="qbtn" data-a="invForm"><b>📦</b>Teil ins Lager</button></div>`),pkView:d=>pkView(d.id),
+ quickWs:()=>openSheet('Werkzeug / Lager',`<div class="qgrid"><button class="qbtn" data-a="toolForm"><b>🔧</b>Neues Werkzeug</button><button class="qbtn" data-a="invForm"><b>📦</b>Teil ins Lager</button><button class="qbtn" data-a="scanInv"><b>📷</b>Barcode scannen</button><button class="qbtn" data-a="shopList"><b>🛒</b>Einkaufsliste</button></div>`),pkView:d=>pkView(d.id),
  carPhotoCrop:async()=>{let src=draft.photoSrc;
   if(!src&&!draft.photoChanged){if(draft.photoOrigId)src=await getPhoto(draft.photoOrigId);if(!src&&draft.photoId)src=await getPhoto(draft.photoId)}
   if(!src)src=draft.photoData;if(!src){toast('Zuerst ein Foto wählen');return}
@@ -2485,8 +2625,13 @@ const A={
  todoForm:d=>todoForm(d.id,d.car),todoToggle:d=>todoToggle(d.id),todoToEntry:d=>todoToEntry(d.id),
  todoDelete:async d=>{if(!confirm('Diese Aufgabe löschen?'))return;await del('todos',d.id);closeSheet()},
  todoFilter:d=>{todoFilter=d.f;render()},todoShowDone:()=>{todoShowDone=!todoShowDone;render()},shopList,shopShare,
- invForm:d=>invForm(d.id),invDelete:async d=>{if(!confirm('Dieses Lagerteil löschen?'))return;await del('inventory',d.id);closeSheet()},
- invQty:async d=>{const it=S.inventory.find(i=>i.id===d.id);it.qty=Math.max(0,r3((it.qty||0)+ +d.d));await put('inventory',it);renderInvList()},
+ invForm:d=>invForm(d.id,d.ean),invDelete:async d=>{if(!confirm('Dieses Lagerteil löschen?'))return;await del('inventory',d.id);closeSheet()},
+ invQty:async d=>{const it=S.inventory.find(i=>i.id===d.id);it.qty=Math.max(0,r3((it.qty||0)+ +d.d*invStep(it.unit)));await put('inventory',it);if(d.close){closeSheet();toast(`${it.name}: ${fmtQ(it.qty)} ${it.unit}`)}renderInvList()},
+ invSet:async d=>{const it=S.inventory.find(i=>i.id===d.id);const v=prompt(`Bestand von „${it.name}“ in ${it.unit}:`,valN(it.qty||0));if(v===null)return;const n=num(v);if(n==null||n<0){toast('Ungültige Zahl');return}it.qty=r3(n);await put('inventory',it);renderInvList()},
+ restockForm:d=>restockForm(d.id),scanInv,eanAssign:async d=>{const it=S.inventory.find(i=>i.id===d.id);it.ean=d.ean;await put('inventory',it);closeSheet();toast(`Code zugeordnet: ${it.name}`)},
+ scanEan:async()=>{const c=await openScanner();if(c){$('#fInv [name=ean]').value=c;const o=invByCode(c);if(o&&o.id!==draft.id)toast(`Achtung: Code gehört schon zu „${o.name}“`)}},
+ scanPart:(d,el)=>scanPart(el.closest('.prow')),
+ homeTab:d=>{homeTab=d.t;lsSet('garage.homeTab',d.t);render();window.scrollTo(0,0)},logCar:d=>{logCar=d.c;logLimit=60;render()},logCat:d=>{logCat=d.c;logLimit=60;render()},logMore:()=>{logLimit+=60;renderLog()},
  fuelForm:d=>fuelForm(d.id,d.car),fuelDelete:async d=>{if(!confirm('Diese Tankung löschen?'))return;await del('fuel',d.id);closeSheet()},
  odoForm:d=>odoForm(d.car),odoDelete:async d=>{if(!confirm('Diesen km-Stand löschen?'))return;await del('odo',d.id);render()},
  statsYear:d=>{statsYear=d.y;render()},
@@ -2498,8 +2643,8 @@ const A={
   for(const s of['entries','intervals','todos','inventory','fuel','odo','tyres','issues','guides','tools','cars'])for(const x of S[s].filter(x=>x.demo))await del(s,x.id);toast('Beispieldaten entfernt');nav('#/home')},
  wipe:async()=>{if(!confirm('Wirklich ALLE Daten löschen? Das kann nicht rückgängig gemacht werden.\n\nTipp: Vorher ein Backup speichern.'))return;await clearAll();toast('Alle Daten gelöscht');nav('#/home')},
 };
-document.addEventListener('click',e=>{if(e.target.id==='sheet'){closeSheet();return}const el=e.target.closest('[data-a]');if(!el)return;const f=A[el.dataset.a];if(f){e.preventDefault();f(el.dataset,el,e)}});
-const FORMS={pk:savePk,tool:saveTool,tyre:saveTyre,issue:saveIssue,guide:saveGuide,receipt:saveReceipt,expose:saveExpose,ivTpl:saveIvTpl,sell:saveSell,car:saveCar,entry:saveEntry,todo:saveTodo,inv:saveInv,fuel:saveFuel,odo:saveOdo,iv:saveIv,spec:saveSpecs,dl:saveDl};
+document.addEventListener('click',e=>{if(e.target.id==='sheet'){closeSheet();return}const el=e.target.closest('[data-a]');if(!el)return;const f=A[el.dataset.a];if(f){e.preventDefault();const n=el.dataset.a;if(UNDO_LABEL[n])withUndo(n,()=>f(el.dataset,el,e));else f(el.dataset,el,e)}});
+const FORMS={restock:saveRestock,pk:savePk,tool:saveTool,tyre:saveTyre,issue:saveIssue,guide:saveGuide,receipt:saveReceipt,expose:saveExpose,ivTpl:saveIvTpl,sell:saveSell,car:saveCar,entry:saveEntry,todo:saveTodo,inv:saveInv,fuel:saveFuel,odo:saveOdo,iv:saveIv,spec:saveSpecs,dl:saveDl};
 let saving=false;
 document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target;const fn=FORMS[f.dataset.form];if(!fn||saving)return;saving=true;try{await fn(f)}catch(err){console.error(err);toast('Fehler beim Speichern: '+err.message)}finally{saving=false}});
 const CHANGES={
@@ -2507,7 +2652,7 @@ const CHANGES={
   const o=$('#fEntry [name=odo]');const cur=carOdo(t.value);o.value=valN(cur);renderIvChecks()},
  entryCat:t=>{if(t.value==='Pickerl'){const cid=$('#fEntry [name=carId]').value;closeSheet();setTimeout(()=>pkForm({carId:cid}),50);return}draft.intervalIds=[...new Set([...checkedIv(),...autoIvIds(draft.carId,t.value)])];renderIvChecks()},
  partInv:t=>{draft.parts=readParts();const p=draft.parts[+t.dataset.i];const it=S.inventory.find(i=>i.id===t.value);
-  if(it){p.name=it.name;p.maker=it.maker||p.maker;p.partNo=it.partNo||p.partNo;p.unit=it.unit||p.unit;p.spec=it.spec||p.spec;if(!p.qty)p.qty=1;if(it.price!=null)p.price=r3(it.price*p.qty);p.shop=p.shop||'Lager'}renderParts();ivAutoMatch()},
+  if(it){p.name=it.name;p.maker=it.maker||p.maker;p.partNo=it.partNo||p.partNo;p.unit=it.unit||p.unit;p.spec=it.spec||p.spec;if(!p.qty)p.qty=it.unit==='g'||it.unit==='ml'?Math.min(it.qty||100,100):1;p.price=invPriceFor(it,p.qty,p.unit);p.shop=p.shop||'Lager'}renderParts();ivAutoMatch()},
  ivTpl:t=>{const tp=IV_TPL[+t.value];if(!tp)return;const f=$('#fIv'),F=n=>f.elements.namedItem(n);F('name').value=tp.name;F('km').value=valN(tp.km);F('months').value=valN(tp.months);F('category').value=tp.category||'';F('group').value=IV_GROUPS[tp.g];F('match').value=tp.match||''},
  theme:t=>{lsSet('garage.theme',t.value);applyTheme()},
  issueCar:t=>{draft.carId=t.value;const f=$('#fIssue'),o=f.elements.namedItem('odo');if(!draft.id)o.value=valN(carOdo(t.value));
@@ -2524,6 +2669,8 @@ const FILES={
  receipt:async fl=>{if(!fl[0])return;try{receiptForm(await compressImage(fl[0],1600,.75))}catch(e){toast('Bild konnte nicht gelesen werden')}},
 };
 document.addEventListener('change',async e=>{const t=e.target;
+ if(t.closest('#fEntry')&&t.dataset.k==='unit'){const r=t.closest('.prow');const inv=$('[data-k=invId]',r)?.value;const it=inv&&S.inventory.find(i=>i.id===inv);if(it){if(!sameDim(t.value,it.unit))toast(`Lager führt „${it.name}“ in ${it.unit} – ${t.value} lässt sich nicht umrechnen`);else{const pr=invPriceFor(it,num($('[data-k=qty]',r).value),t.value);if(pr!=null)$('[data-k=price]',r).value=valN(pr)}}updateTotal()}
+ if(t.closest('#fInv')&&t.dataset.inv){if(t.dataset.inv==='pu')invPqTouched=true;invPreview()}
  if(t.closest('#fEntry')&&(t.dataset.k==='name'||t.name==='title'))ivAutoMatch();
  if(t.closest('#ivChecks')&&!t.checked&&draft)draft.ivOff=[...(draft.ivOff||[]),t.value];if(t.dataset.change&&CHANGES[t.dataset.change])CHANGES[t.dataset.change](t);
  if(t.dataset.file&&FILES[t.dataset.file]){await FILES[t.dataset.file]([...t.files]);t.value=''}});
@@ -2533,7 +2680,8 @@ document.addEventListener('input',e=>{const t=e.target;
  else if(t.id==='toolQ'){toolQ=t.value;renderToolList()}
  else if(t.id==='toolPickQ'){const q=t.value.toLowerCase();$$('#toolPick .chip').forEach(b=>b.hidden=!!q&&!b.textContent.toLowerCase().includes(q))}
  if(t.matches('[data-ac]'))acRender(t);
- else if(t.closest('#fEntry')){if(t.dataset.k==='qty'){const r=t.closest('.prow');const inv=$('[data-k=invId]',r)?.value;const it=inv&&S.inventory.find(i=>i.id===inv);const q=num(t.value);if(it&&it.price!=null&&q!=null)$('[data-k=price]',r).value=valN(r3(it.price*q))}updateTotal()}});
+ else if(t.closest('#fEntry')){if(t.dataset.k==='qty'){const r=t.closest('.prow');const inv=$('[data-k=invId]',r)?.value;const it=inv&&S.inventory.find(i=>i.id===inv);const q=num(t.value);const pr=invPriceFor(it,q,$('[data-k=unit]',r).value);if(pr!=null)$('[data-k=price]',r).value=valN(pr)}updateTotal()}
+ if(t.closest('#fInv')&&t.dataset.inv){if(t.dataset.inv==='pq')invPqTouched=true;invPreview()}});
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',applyTheme);
 
 /* ================= Beispieldaten ================= */
@@ -2595,7 +2743,7 @@ async function seed(){const P=(name,maker,qty,unit,price,o={})=>({name,maker,par
   T(a.id,'Ölwechsel vorbereiten',2,{parts:[{name:'Motoröl 5W-40',maker:'Liqui Moly',partNo:'',qty:5,unit:'l',price:null,spec:'VW 505.01'},{name:'Ölfilter',maker:'Mann-Filter',partNo:'',qty:1,unit:'Stk',price:null,spec:''}]}),
   T(null,'Drehmomentschlüssel prüfen lassen',3,{}),T(a.id,'Scheibenwischer vorne erneuern',3,{done:true,doneAt:'2026-08-01'})])await put('todos',x);
  const I=(name,maker,qty,unit,price,location,fits,o={})=>({id:uid(),demo:true,name,maker,partNo:'',qty,unit,price,spec:'',location,fits,note:'',...o});
- for(const x of[I('Motoröl 5W-40','Liqui Moly',5,'l',8.5,'Regal 1',[a.id],{spec:'VW 505.01'}),I('Ölfilter','Mann-Filter',1,'Stk',7.5,'Regal 1',[a.id]),I('Bremsenreiniger','',3,'Dose',4.99,'Werkbank',[]),I('Kupferpaste','',1,'Stk',6.9,'Werkbank',[])])await put('inventory',x);
+ for(const x of[I('Motoröl 5W-40','Liqui Moly',5,'l',8.5,'Regal 1',[a.id],{spec:'VW 505.01',minQty:6,packPrice:42.5,packQty:5,packUnitQty:5,packUnit:'l',buys:[{id:uid(),date:'2026-09-02',qty:5,unit:'l',price:42.5,shop:'Autoteile Online'}]}),I('Ölfilter','Mann-Filter',1,'Stk',7.5,'Regal 1',[a.id],{minQty:1,packPrice:7.5,packQty:1,packUnitQty:1,packUnit:'Stk'}),I('Bremsenreiniger','',3,'Dose',4.99,'Werkbank',[],{minQty:2,packPrice:14.97,packQty:3,packUnitQty:3,packUnit:'Dose',buys:[{id:uid(),date:'2026-06-28',qty:3,unit:'Dose',price:14.97,shop:'Baumarkt'}]}),I('Kupferpaste','',100,'g',.069,'Werkbank',[],{packPrice:6.9,packQty:100,packUnitQty:100,packUnit:'g'}),I('Allzweck-Fett','',250,'g',.048,'Werkbank',[],{packPrice:12,packQty:250,packUnitQty:250,packUnit:'g',buys:[{id:uid(),date:'2026-10-05',qty:250,unit:'g',price:12,shop:'Baumarkt'}]})])await put('inventory',x);
  const F=(carId,date,odo,liters,price)=>({id:uid(),demo:true,carId,date,odo,liters,price,full:true,note:''});
  for(const x of[F(a.id,'2026-08-20',247210,46,78.2),F(a.id,'2026-09-12',247980,44.8,75.3),F(a.id,'2026-10-03',248480,29.1,49.1),F(b.id,'2026-09-01',188900,52,93.6),F(b.id,'2026-10-01',189350,40.5,72.9)])await put('fuel',x)}
 
