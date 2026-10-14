@@ -23,7 +23,7 @@ header.top h1{font-size:20px;margin:0;flex:1;min-width:0;white-space:nowrap;over
 .iconbtn{min-width:44px;height:44px;border-radius:12px;border:0;background:var(--surface2);color:var(--text);display:inline-grid;place-items:center;font-size:19px;padding:0 10px;cursor:pointer}
 .iconbtn.sm{min-width:36px;height:36px;font-size:16px}
 main{padding:16px 16px 96px;max-width:760px;margin:0 auto}
-nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:6;display:grid;grid-template-columns:repeat(5,1fr);background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:6;display:grid;grid-template-columns:repeat(var(--nt,5),1fr);background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 nav.tabs button{background:none;border:0;color:var(--muted);height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12px;font-family:inherit;cursor:pointer}
 nav.tabs button.on{color:var(--accent);font-weight:700}
 nav svg,.ico{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -146,6 +146,7 @@ input.ocr-hit,select.ocr-hit{border-color:var(--green);box-shadow:0 0 0 1px var(
 h2 .h2a{color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700;background:none;border:0;font:inherit;font-size:13px;cursor:pointer;float:right}
 .mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .mtile{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 6px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:13px;font-weight:600;text-align:center;cursor:pointer;color:var(--text)}
+#navcfg{scroll-margin-top:80px}.navcfg .item{cursor:default}.navcfg .item.off .cat,.navcfg .item.off .grow{opacity:.6}.navcfg .item.off .btn.primary{background:transparent;color:var(--accent);border:1px solid var(--accent)}.navcfg .mv{display:flex;gap:4px}.navcfg .iconbtn{width:40px;height:40px}
 .mtile .mi{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,transparent)}
 .mtile .mi .ico{width:25px;height:25px}.mtile small{color:var(--muted);font-weight:500;font-size:11px;margin-top:-4px}
 .qbtn .ico{width:28px;height:28px;color:var(--accent)}
@@ -242,13 +243,7 @@ header.top.with-tabs #hdrActions{flex:1;min-width:0;display:flex;justify-content
 <header class="top"><button class="iconbtn" id="backBtn" data-a="back" aria-label="Zurück" hidden>‹</button><h1 id="title">Garage</h1><span id="hdrActions"></span></header>
 <main id="view"></main>
 <button class="fab" data-a="quick" aria-label="Neuer Eintrag">+</button>
-<nav class="tabs" id="tabs">
- <button data-a="go" data-h="#/home" data-tab="home"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Start</button>
- <button data-a="go" data-h="#/cars" data-tab="cars"><svg viewBox="0 0 24 24"><path d="M5 17H3v-5l2-5h14l2 5v5h-2M9 17h6"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M4 12h16"/></svg>Garage</button>
- <button data-a="go" data-h="#/todos" data-tab="todos"><svg viewBox="0 0 24 24"><path d="M10 6h10M10 12h10M10 18h10M3.5 6l1.5 1.5L7.5 5M3.5 12l1.5 1.5 2.5-2.5M3.5 18l1.5 1.5 2.5-2.5"/></svg>To-dos</button>
- <button data-a="go" data-h="#/tools" data-tab="inv"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>Werkstatt</button>
- <button data-a="go" data-h="#/more" data-tab="more"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>Mehr</button>
-</nav>
+<nav class="tabs" id="tabs"></nav>
 <div id="sheet" class="sheet hidden"></div>
 <div id="lightbox" class="hidden" data-a="closeLightbox"><img alt=""></div>
 <div id="toast" role="status"></div>
@@ -1738,16 +1733,50 @@ const empty=(t,btn,a,extra='')=>`<div class="empty"><p>${t}</p>${btn?`<button cl
 const prioLabel=p=>['','Hoch','Mittel','Niedrig'][p||2];
 const prioBadge=p=>`<span class="badge ${p==1?'st-over st':p==3?'':'st-soon st'}">${prioLabel(p)}</span>`;
 
+
+/* ================= Untere Leiste (anpassbar) ================= */
+const NAV_ITEMS=[
+ {k:'home',h:'#/home',i:'home',l:'Start',tab:'home',r:['home']},
+ {k:'cars',h:'#/cars',i:'car',l:'Garage',tab:'cars',r:['cars','car']},
+ {k:'todos',h:'#/todos',i:'list',l:'To-dos',tab:'todos',r:['todos']},
+ {k:'tools',h:'#/tools',i:'wrench',l:'Werkstatt',tab:'inv',r:['tools','inv','shop']},
+ {k:'inv',h:'#/inv',i:'box',l:'Teilelager',tab:'inv2',r:['inv']},
+ {k:'shop',h:'#/shop',i:'cart',l:'Einkauf',tab:'shop',r:['shop']},
+ {k:'calendar',h:'#/calendar',i:'cal',l:'Kalender',tab:'calendar',r:['calendar']},
+ {k:'stats',h:'#/stats',i:'chart',l:'Statistik',tab:'stats',r:['stats']},
+ {k:'prices',h:'#/prices',i:'fuel',l:'Spritpreise',tab:'prices',r:['prices']},
+ {k:'warranty',h:'#/warranty',i:'shield',l:'Garantien',tab:'warranty',r:['warranty']},
+ {k:'archive',h:'#/archive',i:'archive',l:'Archiv',tab:'archive',r:['archive']},
+ {k:'backup',h:'#/backup',i:'save',l:'Backup',tab:'backup',r:['backup']},
+ {k:'settings',h:'#/settings',i:'gear',l:'Einstellungen',tab:'settings',r:['settings']},
+ {k:'help',h:'#/help',i:'help',l:'Hilfe',tab:'help',r:['help']}];
+const NAV_DEFAULT=['home','cars','todos','tools'],NAV_MAX=5;
+function navPinned(){try{const a=JSON.parse(lsGet('garage.nav')||'null');if(Array.isArray(a)){const v=a.filter(k=>NAV_ITEMS.some(x=>x.k===k)).slice(0,NAV_MAX);if(v.length)return v}}catch(e){}return NAV_DEFAULT.slice()}
+function navSave(a){if(a.join()===NAV_DEFAULT.join()){try{localStorage.removeItem('garage.nav')}catch(e){}}else lsSet('garage.nav',JSON.stringify(a))}
+let navSig='';
+function renderNav(r,o){const pins=navPinned(),sig=pins.join();const nav=$('#tabs');
+ if(sig!==navSig||!nav.children.length){navSig=sig;const items=pins.map(k=>NAV_ITEMS.find(x=>x.k===k));
+  nav.style.setProperty('--nt',items.length+1);
+  nav.innerHTML=items.map(x=>`<button data-a="go" data-h="${x.h}" data-tab="${x.tab}" data-nk="${x.k}"><svg viewBox="0 0 24 24">${ICONS[x.i]}</svg>${x.l}</button>`).join('')+`<button data-a="go" data-h="#/more" data-tab="more" data-nk="more"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>Mehr</button>`}
+ let v=r.v;if(v==='car'&&car(r.id)?.archived)v='archive';
+ const exact=pins.find(k=>NAV_ITEMS.find(x=>x.k===k).h==='#/'+v),loose=pins.find(k=>NAV_ITEMS.find(x=>x.k===k).r.includes(v));const on=exact||loose||'more';
+ $$('#tabs button').forEach(x=>x.classList.toggle('on',x.dataset.nk===on))}
+function navRefresh(){const b=$('#navCfg');if(b)b.innerHTML=navCfgHTML();renderNav(parseHash(),{})}
+function navCfgHTML(){const pins=navPinned();const row=(x,pi)=>`<div class="item ${pi<0?'off':''}"><span class="cat" style="--c:var(--accent)">${ic(x.i,'ico s')}</span><div class="grow"><b>${x.l}</b>${pi>=0?`<div class="sub">Platz ${pi+1}</div>`:''}</div>
+ ${pi>=0?`<span class="mv"><button class="iconbtn" data-a="navMove" data-k="${x.k}" data-d="-1" ${pi===0?'disabled':''} aria-label="Nach links">‹</button><button class="iconbtn" data-a="navMove" data-k="${x.k}" data-d="1" ${pi===pins.length-1?'disabled':''} aria-label="Nach rechts">›</button></span>`:''}
+ <button class="btn ${pi>=0?'':'primary'}" data-a="navPin" data-k="${x.k}" style="flex:none;min-width:92px">${pi>=0?'Lösen':'Anpinnen'}</button></div>`;
+ return`<div class="navcfg">${pins.map((k,i)=>row(NAV_ITEMS.find(x=>x.k===k),i)).join('')}<h4>Nicht angepinnt – unter „Mehr“</h4>${NAV_ITEMS.filter(x=>!pins.includes(x.k)).map(x=>row(x,-1)).join('')}
+ <p class="sub">Bis zu ${NAV_MAX} Menüs plus „Mehr“. „Mehr“ bleibt immer ganz rechts.</p><button class="btn block" data-a="navReset" ${pins.join()===NAV_DEFAULT.join()?'disabled':''}>Auf Standard zurücksetzen</button></div>`}
 /* ================= Router & Ansichten ================= */
 function parseHash(){const p=(location.hash||'#/home').replace(/^#\/?/,'').split('/');return{v:p[0]||'home',id:p[1],tab:p[2]}}
 function render(){const r=parseHash();let o;
  switch(r.v){case'cars':o=viewCars();break;case'car':o=car(r.id)?viewCar(r.id,r.tab||'ov'):viewHome();break;case'todos':o=viewTodos();break;
   case'inv':o=viewInv();break;case'more':o=viewMore();break;case'stats':o=viewStats();break;case'backup':o=viewBackup();break;
-  case'settings':o=viewSettings();break;case'shop':o=viewShop();break;case'tools':o=viewTools();break;case'calendar':o=viewCalendar();break;case'prices':o=viewPrices();break;case'warranty':o=viewWarranty();break;case'archive':o=viewArchive();break;case'help':o=viewHelp();break;default:o=viewHome()}
+  case'settings':o=viewSettings();if(r.id==='nav'){const a=o.after;o.after=()=>{a&&a();setTimeout(()=>$('#navcfg')?.scrollIntoView({block:'start'}),0)}}break;case'shop':o=viewShop();break;case'tools':o=viewTools();break;case'calendar':o=viewCalendar();break;case'prices':o=viewPrices();break;case'warranty':o=viewWarranty();break;case'archive':o=viewArchive();break;case'help':o=viewHelp();break;default:o=viewHome()}
  $('#title').textContent=o.title;document.title=o.title==='Garage'?'Garage':o.title+' · Garage';
  const b=$('#backBtn');b.hidden=!o.back;b.dataset.h=o.back||'';
  $('#hdrActions').innerHTML=o.actions||'';$('header.top').classList.toggle('with-tabs',!!o.hdrTabs);
- $$('#tabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab===o.tab));
+ renderNav(r,o);
  $('#view').innerHTML=o.html;hydratePhotos($('#view'));
  if(o.after)o.after();$('#view .chips .chip.on')?.scrollIntoView({inline:'center',block:'nearest'})}
 
@@ -1880,7 +1909,9 @@ function viewArchive(){const arch=S.cars.filter(c=>c.archived).sort((a,b)=>(b.so
  return{title:'Archiv',tab:'more',back:'#/more',html:h||empty('Noch keine verkauften Autos.<br><span class="sub">Ein Auto verkaufst du in seiner Übersicht unter „Als verkauft markieren“.</span>','','')}}
 function viewMore(){const t=(h,i,l,sub)=>`<div class="mtile" data-a="go" data-h="${h}"><span class="mi">${ic(i)}</span>${l}${sub?`<small>${sub}</small>`:''}</div>`;const arch=S.cars.filter(c=>c.archived).length;
  const tw=S.tools.filter(x=>{const w=toolWarranty(x);return w&&w.st!=='exp'}).length+S.entries.reduce((n,e)=>n+(e.parts||[]).filter(p=>p.warranty&&addMonths(e.date,p.warranty)>=today()).length,0);
- let h=`<div class="mgrid">${t('#/calendar','cal','Kalender')}${t('#/stats','chart','Statistik')}${t('#/prices','fuel','Spritpreise')}${t('#/warranty','shield','Garantien',tw?tw+' aktiv':'')}${t('#/archive','archive','Archiv',arch?arch+' Autos':'')}${t('#/backup','save','Backup',backupDue()?'fällig':'')}${t('#/settings','gear','Einstellungen')}${t('#/help','help','Hilfe')}</div>`;
+ const subs={warranty:tw?tw+' aktiv':'',archive:arch?arch+' Autos':'',backup:backupDue()?'fällig':''};const pins=navPinned();
+ const skip=['inv','shop'];// über Werkstatt erreichbar – nur zeigen, wenn Werkstatt nicht angepinnt ist
+ let h=`<div class="mgrid">${NAV_ITEMS.filter(x=>!pins.includes(x.k)&&!(skip.includes(x.k)&&pins.includes('tools'))).map(x=>t(x.h,x.i,x.l,subs[x.k])).join('')}<div class="mtile" data-a="go" data-h="#/settings/nav"><span class="mi">${ic('dots')}</span>Leiste anpassen</div></div>`;
  const cs=myCars().map(c=>`<h2><span class="cdot" style="background:${carColor(c.id)}"></span>Verbrauch ${esc(dispName(c))}</h2>${consChart(c.id)||consHint(c.id,true)}`).join('');if(cs)h+=cs;
  return{title:'Mehr',tab:'more',html:h}}
 
@@ -1917,7 +1948,7 @@ function viewBackup(){const l=lsGet('garage.lastBackup');
  return{title:'Backup & Export',html:h,tab:'more',back:'#/more',after:async()=>{try{const e=await navigator.storage.estimate();const p=await navigator.storage.persisted?.();const el=$('#storeInfo');if(el)el.textContent=`Belegt: ${fmtN((e.usage||0)/1048576,1)} MB · Dauerhafter Speicher: ${p?'ja':'nicht garantiert'}`}catch(x){}}}}
 
 function viewSettings(){const th=lsGet('garage.theme')||'dark';
- let h=`<h2>Tankbelege lesen</h2><div class="card"><p class="sub" style="margin-top:0">Die Texterkennung läuft direkt am Handy, deine Belege werden nirgends hochgeladen. Sie braucht einmalig ca. 15 MB Download, danach geht es auch offline.</p><button class="btn block" id="ocrPre" data-a="ocrPreload">${lsGet('garage.ocrReady')?'✓ Bereit – erneut laden':'Jetzt herunterladen'}</button></div><h2>Darstellung</h2><div class="seg">${[['dark','Dunkel'],['light','Hell'],['system','System']].map(([k,l])=>`<label><input type="radio" name="theme" value="${k}" ${th===k?'checked':''} data-change="theme"><span>${l}</span></label>`).join('')}</div>`;
+ let h=`<h2 id="navcfg">Untere Leiste</h2><div id="navCfg">${navCfgHTML()}</div><h2>Tankbelege lesen</h2><div class="card"><p class="sub" style="margin-top:0">Die Texterkennung läuft direkt am Handy, deine Belege werden nirgends hochgeladen. Sie braucht einmalig ca. 15 MB Download, danach geht es auch offline.</p><button class="btn block" id="ocrPre" data-a="ocrPreload">${lsGet('garage.ocrReady')?'✓ Bereit – erneut laden':'Jetzt herunterladen'}</button></div><h2>Darstellung</h2><div class="seg">${[['dark','Dunkel'],['light','Hell'],['system','System']].map(([k,l])=>`<label><input type="radio" name="theme" value="${k}" ${th===k?'checked':''} data-change="theme"><span>${l}</span></label>`).join('')}</div>`;
  if(hasDemo())h+=`<h2>Beispieldaten</h2><div class="card"><p class="sub">Beim ersten Start wurden dein Audi A3 und dein BMW E36 mit Beispiel-Einträgen, To-dos, Lagerteilen und Tankungen angelegt.</p>
  <button class="btn primary block" data-a="demoKeepCars">Beispiele löschen, Autos behalten</button><p class="sub">Entfernt Einträge, Intervalle, To-dos, Lager, Tankungen, km-Stand und Termine. Die Technik-Liste bleibt zum Kontrollieren stehen.</p>
  <button class="btn block" data-a="demoAll">Alles Beispielhafte löschen (auch Autos)</button></div>`;
@@ -2994,6 +3025,9 @@ const A={
  guideForm:d=>guideForm(d.car,d.id),guideView:d=>guideView(d.id),
  guideDelete:async d=>{const g=S.guides.find(x=>x.id===d.id);if(!confirm(`Anleitung „${g.title}“ löschen?`))return;for(const p of g.photos||[])await del('photos',p.id);await del('guides',g.id);closeSheet()},
  torqueSheet:d=>torqueSheet(d.car),qrSheet:d=>qrSheet(d.car),qrPrint:d=>qrPrint(d.car),exposeForm:d=>exposeForm(d.car),shareBackup,back:d=>nav(d.h),closeSheet:()=>closeSheet(),quick,
+ navPin:d=>{let a=navPinned();if(a.includes(d.k)){if(a.length<=1){toast('Mindestens ein Menü muss angepinnt bleiben');return}a=a.filter(k=>k!==d.k)}else{if(a.length>=NAV_MAX){toast(`Maximal ${NAV_MAX} Menüs – zuerst eines lösen`);return}a.push(d.k)}navSave(a);navRefresh()},
+ navMove:d=>{const a=navPinned(),i=a.indexOf(d.k),j=i+ +d.d;if(i<0||j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];navSave(a);navRefresh()},
+ navReset:()=>{navSave(NAV_DEFAULT.slice());navRefresh();toast('Leiste auf Standard zurückgesetzt')},
  closeLightbox:()=>{$('#lightbox').classList.add('hidden')},
  photoView:(d,el)=>{if(!el.src)return;$('#lightbox img').src=el.src;$('#lightbox').classList.remove('hidden')},
  toggleArchived:()=>{showArchived=!showArchived;render()},
