@@ -121,6 +121,22 @@ input[type=checkbox],input[type=radio]{width:auto;min-height:0}
 #toast.show{transform:none;opacity:1;pointer-events:auto}
 #toast .tbtn{background:none;border:0;color:var(--accent);font-weight:800;font-size:15px;min-height:40px;font-family:inherit}
 #print{display:none}
+header.top.with-tabs h1{flex:none}
+header.top.with-tabs #hdrActions{flex:1;min-width:0;display:flex;justify-content:flex-end}
+.hdr-seg{display:flex;gap:3px;background:var(--surface2);border-radius:12px;padding:3px;width:100%;max-width:300px}
+.hdr-seg button{flex:1;min-height:40px;border:0;border-radius:9px;background:none;color:var(--muted);font:inherit;font-size:15px;font-weight:700;cursor:pointer;white-space:nowrap;padding:0 6px}
+.hdr-seg button.on{background:var(--accent);color:var(--on-accent)}
+.shop-add{display:flex;gap:6px;margin-bottom:10px;align-items:stretch}
+.shop-add #shopName{flex:1;min-width:0}
+.shop-add .shop-qty{width:68px;flex:none;padding:10px 8px}
+.shop-add .shop-unit{width:66px;flex:none;padding:10px 4px}
+.shop-plus{min-width:52px;font-size:28px;padding:0}
+.shop-row .chk{width:40px;height:40px;font-size:20px}
+.shop-x{opacity:.7}
+.doc-row{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-bottom:8px;cursor:pointer}
+.doc-th{width:44px;height:44px;object-fit:cover;border-radius:8px;flex:none}.doc-ic{font-size:30px;width:44px;text-align:center;flex:none}
+.wy{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:700;background:color-mix(in srgb,var(--green) 18%,transparent);color:var(--green);white-space:nowrap}
+.wy.soon{background:color-mix(in srgb,var(--yellow) 18%,transparent);color:var(--yellow)}
 .big-seg button{flex:1;min-height:50px;border:0;border-radius:9px;background:none;color:var(--muted);font:inherit;font-size:16px;font-weight:700;cursor:pointer}
 .big-seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.3)}
 .log-month{display:flex;justify-content:space-between;align-items:baseline;margin:20px 2px 8px;font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700}
@@ -1469,7 +1485,7 @@ const addMonths=(s,m)=>{const d=new Date(s+'T12:00:00');const day=d.getDate();d.
 const daysUntil=s=>Math.round((new Date(s+'T12:00:00')-new Date(today()+'T12:00:00'))/864e5);
 const relDays=n=>n===0?'heute':n>0?(n===1?'morgen':`in ${n} Tagen`):(n===-1?'seit gestern':`seit ${-n} Tagen`);
 const fmtM=s=>s?s.slice(5,7)+'/'+s.slice(0,4):'–';
-const fmtMonths=m=>m<12?`${m} Monate`:`${Math.floor(m/12)} J.${m%12?' '+(m%12)+' M.':''}`;
+const fmtMonths=m=>m<12?`${m} Monat${m===1?'':'e'}`:`${Math.floor(m/12)} J.${m%12?' '+(m%12)+' M.':''}`;
 const fmtAgo=d=>d<45?`${d} Tagen`:d<730?`${Math.round(d/30.4)} Monaten`:`${(d/365).toFixed(1).replace('.',',')} Jahren`;
 const byName=(a,b)=>(a.name||'').localeCompare(b.name||'','de');
 const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
@@ -1524,11 +1540,11 @@ const ivFromTpl=(t,carId)=>({id:uid(),carId,name:t.name,category:t.category||'',
 const CAR_SVG='<svg viewBox="0 0 24 24" class="ico"><path d="M5 17H3v-5l2-5h14l2 5v5h-2M9 17h6"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M4 12h16"/></svg>';
 
 /* ================= Speicher (IndexedDB) ================= */
-const STORES=['cars','entries','intervals','todos','inventory','fuel','odo','tyres','issues','guides','tools','photos'];
+const STORES=['cars','entries','intervals','todos','inventory','fuel','odo','tyres','issues','guides','tools','shop','photos'];
 const S={}; STORES.forEach(k=>{if(k!=='photos')S[k]=[]});
 const memPhotos=new Map();
 let db=null,memOnly=false;
-function openDB(){return new Promise((res,rej)=>{let r;try{r=indexedDB.open('garage-wartung',2)}catch(e){return rej(e)}
+function openDB(){return new Promise((res,rej)=>{let r;try{r=indexedDB.open('garage-wartung',3)}catch(e){return rej(e)}
  r.onupgradeneeded=()=>{const d=r.result;STORES.forEach(s=>{if(!d.objectStoreNames.contains(s))d.createObjectStore(s,{keyPath:'id'})})};
  r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);r.onblocked=()=>rej(new Error('blocked'))})}
 const reqP=r=>new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
@@ -1614,7 +1630,7 @@ function fuelCalc(carId){const list=S.fuel.filter(f=>f.carId===carId).sort((a,b)
 const guessCat=n=>/motoröl|ölwechsel/i.test(n)?'Ölwechsel':/brems/i.test(n)?'Bremsen':/reifen/i.test(n)?'Reifen':/inspektion/i.test(n)?'Inspektion':/filter/i.test(n)?'Filter':/öl|flüssigkeit|kühlmittel|atf|klima/i.test(n)?'Flüssigkeiten':'Wartung';
 const autoIvIds=(carId,cat)=>S.intervals.filter(i=>i.carId===carId&&i.category&&i.category===cat).map(i=>i.id);
 const stdIntervals=fuel=>IV_TPL.filter(t=>t.std&&(!t.fuel||(fuel||'').includes(t.fuel)));
-const hasDemo=()=>['cars','entries','intervals','todos','inventory','fuel','odo','tyres','issues','guides','tools'].some(s=>S[s].some(x=>x.demo));
+const hasDemo=()=>['cars','entries','intervals','todos','inventory','fuel','odo','tyres','issues','guides','tools','shop'].some(s=>S[s].some(x=>x.demo));
 function backupDue(){if(!S.entries.length&&!S.cars.length)return false;const days=+(lsGet('garage.backupDays')??14);if(!days)return false;const l=lsGet('garage.lastBackup');return !l||daysUntil(l.slice(0,10))<-days}
 const carOptions=(sel,none)=>(none?`<option value="">${esc(none)}</option>`:'')+S.cars.filter(c=>!c.archived||c.id===sel).sort(byName).map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(dispName(c))}</option>`).join('');
 function datalists(){const n=new Set(),m=new Set(),sh=new Set();const a=(s,v)=>{if(v)s.add(v)};
@@ -1650,10 +1666,10 @@ function parseHash(){const p=(location.hash||'#/home').replace(/^#\/?/,'').split
 function render(){const r=parseHash();let o;
  switch(r.v){case'cars':o=viewCars();break;case'car':o=car(r.id)?viewCar(r.id,r.tab||'ov'):viewHome();break;case'todos':o=viewTodos();break;
   case'inv':o=viewInv();break;case'more':o=viewMore();break;case'stats':o=viewStats();break;case'backup':o=viewBackup();break;
-  case'settings':o=viewSettings();break;case'tools':o=viewTools();break;case'calendar':o=viewCalendar();break;case'warranty':o=viewWarranty();break;case'archive':o=viewArchive();break;case'help':o=viewHelp();break;default:o=viewHome()}
+  case'settings':o=viewSettings();break;case'shop':o=viewShop();break;case'tools':o=viewTools();break;case'calendar':o=viewCalendar();break;case'warranty':o=viewWarranty();break;case'archive':o=viewArchive();break;case'help':o=viewHelp();break;default:o=viewHome()}
  $('#title').textContent=o.title;document.title=o.title==='Garage'?'Garage':o.title+' · Garage';
  const b=$('#backBtn');b.hidden=!o.back;b.dataset.h=o.back||'';
- $('#hdrActions').innerHTML=o.actions||'';
+ $('#hdrActions').innerHTML=o.actions||'';$('header.top').classList.toggle('with-tabs',!!o.hdrTabs);
  $$('#tabs button').forEach(x=>x.classList.toggle('on',x.dataset.tab===o.tab));
  $('#view').innerHTML=o.html;hydratePhotos($('#view'));
  if(o.after)o.after();$('#view .chips .chip.on')?.scrollIntoView({inline:'center',block:'nearest'})}
@@ -1675,7 +1691,7 @@ function entryHTML(e,showCar=false){const parts=(e.parts||[]).map(p=>[p.name,p.m
  <div class="sub">${fmtD(e.date)} · ${kmT(e.odo)}${showCar?' · '+esc(carName(e.carId)):''} · ${isPk(e)?pkRes(e).i+' '+esc(e.workshop||'Prüfstelle'):e.diy?'selbst':'Werkstatt'}</div>
  ${isPk(e)&&e.pk?.defects?`<div class="sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Mängel: ${esc(e.pk.defects.split('\n')[0])}</div>`:''}${parts.length?`<div class="sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(parts.join(', '))}</div>`:''}</div><span class="amt">${entryCost(e)?eur(entryCost(e)):''}</span></div>`}
 
-function viewHome(){if(homeTab==='log')return{title:'Garage',html:viewLog(),tab:'home',after:renderLog};const cars=activeCars();let h=homeTabs();
+function viewHome(){if(homeTab==='log')return{title:'Garage',html:viewLog(),tab:'home',after:renderLog,actions:homeTabs(),hdrTabs:true};const cars=activeCars();let h='';
  if(memOnly)h+=`<div class="note warn"><b>Vorschau-Modus:</b> Der Browser erlaubt hier keinen dauerhaften Speicher. Änderungen gehen beim Schließen verloren. Installiere die App wie unter „Mehr › Installation“ beschrieben.</div>`;
  if(hasDemo())h+=`<div class="note">Beispieldaten aktiv (Werte zum Ausprobieren). Entfernen unter <button class="linkbtn" data-a="go" data-h="#/settings">Mehr › Einstellungen</button>.</div>`;
  else if(backupDue())h+=`<div class="note warn">Letzte Sicherung: ${lsGet('garage.lastBackup')?fmtD(lsGet('garage.lastBackup').slice(0,10)):'noch nie'}. <button class="linkbtn" data-a="go" data-h="#/backup">Jetzt sichern</button></div>`;
@@ -1684,7 +1700,7 @@ function viewHome(){if(homeTab==='log')return{title:'Garage',html:viewLog(),tab:
  h+=`<h2>Fällig & überfällig</h2>`+(due.length?due.map(d=>dueItemHTML(d)).join(''):`<p class="muted">Alles im grünen Bereich.</p>`)+`<button class="btn block" data-a="go" data-h="#/calendar">📅 Kalender – nächste 12 Monate</button>`;
  const oi=S.issues.filter(x=>x.status!=='solved'&&car(x.carId)&&!car(x.carId).archived);if(oi.length)h+=`<h2>Offene Fehler</h2>`+oi.map(issueHTML).join('');
  const td=openTodos();h+=`<h2>Offene To-dos</h2>`+(td.length?td.slice(0,5).map(t=>todoHTML(t)).join('')+(td.length>5?`<button class="btn block" data-a="go" data-h="#/todos">Alle ${td.length} anzeigen</button>`:''):`<p class="muted">Keine offenen Aufgaben.</p>`);
- return{title:'Garage',html:h,tab:'home'}}
+ return{title:'Garage',html:h,tab:'home',actions:homeTabs(),hdrTabs:true}}
 
 let showArchived=false;
 function viewCars(){const act=activeCars(),arch=S.cars.filter(c=>c.archived).sort(byName);
@@ -1764,10 +1780,10 @@ function viewTodos(){let list=S.todos.filter(t=>todoFilter===''?true:todoFilter=
  h+=open.map(t=>todoHTML(t)).join('')||empty('Keine offenen Aufgaben. 👍','','');
  h+=`<button class="btn primary block" data-a="todoForm" data-car="${todoFilter.startsWith('_')?'':todoFilter}">+ Aufgabe</button>`;
  if(done.length)h+=`<h2><button class="linkbtn" data-a="todoShowDone">${todoShowDone?'▾':'▸'} Erledigt (${done.length})</button></h2>`+(todoShowDone?done.map(t=>todoHTML(t)).join(''):'');
- return{title:'To-dos',html:h,tab:'todos',actions:`<button class="iconbtn" data-a="shopList" aria-label="Einkaufsliste">🛒${lowStock().length+openTodos().reduce((n,t)=>n+(t.parts||[]).length,0)||''}</button>`}}
+ return{title:'To-dos',html:h,tab:'todos',actions:`<button class="iconbtn" data-a="shopOpen" aria-label="Einkaufsliste">🛒${shopOpenCount()||''}</button>`}}
 
 let invQ='';
-function viewInv(){const low=lowStock();let h=workshopChips('inv')+(low.length?`<div class="note warn">⚠ ${low.length} Artikel unter Mindestbestand – <button class="linkbtn" data-a="shopList">Einkaufsliste</button></div>`:'')+`<div class="row" style="gap:8px;margin-bottom:10px;flex-wrap:nowrap"><input id="invQ" type="search" placeholder="Lager durchsuchen …" value="${esc(invQ)}" style="flex:1"><button class="btn" data-a="scanInv" style="flex:none">📷 Scan</button></div><div id="invList"></div><button class="btn primary block" data-a="invForm">+ Teil / Betriebsstoff</button>`;
+function viewInv(){const low=lowStock();let h=workshopChips('inv')+(low.length?`<div class="note warn">⚠ ${low.length} Artikel unter Mindestbestand – <button class="linkbtn" data-a="shopOpen">Einkaufsliste</button></div>`:'')+`<div class="row" style="gap:8px;margin-bottom:10px;flex-wrap:nowrap"><input id="invQ" type="search" placeholder="Lager durchsuchen …" value="${esc(invQ)}" style="flex:1"><button class="btn" data-a="scanInv" style="flex:none">📷 Scan</button></div><div id="invList"></div><button class="btn primary block" data-a="invForm">+ Teil / Betriebsstoff</button>`;
  return{title:'Werkstatt',html:h,tab:'inv',after:renderInvList}}
 function renderInvList(){const box=$('#invList');if(!box)return;const w=invQ.toLowerCase().split(/\s+/).filter(Boolean);
  const list=S.inventory.filter(i=>{const hay=[i.name,i.maker,i.partNo,i.location,i.spec,...(i.fits||[]).map(carName)].join(' ').toLowerCase();return w.every(x=>hay.includes(x))}).sort(byName);
@@ -1833,6 +1849,8 @@ function viewHelp(){return{title:'Installation & Hilfe',tab:'more',back:'#/more'
 <li>In der Historie nach „Bremsflüssigkeit“ suchen zeigt sofort, wann es zuletzt war.</li>
 <li>Teile, die du aus dem Lager nimmst, werden automatisch abgebucht – auch in anderen Einheiten (z. B. 500 ml aus einem Lager in Litern).</li>
 <li>Lager: Preis so eintragen wie bezahlt (z. B. 12 € für 250 g). Barcode scannen mit 📷 – der Code wird dem Artikel zugeordnet.</li>
+<li>Einkaufsliste: oben eintippen und „+“ – abhaken, wenn gekauft. Gekauftes lässt sich direkt ins Lager buchen.</li>
+<li>Werkzeug: Rechnung als Foto oder PDF und „Garantie bis“ hinterlegen – unter Mehr › Garantien siehst du alles auf einen Blick.</li>
 <li>Versehentlich gelöscht? Unten erscheint 10 Sekunden lang „Rückgängig“.</li>
 <li>Beim Tippen eines Teilenamens erscheinen alle bereits verwendeten Artikel mit Hersteller, Nummer, Spezifikation und letztem Preis – antippen füllt alles aus.</li>
 <li>Eigene Wartungsintervalle für jedes Bauteil oder jede Flüssigkeit: Auto › Intervalle › „+ Eigenes Bauteil“.</li>
@@ -2095,19 +2113,19 @@ function todoForm(id,carId){const t=id?S.todos.find(x=>x.id===id):{carId:carId??
  <h4>Benötigte Teile</h4><div id="parts"></div><button type="button" class="btn block" data-a="partAdd">+ Teil</button>${datalists()}</form>`;
  openSheet(id?'Aufgabe bearbeiten':'Neue Aufgabe',body,`${id?`<button class="btn danger" data-a="todoDelete" data-id="${id}">Löschen</button>`:''}${id&&t.carId!==undefined&&S.cars.length&&!t.entryId?`<button class="btn" data-a="todoToEntry" data-id="${id}">→ Eintrag</button>`:''}<button class="btn primary grow" type="submit" form="fTodo">Speichern</button>`);renderParts()}
 async function saveTodo(f){const fd=Object.fromEntries(new FormData(f));const old=draft.id?S.todos.find(t=>t.id===draft.id):null;
- const t={...(old||{}),id:draft.id||uid(),carId:fd.carId||null,title:fd.title.trim(),prio:+fd.prio||2,due:fd.due||null,tools:fd.tools.trim(),note:fd.note.trim(),parts:readParts().filter(p=>p.name||p.partNo),toolIds:draft.toolIds||[],done:old?.done||false,created:old?.created||new Date().toISOString()};
+ const t={...(old||{}),id:draft.id||uid(),carId:fd.carId||null,title:fd.title.trim(),prio:+fd.prio||2,due:fd.due||null,tools:fd.tools.trim(),note:fd.note.trim(),parts:readParts().filter(p=>p.name||p.partNo).map(p=>{const o=(old?.parts||[]).find(q=>q.bought&&q.name===p.name);return o?{...p,bought:true}:p}),toolIds:draft.toolIds||[],done:old?.done||false,created:old?.created||new Date().toISOString()};
  if(!t.title){toast('Bitte eine Aufgabe eingeben');return}await put('todos',t);closeSheet();toast('Gespeichert')}
 async function todoToggle(id){const t=S.todos.find(x=>x.id===id);t.done=!t.done;t.doneAt=t.done?today():null;await put('todos',t);render();
  if(t.done&&S.cars.length&&!t.entryId)toast('Erledigt 👍','Als Eintrag übernehmen',()=>todoToEntry(id))}
 function todoToEntry(id){const t=S.todos.find(x=>x.id===id);
  entryForm({carId:t.carId||defaultCarId(),title:t.title,category:/brems/i.test(t.title)?'Bremsen':/reifen/i.test(t.title)?'Reifen':/öl/i.test(t.title)?'Ölwechsel':'Reparatur',notes:[t.note,t.tools&&'Werkzeug: '+t.tools].filter(Boolean).join('\n'),parts:(t.parts||[]).map(p=>({...p,invId:''})),toolIds:t.toolIds||[],todoId:t.id,issueId:t.issueId||null})}
 function shopText(){const groups={};openTodos().forEach(t=>(t.parts||[]).forEach(p=>{const k=t.carId?carName(t.carId):'Allgemein';(groups[k]=groups[k]||[]).push({p,t})}));return groups}
-function shopList(){const g=shopText();const keys=Object.keys(g);const low=lowStock();
+function shopListOld(){const g=shopText();const keys=Object.keys(g);const low=lowStock();
  const inStock=p=>S.inventory.find(i=>(p.partNo&&i.partNo&&i.partNo.replace(/\s/g,'').toLowerCase()===p.partNo.replace(/\s/g,'').toLowerCase())||(p.name&&i.name.toLowerCase()===p.name.toLowerCase()));
  const lowH=low.length?`<h4>📦 Lager auffüllen</h4>${low.map(i=>`<div class="item"><div class="grow" data-a="invForm" data-id="${i.id}"><b>${esc(i.name)}</b><div class="sub">${esc([i.maker,i.spec].filter(Boolean).join(' · '))}</div><div class="sub low">Bestand ${fmtQ(i.qty||0)} / Minimum ${fmtQ(i.minQty)} ${esc(i.unit)}</div></div><button class="btn" style="min-height:40px;padding:0 10px" data-a="restockForm" data-id="${i.id}">+ gekauft</button></div>`).join('')}`:'';
  const body=lowH+(keys.length?keys.map(k=>`<h4>${esc(k)}</h4>${g[k].map(({p,t})=>{const s=inStock(p);return`<div class="item" data-a="todoForm" data-id="${t.id}"><div class="grow"><b>${p.qty!=null?fmtQ(p.qty)+' '+esc(p.unit||'')+' ':''}${esc(p.name)}</b><div class="sub">${esc([p.maker,p.partNo&&'Nr. '+p.partNo,p.spec].filter(Boolean).join(' · '))}</div><div class="sub">für: ${esc(t.title)}</div></div>${s&&(s.qty||0)>0?`<span class="badge st-ok st">im Lager: ${fmtQ(s.qty)}</span>`:''}</div>`}).join('')}`).join(''):low.length?'':'<p class="muted">Keine Teile in offenen To-dos und nichts unter Mindestbestand.</p>');
  openSheet('Einkaufsliste',`<p class="sub">Teile aus offenen To-dos und Lagerartikel unter Mindestbestand.</p>${body}`,keys.length||low.length?`<button class="btn primary grow" data-a="shopShare">Teilen / Kopieren</button>`:'')}
-async function shopShare(){const g=shopText();const low=lowStock();const txt='Einkaufsliste Garage\n'+(low.length?'\nLager auffüllen:\n'+low.map(i=>`- ${i.name}${i.maker?' ('+i.maker+')':''} – Bestand ${fmtQ(i.qty||0)}/${fmtQ(i.minQty)} ${i.unit}`).join('\n')+'\n':'')+Object.entries(g).map(([k,a])=>`\n${k}:\n`+a.map(({p})=>`- ${p.qty!=null?fmtQ(p.qty)+' '+(p.unit||'')+' ':''}${p.name}${p.maker?' ('+p.maker+')':''}${p.partNo?' Nr. '+p.partNo:''}`).join('\n')).join('\n');
+async function shopShareOld(){const g=shopText();const low=lowStock();const txt='Einkaufsliste Garage\n'+(low.length?'\nLager auffüllen:\n'+low.map(i=>`- ${i.name}${i.maker?' ('+i.maker+')':''} – Bestand ${fmtQ(i.qty||0)}/${fmtQ(i.minQty)} ${i.unit}`).join('\n')+'\n':'')+Object.entries(g).map(([k,a])=>`\n${k}:\n`+a.map(({p})=>`- ${p.qty!=null?fmtQ(p.qty)+' '+(p.unit||'')+' ':''}${p.name}${p.maker?' ('+p.maker+')':''}${p.partNo?' Nr. '+p.partNo:''}`).join('\n')).join('\n');
  try{if(navigator.share){await navigator.share({title:'Einkaufsliste',text:txt});return}await navigator.clipboard.writeText(txt);toast('In Zwischenablage kopiert')}catch(e){if(e.name!=='AbortError')toast('Teilen nicht möglich')}}
 
 /* ================= Lager, Tanken, km ================= */
@@ -2201,29 +2219,33 @@ function toolCalc(t){const uses=toolUses(t),price=t.price??null;const r={uses,pr
  if(t.rentPrice&&price!=null){r.saved=uses*t.rentPrice-price;r.amort=r.saved>=0;r.left=r.amort?0:Math.ceil((price-uses*t.rentPrice)/t.rentPrice)}
  return r}
 let toolQ='',toolCat='';
-const workshopChips=on=>`<div class="chips"><button class="chip ${on==='tools'?'on':''}" data-a="go" data-h="#/tools">🔧 Werkzeug</button><button class="chip ${on==='inv'?'on':''}" data-a="go" data-h="#/inv">📦 Teilelager</button></div>`;
+const workshopChips=on=>`<div class="chips"><button class="chip ${on==='tools'?'on':''}" data-a="go" data-h="#/tools">🔧 Werkzeug</button><button class="chip ${on==='inv'?'on':''}" data-a="go" data-h="#/inv">📦 Teilelager</button><button class="chip" data-a="shopOpen">🛒 Einkaufsliste${shopOpenCount()?' ('+shopOpenCount()+')':''}</button></div>`;
 function viewTools(){const all=S.tools;const val=all.reduce((s,t)=>s+(t.price||0),0),uses=all.reduce((s,t)=>s+toolUses(t),0),lent=all.filter(t=>t.lentTo).length;
  const rentTools=all.filter(t=>t.rentPrice&&t.price!=null),rentVal=rentTools.reduce((s,t)=>s+t.price,0),saved=rentTools.reduce((s,t)=>s+toolUses(t)*t.rentPrice,0);
  let h=workshopChips('tools')+`<div class="grid2"><div class="card"><div class="sub">Werkzeugwert</div><div class="big">${eur(val)}</div><div class="sub">${all.length} Werkzeuge</div></div>
  <div class="card"><div class="sub">Ø pro Einsatz</div><div class="big">${uses?eur(val/uses):'–'}</div><div class="sub">${uses} Einsätze gesamt</div></div></div>
  ${saved?`<div class="note">💡 Durch eigenes Werkzeug gespart (statt Leihen/Werkstatt): <b>${eur(saved)}</b> – ${saved>=rentVal?'die Anschaffung hat sich <b>bezahlt gemacht</b> ✓':`zu ${Math.round(saved/rentVal*100)} % bezahlt gemacht`}.</div>`:''}
+ ${(()=>{const w=all.map(t=>({t,w:toolWarranty(t)})).filter(x=>x.w&&x.w.st!=='exp');const soon=w.filter(x=>x.w.st==='soon');return w.length?`<div class="note${soon.length?' warn':''}">🛡️ ${w.length} Werkzeug${w.length>1?'e':''} mit Garantie${soon.length?` – <b>${esc(soon.map(x=>x.t.name).join(', '))}</b> läuft bald ab`:''}. <button class="linkbtn" data-a="toolCat" data-c="_wy">Anzeigen</button></div>`:''})()}
  ${lent?`<div class="note warn">🤝 ${lent} Werkzeug${lent>1?'e':''} verliehen: ${esc(all.filter(t=>t.lentTo).map(t=>t.name+' → '+t.lentTo).join(', '))}</div>`:''}
  <label class="f"><input id="toolQ" type="search" placeholder="Werkzeug suchen …" value="${esc(toolQ)}"></label>
- <div class="chips"><button class="chip ${!toolCat?'on':''}" data-a="toolCat" data-c="">Alle</button>${TOOL_CATS.filter(c=>all.some(t=>t.category===c)).map(c=>`<button class="chip ${toolCat===c?'on':''}" data-a="toolCat" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+ <div class="chips"><button class="chip ${!toolCat?'on':''}" data-a="toolCat" data-c="">Alle</button>${all.some(t=>toolWarranty(t)&&toolWarranty(t).st!=='exp')?`<button class="chip ${toolCat==='_wy'?'on':''}" data-a="toolCat" data-c="_wy">🛡️ Mit Garantie</button>`:''}${TOOL_CATS.filter(c=>all.some(t=>t.category===c)).map(c=>`<button class="chip ${toolCat===c?'on':''}" data-a="toolCat" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>
  <div id="toolList"></div><button class="btn primary block" data-a="toolForm">+ Werkzeug</button>`;
  return{title:'Werkstatt',html:h,tab:'inv',after:renderToolList}}
 function renderToolList(){const box=$('#toolList');if(!box)return;const w=toolQ.toLowerCase().split(/\s+/).filter(Boolean);
- const list=S.tools.filter(t=>(!toolCat||t.category===toolCat)&&w.every(x=>[t.name,t.brand,t.category,t.location,t.lentTo,t.notes].join(' ').toLowerCase().includes(x))).sort(byName);
- let h='';for(const c of[...TOOL_CATS,'_']){const it=list.filter(t=>c==='_'?!TOOL_CATS.includes(t.category):t.category===c);if(!it.length)continue;if(!toolCat)h+=`<h2>${esc(c==='_'?'Ohne Kategorie':c)}</h2>`;
+ const list=S.tools.filter(t=>(!toolCat||(toolCat==='_wy'?(toolWarranty(t)&&toolWarranty(t).st!=='exp'):t.category===toolCat))&&w.every(x=>[t.name,t.brand,t.category,t.location,t.lentTo,t.notes].join(' ').toLowerCase().includes(x))).sort(byName);
+ let h='';if(toolCat==='_wy'){const l=list.slice().sort((a,b)=>(a.warrantyLifetime?'9999':a.warrantyUntil||'').localeCompare(b.warrantyLifetime?'9999':b.warrantyUntil||''));list.length=0;list.push(...l)}
+ for(const c of toolCat==='_wy'?['_all']:[...TOOL_CATS,'_']){const it=c==='_all'?list:list.filter(t=>c==='_'?!TOOL_CATS.includes(t.category):t.category===c);if(!it.length)continue;if(!toolCat)h+=`<h2>${esc(c==='_'?'Ohne Kategorie':c)}</h2>`;
   h+=it.map(t=>{const r=toolCalc(t);return`<div class="item"><div class="cat" style="--c:var(--accent)">${t.photoId?`<img data-photo="${t.photoId}" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:12px">`:'🔧'}</div>
   <div class="grow" data-a="toolView" data-id="${t.id}"><b>${esc(t.name)}</b><div class="sub">${esc([t.brand,t.location&&'📍 '+t.location].filter(Boolean).join(' · '))}</div>
-  <div class="sub">${r.uses}× verwendet${r.perUse!=null?` · <b style="color:var(--text)">${eur(r.perUse)}/Einsatz</b>`:r.price!=null?' · '+eur(r.price):''}${r.amort?' · <span style="color:var(--green)">✓ amortisiert</span>':''}${t.lentTo?` · <span style="color:var(--yellow)">verliehen an ${esc(t.lentTo)}</span>`:''}</div></div>
+  <div class="sub">${r.uses}× verwendet${r.perUse!=null?` · <b style="color:var(--text)">${eur(r.perUse)}/Einsatz</b>`:r.price!=null?' · '+eur(r.price):''}${r.amort?' · <span style="color:var(--green)">✓ amortisiert</span>':''}${t.lentTo?` · <span style="color:var(--yellow)">verliehen an ${esc(t.lentTo)}</span>`:''}</div>${(()=>{const w=toolWarranty(t);return w&&w.st!=='exp'?`<div style="margin-top:4px"><span class="wy ${w.st==='soon'?'soon':''}">${esc(w.short)}</span>${(t.docs||[]).length?' <span class="wy" style="background:var(--surface2);color:var(--muted)">🧾 Rechnung</span>':''}</div>`:(t.docs||[]).length?'<div style="margin-top:4px"><span class="wy" style="background:var(--surface2);color:var(--muted)">🧾 Rechnung</span></div>':''})()}</div>
   <button class="iconbtn sm" data-a="toolUse" data-id="${t.id}" aria-label="Einsatz zählen">+1</button></div>`}).join('')}
  box.innerHTML=h||`<p class="muted">${w.length||toolCat?'Keine Treffer.':'Noch kein Werkzeug eingetragen.'}</p>`;hydratePhotos(box)}
 function toolView(id){const t=S.tools.find(x=>x.id===id);if(!t)return;const r=toolCalc(t);const used=S.entries.filter(e=>(e.toolIds||[]).includes(id)).sort((a,b)=>b.date.localeCompare(a.date));
  openSheet(t.name,`${t.photoId?`<div class="ph" style="border-radius:var(--radius);margin-bottom:12px"><img data-photo="${t.photoId}" alt=""></div>`:''}
  <div class="card"><dl class="kv">${[['Marke',t.brand],['Kategorie',t.category],['Gekauft am',t.purchaseDate&&fmtD(t.purchaseDate)],['Kaufpreis',t.price!=null&&eur(t.price)],['Lagerort',t.location],['Verliehen an',t.lentTo&&(t.lentTo+(t.lentDate?' seit '+fmtD(t.lentDate):''))]].filter(x=>x[1]).map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl></div>
- <h4>Rechnung</h4><div class="card"><dl class="kv"><dt>Einsätze</dt><dd><b>${r.uses}</b>${t.extraUses?`<div class="sub">davon ${t.extraUses} manuell</div>`:''}</dd>
+ ${(()=>{const w=toolWarranty(t);return w?`<div class="item st-${w.st==='exp'?'unknown':w.st}" style="cursor:default;border-left:5px solid var(--${w.st==='exp'?'muted':w.st==='soon'?'yellow':'green'})"><span class="cat" style="--c:var(--${w.st==='exp'?'muted':w.st==='soon'?'yellow':'green'})">🛡️</span><div class="grow"><b>Garantie ${w.life?'lebenslang':w.st==='exp'?'abgelaufen':'aktiv'}</b><div class="sub">${esc(w.text)}</div></div></div>`:''})()}
+ ${(t.docs||[]).length?`<h4>🧾 Rechnung</h4>${t.docs.map(d=>`<div class="doc-row" data-a="toolDocView" data-id="${d.id}">${d.type==='pdf'?'<span class="doc-ic">📄</span>':`<img data-photo="${d.id}" alt="" class="doc-th">`}<span class="grow">${esc(d.name||'Rechnung')}</span><span class="muted">öffnen ›</span></div>`).join('')}`:`<p class="sub">Keine Rechnung hinterlegt – über „Bearbeiten“ als Foto oder PDF hinzufügen.</p>`}
+ <h4>Kosten-Rechnung</h4><div class="card"><dl class="kv"><dt>Einsätze</dt><dd><b>${r.uses}</b>${t.extraUses?`<div class="sub">davon ${t.extraUses} manuell</div>`:''}</dd>
  <dt>Kosten pro Einsatz</dt><dd><b>${r.perUse!=null?eur(r.perUse):'–'}</b><div class="sub">Kaufpreis ÷ Einsätze</div></dd>
  ${r.perMonth!=null?`<dt>Kosten pro Monat Besitz</dt><dd>${eur(r.perMonth)}<div class="sub">seit ${fmtMonths(r.months)}</div></dd>`:''}
  ${t.rentPrice?`<dt>Leihen / Werkstatt</dt><dd>${eur(t.rentPrice)} pro Einsatz</dd><dt>${r.amort?'Gespart':'Noch offen'}</dt><dd><b style="color:${r.amort?'var(--green)':'var(--yellow)'}">${eur(Math.abs(r.saved))}</b><div class="sub">${r.amort?'hat sich bezahlt gemacht ✓':`noch ${r.left} Einsatz${r.left>1?'e':''} bis amortisiert`}</div></dd>`:''}</dl>
@@ -2231,7 +2253,7 @@ function toolView(id){const t=S.tools.find(x=>x.id===id);if(!t)return;const r=to
  ${t.notes?`<p class="pre">${esc(t.notes)}</p>`:''}
  <h4>Verwendet bei (${used.length})</h4>${used.map(e=>entryHTML(e,true)).join('')||'<p class="sub">Noch bei keinem Eintrag ausgewählt. Wähle das Werkzeug beim Eintragen einer Wartung aus oder zähle Einsätze mit „+1“.</p>'}`,
  `<button class="btn" data-a="toolLend" data-id="${id}">${t.lentTo?'Zurückbekommen':'Verleihen'}</button><button class="btn primary grow" data-a="toolForm" data-id="${id}">Bearbeiten</button>`)}
-function toolForm(id){const t=id?S.tools.find(x=>x.id===id):{category:'Handwerkzeug'};draft={kind:'tool',id:id||null,photoId:t.photoId||null,photoData:null,photoChanged:false};
+function toolForm(id){const t=id?S.tools.find(x=>x.id===id):{category:'Handwerkzeug'};draft={kind:'tool',id:id||null,photoId:t.photoId||null,photoData:null,photoChanged:false,docs:(t.docs||[]).map(d=>({...d}))};
  const body=`<form id="fTool" data-form="tool"><div class="ph" id="toolPh" style="border-radius:var(--radius);margin-bottom:8px">${t.photoId?`<img data-photo="${t.photoId}" alt="">`:'<span style="font-size:42px">🔧</span>'}</div>
  <div class="grid2" style="margin-bottom:12px"><label class="btn">📷 Foto<input type="file" accept="image/*" data-file="toolPhoto" hidden></label><button type="button" class="btn" data-a="toolPhotoDel">Entfernen</button></div>
  <label class="f"><span>Bezeichnung</span><input name="name" required value="${esc(t.name)}" placeholder="z. B. Drehmomentschlüssel 40–200 Nm"></label>
@@ -2241,11 +2263,15 @@ function toolForm(id){const t=id?S.tools.find(x=>x.id===id):{category:'Handwerkz
  <div class="grid2"><label class="f"><span>Lagerort</span><input name="location" value="${esc(t.location)}" placeholder="z. B. Werkbank, Lade 2"></label><label class="f"><span>Einsätze manuell</span><input name="extraUses" inputmode="numeric" value="${valN(t.extraUses)}" placeholder="0"></label></div>
  <p class="sub" style="margin-top:-4px">Einsätze zählen automatisch, wenn du das Werkzeug bei einer Wartung auswählst. Die manuellen kommen dazu.</p>
  <div class="grid2"><label class="f"><span>Verliehen an</span><input name="lentTo" value="${esc(t.lentTo)}"></label><label class="f"><span>seit</span><input type="date" name="lentDate" value="${esc(t.lentDate||'')}"></label></div>
- <label class="f"><span>Notizen (Garantie, Kalibrierung …)</span><textarea name="notes">${esc(t.notes)}</textarea></label></form>`;
- openSheet(id?'Werkzeug bearbeiten':'Neues Werkzeug',body,`${id?`<button class="btn danger" data-a="toolDelete" data-id="${id}">Löschen</button>`:''}<button class="btn primary grow" type="submit" form="fTool">Speichern</button>`)}
+ <h4>🛡️ Garantie</h4><div class="grid2"><label class="f"><span>Garantie bis</span><input type="date" name="warrantyUntil" value="${esc(t.warrantyUntil||'')}"></label><label class="checkline" style="margin-top:18px"><input type="checkbox" name="warrantyLifetime" ${t.warrantyLifetime?'checked':''}> lebenslang</label></div>
+ <div class="row" style="margin:-4px 0 10px">${[1,2,3,5].map(y=>`<button type="button" class="chip" data-a="toolWy" data-y="${y}">+${y} ${y>1?'Jahre':'Jahr'}</button>`).join('')}</div><p class="sub" style="margin-top:-6px">Die Schnellwahl rechnet ab dem Kaufdatum.</p>
+ <h4>🧾 Rechnung</h4><div id="toolDocs"></div><label class="btn block">🧾 Rechnung hinzufügen (Foto oder PDF)<input type="file" accept="image/*,application/pdf" multiple hidden data-file="toolDocs"></label>
+ <label class="f"><span>Notizen (Kalibrierung, Seriennummer …)</span><textarea name="notes">${esc(t.notes)}</textarea></label></form>`;
+ openSheet(id?'Werkzeug bearbeiten':'Neues Werkzeug',body,`${id?`<button class="btn danger" data-a="toolDelete" data-id="${id}">Löschen</button>`:''}<button class="btn primary grow" type="submit" form="fTool">Speichern</button>`);renderToolDocs()}
 async function saveTool(f){const fd=Object.fromEntries(new FormData(f));const old=draft.id?S.tools.find(x=>x.id===draft.id):null;
- const t={...(old||{}),id:draft.id||uid(),name:fd.name.trim(),brand:fd.brand.trim(),category:fd.category,purchaseDate:fd.purchaseDate||null,price:num(fd.price),rentPrice:num(fd.rentPrice),location:fd.location.trim(),extraUses:num(fd.extraUses)||0,lentTo:fd.lentTo.trim(),lentDate:fd.lentTo.trim()?(fd.lentDate||today()):null,notes:fd.notes.trim()};
+ const t={...(old||{}),id:draft.id||uid(),name:fd.name.trim(),brand:fd.brand.trim(),category:fd.category,purchaseDate:fd.purchaseDate||null,price:num(fd.price),rentPrice:num(fd.rentPrice),location:fd.location.trim(),extraUses:num(fd.extraUses)||0,lentTo:fd.lentTo.trim(),lentDate:fd.lentTo.trim()?(fd.lentDate||today()):null,notes:fd.notes.trim(),warrantyUntil:fd.warrantyLifetime?null:(fd.warrantyUntil||null),warrantyLifetime:!!fd.warrantyLifetime};
  if(!t.name){toast('Bitte Bezeichnung angeben');return}
+ for(const d of draft.docs)if(d.data)await put('photos',{id:d.id,data:d.data});for(const d of old?.docs||[])if(!draft.docs.some(x=>x.id===d.id))await del('photos',d.id);t.docs=draft.docs.map(({id,type,name})=>({id,type,name}));
  if(draft.photoChanged){if(old?.photoId)await del('photos',old.photoId);t.photoId=null;if(draft.photoData){t.photoId=uid();await put('photos',{id:t.photoId,data:draft.photoData})}}
  await put('tools',t);closeSheet();toast('Gespeichert')}
 function toolPicker(){if(!S.tools.length)return`<p class="sub">Noch kein Werkzeug in der Werkstatt. <button type="button" class="linkbtn" data-a="go" data-h="#/tools">Werkzeug anlegen</button></p>`;
@@ -2357,7 +2383,9 @@ function warrantySheet(hits){openSheet('🛡️ Möglicher Garantiefall',`<p>Die
 function viewWarranty(){const t=today();const rows=[];S.entries.forEach(e=>(e.parts||[]).forEach(p=>{if(p.warranty){const end=addMonths(e.date,p.warranty);rows.push({e,p,end})}}));
  const act=rows.filter(r=>r.end>=t).sort((a,b)=>a.end.localeCompare(b.end)),exp=rows.filter(r=>r.end<t&&daysUntil(r.end)>-180).sort((a,b)=>b.end.localeCompare(a.end));
  const li=r=>`<div class="item ${daysUntil(r.end)<=60&&r.end>=t?'st-soon':''}" data-a="entryView" data-id="${r.e.id}"><span class="cat" style="--c:${r.end>=t?'var(--green)':'var(--muted)'}">🛡️</span><div class="grow"><b>${esc(r.p.name)}${r.p.maker?' · '+esc(r.p.maker):''}</b><div class="sub">${esc(carName(r.e.carId))} · eingebaut ${fmtD(r.e.date)}${r.p.shop?' · '+esc(r.p.shop):''}</div><div class="sub">bis <b style="color:var(--text)">${fmtD(r.end)}</b>${r.end>=t?' ('+relDays(daysUntil(r.end)).replace('in ','noch ')+')':''}</div></div></div>`;
- return{title:'Garantien',tab:'more',back:'#/more',html:(act.length?act.map(li).join(''):empty('Keine Teile mit laufender Garantie.<br><span class="sub">Beim Eintragen eines Teils kannst du die Garantiedauer auswählen.</span>','',''))+(exp.length?`<h2>Kürzlich abgelaufen</h2>`+exp.map(li).join(''):'')}}
+ const tw=S.tools.map(x=>({x,w:toolWarranty(x)})).filter(o=>o.w&&o.w.st!=='exp').sort((a,b)=>(a.w.end||'9999').localeCompare(b.w.end||'9999'));
+ const tl=o=>`<div class="item ${o.w.st==='soon'?'st-soon':''}" data-a="toolView" data-id="${o.x.id}"><span class="cat" style="--c:var(--accent)">🔧</span><div class="grow"><b>${esc(o.x.name)}${o.x.brand?' · '+esc(o.x.brand):''}</b><div class="sub">${o.x.purchaseDate?'gekauft '+fmtD(o.x.purchaseDate)+' · ':''}${esc(o.w.text)}</div>${(o.x.docs||[]).length?'<div class="sub">🧾 Rechnung hinterlegt</div>':'<div class="sub low">Keine Rechnung hinterlegt</div>'}</div></div>`;
+ return{title:'Garantien',tab:'more',back:'#/more',html:`<h2>Teile</h2>`+(act.length?act.map(li).join(''):'<p class="muted">Keine Teile mit laufender Garantie.</p>')+(exp.length?`<h2>Teile – kürzlich abgelaufen</h2>`+exp.map(li).join(''):'')+`<h2>Werkzeug</h2>`+(tw.length?tw.map(tl).join(''):'<p class="muted">Kein Werkzeug mit laufender Garantie.</p>')}}
 
 /* ================= Kalender ================= */
 function kmPerDay(carId){const pts=[...S.entries.filter(e=>e.carId===carId&&e.odo!=null).map(e=>[e.date,e.odo]),...S.fuel.filter(f=>f.carId===carId&&f.odo!=null).map(f=>[f.date,f.odo]),...S.odo.filter(o=>o.carId===carId).map(o=>[o.date,o.odo])]
@@ -2372,6 +2400,7 @@ function calendarItems(){const out=[],t=today(),end=addMonths(t,12);const add=(o
    if(!date)continue;if(s.st==='over'&&date>t)date=t;add({date,label:iv.name,sub:s.text,st:s.st,est,carId:c.id,act:`data-a="ivOpen" data-id="${iv.id}"`})}
   const ty=tyreDue(c);if(ty)add({date:ty.date,label:ty.label,sub:ty.text,st:ty.st,carId:c.id,act:`data-a="tyOpen" data-car="${c.id}"`});
   S.entries.filter(e=>e.carId===c.id).forEach(e=>(e.parts||[]).forEach(p=>{if(p.warranty){const we=addMonths(e.date,p.warranty);if(we>=t)add({date:we,label:'Garantie endet: '+p.name,sub:p.shop||'',st:'ok',carId:c.id,act:`data-a="entryView" data-id="${e.id}"`})}}))}
+ S.tools.forEach(x=>{if(x.warrantyUntil&&x.warrantyUntil>=t)add({date:x.warrantyUntil,label:'Garantie endet: '+x.name,sub:x.brand||'Werkzeug',st:daysUntil(x.warrantyUntil)<=60?'soon':'ok',carId:null,act:`data-a="toolView" data-id="${x.id}"`})});
  S.todos.filter(x=>!x.done&&x.due).forEach(x=>add({date:x.due,label:'To-do: '+x.title,sub:prioLabel(x.prio),st:x.due<t?'over':'ok',carId:x.carId,act:`data-a="todoForm" data-id="${x.id}"`}));
  return out.sort((a,b)=>a.date.localeCompare(b.date))}
 function viewCalendar(){const t=today(),items=calendarItems();const over=items.filter(i=>i.date<t||i.st==='over'),rest=items.filter(i=>!(i.date<t||i.st==='over'));
@@ -2496,7 +2525,7 @@ async function scanPart(row){const c=await openScanner();if(!c)return;const it=i
 
 /* ================= Rückgängig ================= */
 let undoActive=false,undoPhotos=[],undoT=null,undoData=null;
-const UNDO_LABEL={entryDelete:'Eintrag',carDelete:'Auto',ivDelete:'Intervall',todoDelete:'Aufgabe',invDelete:'Lagerteil',fuelDelete:'Tankung',odoDelete:'km-Stand',dlRemove:'Termin',tyreDelete:'Reifensatz',issueDelete:'Fehler',guideDelete:'Anleitung',toolDelete:'Werkzeug'};
+const UNDO_LABEL={shopDelete:'Eintrag',shopClear:'Gekaufte Einträge',entryDelete:'Eintrag',carDelete:'Auto',ivDelete:'Intervall',todoDelete:'Aufgabe',invDelete:'Lagerteil',fuelDelete:'Tankung',odoDelete:'km-Stand',dlRemove:'Termin',tyreDelete:'Reifensatz',issueDelete:'Fehler',guideDelete:'Anleitung',toolDelete:'Werkzeug'};
 async function withUndo(name,fn){const snap=structuredClone(Object.fromEntries(STORES.filter(s=>s!=='photos').map(s=>[s,S[s]])));const before=JSON.stringify(snap);
  undoPhotos=[];undoActive=true;try{await fn()}finally{undoActive=false}
  const now=JSON.stringify(Object.fromEntries(STORES.filter(s=>s!=='photos').map(s=>[s,S[s]])));if(now===before&&!undoPhotos.length)return;
@@ -2524,9 +2553,9 @@ function activityItems(){const out=[];const add=o=>out.push(o);
  for(const c of S.cars){if(c.purchase)add({date:c.purchase,cat:'Auto',carId:c.id,icon:'<span class="cat" style="--c:var(--accent)">🚗</span>',title:`${dispName(c)} gekauft`,sub:c.purchaseOdo!=null?kmT(c.purchaseOdo):'',amount:c.purchasePrice,noSum:true,act:`data-a="go" data-h="#/car/${c.id}"`});
   if(c.sold)add({date:c.sold.date,cat:'Auto',carId:c.id,icon:'<span class="cat" style="--c:var(--green)">💶</span>',title:`${dispName(c)} verkauft`,sub:[c.sold.odo!=null?kmT(c.sold.odo):'',c.sold.buyer].filter(Boolean).join(' · '),amount:c.sold.price,plus:true,noSum:true,act:`data-a="go" data-h="#/car/${c.id}"`})}
  return out.sort((a,b)=>b.date.localeCompare(a.date))}
-function homeTabs(){return`<div class="seg big-seg"><button type="button" class="${homeTab==='ov'?'on':''}" data-a="homeTab" data-t="ov">🏠 Übersicht</button><button type="button" class="${homeTab==='log'?'on':''}" data-a="homeTab" data-t="log">📜 Verlauf</button></div>`}
+function homeTabs(){return`<div class="hdr-seg" role="tablist"><button type="button" class="${homeTab==='ov'?'on':''}" data-a="homeTab" data-t="ov">Übersicht</button><button type="button" class="${homeTab==='log'?'on':''}" data-a="homeTab" data-t="log">Verlauf</button></div>`}
 function viewLog(){const cars=S.cars.slice().sort((a,b)=>(a.archived?1:0)-(b.archived?1:0)||byName(a,b));
- return homeTabs()+`<label class="f"><input id="logQ" type="search" placeholder="Verlauf durchsuchen …" value="${esc(logQ)}"></label>
+ return`<label class="f"><input id="logQ" type="search" placeholder="Verlauf durchsuchen …" value="${esc(logQ)}"></label>
  <div class="chips"><button class="chip ${!logCar?'on':''}" data-a="logCar" data-c="">Alle Autos</button>${cars.map(c=>`<button class="chip ${logCar===c.id?'on':''}" data-a="logCar" data-c="${c.id}">${esc(dispName(c))}${c.archived?' 🗄️':''}</button>`).join('')}<button class="chip ${logCar==='_none'?'on':''}" data-a="logCar" data-c="_none">Allgemein</button></div>
  <div class="chips"><button class="chip ${!logCat?'on':''}" data-a="logCat" data-c="">Alle</button>${LOG_CATS.map(k=>`<button class="chip ${logCat===k?'on':''}" data-a="logCat" data-c="${k}">${k}</button>`).join('')}</div><div id="logList"></div>`}
 function renderLog(){const box=$('#logList');if(!box)return;const w=logQ.toLowerCase().split(/\s+/).filter(Boolean);
@@ -2538,6 +2567,60 @@ function renderLog(){const box=$('#logList');if(!box)return;const w=logQ.toLower
  box.innerHTML=h||`<p class="muted">${w.length||logCar||logCat?'Keine Treffer.':'Noch keine Aktivitäten.'}</p>`;
  if(all.length&&(logCar||logCat||w.length)){const tot=all.filter(i=>!i.noSum).reduce((s,i)=>s+(i.amount||0),0);box.insertAdjacentHTML('afterbegin',`<p class="sub" style="text-align:right;margin:0 0 8px">${all.length} Treffer · ${eur(tot)}</p>`)}}
 
+/* ================= Einkaufsliste ================= */
+let shopBack='#/todos',shopShowDone=false,shopPick=null;
+const shopLow=()=>lowStock().filter(i=>i.shopSnooze!==i.qty);
+const shopTodoParts=()=>{const out=[];openTodos().forEach(t=>(t.parts||[]).forEach((p,i)=>{if(!p.bought)out.push({t,p,i})}));return out};
+const shopOpenCount=()=>S.shop.filter(x=>!x.done).length+shopLow().length+shopTodoParts().length;
+const shopInStock=p=>S.inventory.find(i=>(p.invId&&i.id===p.invId)||(p.partNo&&i.partNo&&i.partNo.replace(/\s/g,'').toLowerCase()===p.partNo.replace(/\s/g,'').toLowerCase())||(p.name&&i.name.toLowerCase()===p.name.toLowerCase()));
+const qtyTxt=(q,u)=>q!=null?`${fmtQ(q)} ${esc(u||'Stk')} `:'';
+function viewShop(){const own=S.shop.filter(x=>!x.done).sort((a,b)=>(a.created||'').localeCompare(b.created||'')),done=S.shop.filter(x=>x.done).sort((a,b)=>(b.doneAt||'').localeCompare(a.doneAt||'')),low=shopLow(),tp=shopTodoParts();
+ const row=(chk,main,sub,del,extra='')=>`<div class="item shop-row">${chk}<div class="grow" ${main.act||''}><b>${main.t}</b>${sub?`<div class="sub">${sub}</div>`:''}</div>${extra}${del}</div>`;
+ const delBtn=(a,id,i)=>`<button class="iconbtn sm shop-x" data-a="${a}" data-id="${id}"${i!=null?` data-i="${i}"`:''} aria-label="Entfernen">✕</button>`;
+ let h=`<form id="fShopAdd" data-form="shopAdd" class="shop-add"><input id="shopName" name="name" data-ac="shop" autocomplete="off" placeholder="Was brauchst du? z. B. Bremsenreiniger" enterkeyhint="done">
+ <input name="qty" inputmode="decimal" placeholder="Menge" class="shop-qty"><select name="unit" class="shop-unit">${UNITS.map(u=>`<option>${u}</option>`).join('')}</select><button class="btn primary shop-plus" type="submit" aria-label="Hinzufügen">+</button></form>
+ <p class="sub" style="margin:-4px 0 12px">Tippen – bereits verwendete Artikel erscheinen. Antippen übernimmt Hersteller und Nummer.</p>`;
+ h+=`<h2>Meine Liste${own.length?` (${own.length})`:''}</h2>`+(own.map(x=>row(`<button class="chk" data-a="shopToggle" data-id="${x.id}" aria-label="Gekauft">✓</button>`,{t:qtyTxt(x.qty,x.unit)+esc(x.name),act:`data-a="shopEdit" data-id="${x.id}"`},esc([x.maker,x.partNo&&'Nr. '+x.partNo,x.spec,x.carId&&carName(x.carId),x.note].filter(Boolean).join(' · ')),delBtn('shopDelete',x.id))).join('')||'<p class="muted">Noch nichts eingetragen.</p>');
+ if(low.length)h+=`<h2>📦 Lager auffüllen (${low.length})</h2>`+low.map(i=>row(`<button class="chk" data-a="restockForm" data-id="${i.id}" aria-label="Gekauft">✓</button>`,{t:esc(i.name),act:`data-a="invForm" data-id="${i.id}"`},`<span class="low">Bestand ${fmtQ(i.qty||0)} / Minimum ${fmtQ(i.minQty)} ${esc(i.unit)}</span>${i.maker?' · '+esc(i.maker):''}`,delBtn('shopSnooze',i.id))).join('');
+ if(tp.length){const g={};tp.forEach(x=>{const k=x.t.carId?carName(x.t.carId):'Allgemein';(g[k]=g[k]||[]).push(x)});
+  h+=`<h2>🔧 Für To-dos (${tp.length})</h2>`+Object.entries(g).map(([k,a])=>`<div class="sub" style="margin:4px 2px 6px;font-weight:700">${esc(k)}</div>`+a.map(({t,p,i})=>{const s=shopInStock(p);
+   return row(`<button class="chk" data-a="shopTodoPart" data-id="${t.id}" data-i="${i}" aria-label="Gekauft">✓</button>`,{t:qtyTxt(p.qty,p.unit)+esc(p.name),act:`data-a="todoForm" data-id="${t.id}"`},esc([p.maker,p.partNo&&'Nr. '+p.partNo].filter(Boolean).join(' · '))+`${p.maker||p.partNo?' · ':''}für: ${esc(t.title)}`,delBtn('shopTodoPart',t.id,i),s&&(s.qty||0)>0?`<span class="badge st-ok st">im Lager ${fmtQ(s.qty)}</span>`:'')}).join('')).join('')}
+ if(!own.length&&!low.length&&!tp.length)h+='<p class="sub">Teile aus offenen To-dos und Lagerartikel unter Mindestbestand erscheinen hier automatisch.</p>';
+ if(done.length)h+=`<h2><button class="linkbtn" data-a="shopShowDone">${shopShowDone?'▾':'▸'} Gekauft (${done.length})</button></h2>`+(shopShowDone?done.map(x=>`<div class="item done shop-row"><button class="chk on" data-a="shopToggle" data-id="${x.id}" aria-label="Zurück auf die Liste">✓</button><div class="grow"><b>${qtyTxt(x.qty,x.unit)}${esc(x.name)}</b><div class="sub">gekauft ${x.doneAt?fmtD(x.doneAt):''}</div></div>${delBtn('shopDelete',x.id)}</div>`).join('')+`<button class="btn block" data-a="shopClear">Gekaufte entfernen</button>`:'');
+ h+=`<button class="btn block" data-a="shopShare" style="margin-top:16px">📤 Liste teilen / kopieren</button>`;
+ return{title:'Einkaufsliste',html:h,tab:shopBack.startsWith('#/tools')||shopBack.startsWith('#/inv')?'inv':shopBack.startsWith('#/todos')?'todos':'home',back:shopBack}}
+async function shopAdd(f){const fd=Object.fromEntries(new FormData(f));const name=fd.name.trim();if(!name){$('#shopName').focus();return}
+ const pk=shopPick&&shopPick.name===name?shopPick:null;
+ await put('shop',{id:uid(),name,qty:num(fd.qty),unit:fd.unit,maker:pk?.maker||'',partNo:pk?.partNo||'',spec:pk?.spec||'',invId:pk?.invId||'',carId:null,note:'',done:false,created:new Date().toISOString()});
+ shopPick=null;render();setTimeout(()=>$('#shopName')?.focus(),50)}
+function shopEdit(id){const x=S.shop.find(s=>s.id===id);if(!x)return;draft={kind:'shopEdit',id};
+ openSheet('Eintrag bearbeiten',`<form id="fShopEdit" data-form="shopEdit"><label class="f"><span>Was</span><input name="name" required value="${esc(x.name)}"></label>
+ <div class="grid2"><label class="f"><span>Menge</span><input name="qty" inputmode="decimal" value="${valN(x.qty)}"></label><label class="f"><span>Einheit</span><select name="unit">${UNITS.map(u=>`<option ${x.unit===u?'selected':''}>${u}</option>`).join('')}</select></label></div>
+ <div class="grid2"><label class="f"><span>Hersteller</span><input name="maker" list="dl-makers" value="${esc(x.maker)}"></label><label class="f"><span>Teilenummer</span><input name="partNo" value="${esc(x.partNo)}"></label></div>
+ <label class="f"><span>Spezifikation</span><input name="spec" value="${esc(x.spec)}"></label><label class="f"><span>Für Auto</span><select name="carId">${carOptions(x.carId||'','— egal —')}</select></label>
+ <label class="f"><span>Notiz</span><input name="note" value="${esc(x.note)}" placeholder="z. B. beim Baumarkt im Angebot"></label>${datalists()}</form>`,
+ `<button class="btn danger" data-a="shopDelete" data-id="${id}" data-close="1">Löschen</button><button class="btn primary grow" type="submit" form="fShopEdit">Speichern</button>`)}
+async function saveShopEdit(f){const fd=Object.fromEntries(new FormData(f));const x=S.shop.find(s=>s.id===draft.id);
+ Object.assign(x,{name:fd.name.trim(),qty:num(fd.qty),unit:fd.unit,maker:fd.maker.trim(),partNo:fd.partNo.trim(),spec:fd.spec.trim(),carId:fd.carId||null,note:fd.note.trim()});if(!x.name){toast('Bitte eintragen, was du brauchst');return}
+ await put('shop',x);closeSheet();render()}
+function shopShareText(){const own=S.shop.filter(x=>!x.done),low=shopLow(),tp=shopTodoParts();const L=(q,u,n,m,no)=>`- ${q!=null?fmtQ(q)+' '+(u||'')+' ':''}${n}${m?' ('+m+')':''}${no?' Nr. '+no:''}`;
+ return'Einkaufsliste Garage\n'+(own.length?'\n'+own.map(x=>L(x.qty,x.unit,x.name,x.maker,x.partNo)).join('\n')+'\n':'')+(low.length?'\nLager auffüllen:\n'+low.map(i=>`- ${i.name}${i.maker?' ('+i.maker+')':''} – Bestand ${fmtQ(i.qty||0)}/${fmtQ(i.minQty)} ${i.unit}`).join('\n')+'\n':'')
+  +(tp.length?'\nFür To-dos:\n'+tp.map(({p,t})=>L(p.qty,p.unit,p.name,p.maker,p.partNo)+' – '+t.title).join('\n'):'')}
+
+/* ================= Werkzeug: Garantie & Rechnung ================= */
+function toolWarranty(t){if(t.warrantyLifetime)return{st:'ok',life:true,short:'🛡️ lebenslang',text:'Lebenslange Garantie'};if(!t.warrantyUntil)return null;
+ const d=daysUntil(t.warrantyUntil);if(d<0)return{st:'exp',end:t.warrantyUntil,short:'',text:`abgelaufen am ${fmtD(t.warrantyUntil)}`};
+ const m=Math.floor(d/30.44);return{st:d<=60?'soon':'ok',end:t.warrantyUntil,days:d,short:`🛡️ ${d<=60?'noch '+d+' Tage':m>=24?'noch '+fmtN(m/12,1)+' J.':'noch '+m+' Mon.'}`,text:`bis ${fmtD(t.warrantyUntil)} (${d<=60?'noch '+d+' Tage':m>=24?'noch '+fmtN(m/12,1)+' Jahre':'noch '+m+' Monate'})`}}
+function renderToolDocs(){const box=$('#toolDocs');if(!box)return;box.innerHTML=draft.docs.length?draft.docs.map((d,i)=>`<div class="doc-row">${d.type==='pdf'?'<span class="doc-ic">📄</span>':`<img ${d.data?`src="${d.data}"`:`data-photo="${d.id}"`} alt="" class="doc-th">`}<span class="grow" data-a="docOpen" data-id="${d.id}" data-i="${i}">${esc(d.name||(d.type==='pdf'?'Rechnung.pdf':'Rechnung'))}</span><button type="button" class="iconbtn sm" data-a="toolDocDel" data-i="${i}" aria-label="Entfernen">✕</button></div>`).join(''):'<p class="sub" style="margin:0 0 8px">Noch keine Rechnung hinterlegt.</p>';hydratePhotos(box)}
+function readDataURL(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})}
+async function addToolDocs(files){for(const f of files){try{if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)){if(f.size>8e6){toast('PDF ist größer als 8 MB – bitte als Foto aufnehmen');continue}draft.docs.push({id:uid(),type:'pdf',name:f.name,data:await readDataURL(f)})}
+ else draft.docs.push({id:uid(),type:'img',name:f.name||'Rechnung',data:await compressImage(f,1800,.8)})}catch(e){toast('Datei konnte nicht gelesen werden')}}renderToolDocs()}
+async function openDoc(id,local){const data=local||await getPhoto(id);if(!data){toast('Datei nicht gefunden');return}
+ if(data.startsWith('data:application/pdf')){const b=await(await fetch(data)).blob();const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.target='_blank';a.rel='noopener';a.download='Rechnung.pdf';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
+ else{$('#lightbox img').src=data;$('#lightbox').classList.remove('hidden')}}
+
+function shopList(){const h=location.hash||'#/home';if(!h.startsWith('#/shop'))shopBack=h;if(sheetOpen)closeSheet();nav('#/shop')}
+async function shopShare(){const txt=shopShareText();try{if(navigator.share){await navigator.share({title:'Einkaufsliste',text:txt});return}await navigator.clipboard.writeText(txt);toast('In Zwischenablage kopiert')}catch(e){if(e.name!=='AbortError')toast('Teilen nicht möglich')}}
 /* ================= Artikel-Vorschläge (Autofill) ================= */
 function partCatalog(){const map=new Map();const key=p=>[p.name,p.maker,p.partNo,p.spec].map(x=>String(x||'').trim().toLowerCase()).join('|');
  const add=(p,date,carId)=>{if(!p?.name)return;const k=key(p);const o=map.get(k);
@@ -2556,7 +2639,7 @@ let acBox=null,acInput=null,acItems=[];
 function acClose(){acBox?.remove();acBox=null;acInput=null}
 function acRender(input){const items=acSearch(input.value);
  if(!items.length||(items.length===1&&items[0].name===input.value&&!items[0].maker)){acClose();return}
- if(acInput!==input){acClose();acInput=input;acBox=document.createElement('div');acBox.className='ac-list';(input.closest('label')||input).insertAdjacentElement('afterend',acBox);setTimeout(()=>acBox?.scrollIntoView({block:'nearest',behavior:'smooth'}),60)}
+ if(acInput!==input){acClose();acInput=input;acBox=document.createElement('div');acBox.className='ac-list';(input.closest('.shop-add')||input.closest('label')||input).insertAdjacentElement('afterend',acBox);setTimeout(()=>acBox?.scrollIntoView({block:'nearest',behavior:'smooth'}),60)}
  acItems=items;acBox.innerHTML=`<div class="ac-head">Bereits verwendet – antippen zum Übernehmen</div>`+items.map((it,i)=>{const up=unitPrice(it);
   return`<button type="button" class="ac-item" data-ac-i="${i}"><b>${esc(it.name)}</b><span class="sub">${esc([it.maker,it.partNo&&'Nr. '+it.partNo,it.spec].filter(Boolean).join(' · ')||'—')}</span>
   <span class="sub">${[it.qty!=null?fmtQ(it.qty)+' '+esc(it.unit):'',it.price!=null?eur(it.price):up!=null?eur(up)+'/'+esc(it.unit):'',it.date?'zuletzt '+fmtD(it.date)+(it.carId?' ('+esc(carName(it.carId))+')':''):'',it.count>1?it.count+'× verwendet':'',it.invId?`📦 im Lager: ${fmtQ(it.stock)} ${esc(it.unit)}`:''].filter(Boolean).join(' · ')}</span></button>`}).join('')}
@@ -2566,6 +2649,7 @@ function acPick(input,it){const mode=input.dataset.ac;
   if(g('shop')&&it.shop)g('shop').value=it.shop;if(g('warranty')&&it.warranty)g('warranty').value=String(it.warranty);
   if(g('invId')&&it.invId&&it.stock>0){g('invId').value=it.invId;toast(`Wird aus dem Lager abgebucht (Bestand ${fmtQ(it.stock)} ${it.unit}) – oben in der Position änderbar`)}
   updateTotal();ivAutoMatch()}
+ else if(mode==='shop'){input.value=it.name;const f=input.form;f.elements.namedItem('unit').value=UNITS.includes(it.unit)?it.unit:'Stk';if(it.qty!=null&&!f.elements.namedItem('qty').value)f.elements.namedItem('qty').value=valN(it.qty);shopPick={name:it.name,maker:it.maker,partNo:it.partNo,spec:it.spec,invId:it.invId||''}}
  else if(mode==='inv'){const f=input.form,F=n=>f.elements.namedItem(n);F('name').value=it.name;F('maker').value=it.maker;F('partNo').value=it.partNo;F('spec').value=it.spec;F('unit').value=UNITS.includes(it.unit)?it.unit:'Stk';invPreview()}}
 document.addEventListener('focusin',e=>{if(e.target.matches?.('[data-ac]'))acRender(e.target)});
 document.addEventListener('focusout',e=>{if(!e.target.matches?.('[data-ac]'))return;if(acBox&&e.relatedTarget&&acBox.contains(e.relatedTarget))return;const t=e.target;setTimeout(()=>{if(acInput===t&&document.activeElement!==t)acClose()},250)});
@@ -2579,7 +2663,7 @@ const A={
  toolUse:async d=>{const t=S.tools.find(x=>x.id===d.id);t.extraUses=(t.extraUses||0)+1;await put('tools',t);renderToolList();toast(`${t.name}: ${toolUses(t)}× verwendet`)},
  toolLend:async d=>{const t=S.tools.find(x=>x.id===d.id);if(t.lentTo){t.lentTo='';t.lentDate=null;await put('tools',t);toast('Zurück in der Werkstatt');toolView(t.id);return}
   const who=prompt('An wen verleihst du „'+t.name+'“?','');if(!who||!who.trim())return;t.lentTo=who.trim();t.lentDate=today();await put('tools',t);toast('Verliehen an '+t.lentTo);toolView(t.id)},
- toolDelete:async d=>{const t=S.tools.find(x=>x.id===d.id);if(!confirm(`„${t.name}“ löschen?`))return;if(t.photoId)await del('photos',t.photoId);await del('tools',t.id);closeSheet()},
+ toolDelete:async d=>{const t=S.tools.find(x=>x.id===d.id);if(!confirm(`„${t.name}“ löschen?`))return;if(t.photoId)await del('photos',t.photoId);for(const x of t.docs||[])await del('photos',x.id);await del('tools',t.id);closeSheet()},
  toolPhotoDel:()=>{draft.photoChanged=true;draft.photoData=null;$('#toolPh').innerHTML='<span style="font-size:42px">🔧</span>'},
  toolPick:(d,el)=>{const a=draft.toolIds||(draft.toolIds=[]);const i=a.indexOf(d.id);if(i>=0)a.splice(i,1);else{a.push(d.id);const t=S.tools.find(x=>x.id===d.id);if(t?.lentTo)toast(`Achtung: ${t.name} ist an ${t.lentTo} verliehen`)}el.classList.toggle('on',i<0)},
  tyreForm:d=>tyreForm(d.car,d.id),tyreMount:d=>tyreMount(d.id),tyreUnmount:d=>tyreUnmount(d.id),
@@ -2599,7 +2683,7 @@ const A={
   else{if(!confirm('Auto ohne Verkauf ins Archiv verschieben?'))return;c.archived=true;await put('cars',c);toast('Ins Archiv verschoben');render()}},
  sellForm:d=>sellForm(d.car),pkOpen:d=>pkOpen(d.car),
  pkDone:d=>pkForm({carId:d.car}),
- quickWs:()=>openSheet('Werkzeug / Lager',`<div class="qgrid"><button class="qbtn" data-a="toolForm"><b>🔧</b>Neues Werkzeug</button><button class="qbtn" data-a="invForm"><b>📦</b>Teil ins Lager</button><button class="qbtn" data-a="scanInv"><b>📷</b>Barcode scannen</button><button class="qbtn" data-a="shopList"><b>🛒</b>Einkaufsliste</button></div>`),pkView:d=>pkView(d.id),
+ quickWs:()=>openSheet('Werkzeug / Lager',`<div class="qgrid"><button class="qbtn" data-a="toolForm"><b>🔧</b>Neues Werkzeug</button><button class="qbtn" data-a="invForm"><b>📦</b>Teil ins Lager</button><button class="qbtn" data-a="scanInv"><b>📷</b>Barcode scannen</button><button class="qbtn" data-a="shopOpen"><b>🛒</b>Einkaufsliste</button></div>`),pkView:d=>pkView(d.id),
  carPhotoCrop:async()=>{let src=draft.photoSrc;
   if(!src&&!draft.photoChanged){if(draft.photoOrigId)src=await getPhoto(draft.photoOrigId);if(!src&&draft.photoId)src=await getPhoto(draft.photoId)}
   if(!src)src=draft.photoData;if(!src){toast('Zuerst ein Foto wählen');return}
@@ -2625,6 +2709,16 @@ const A={
  todoForm:d=>todoForm(d.id,d.car),todoToggle:d=>todoToggle(d.id),todoToEntry:d=>todoToEntry(d.id),
  todoDelete:async d=>{if(!confirm('Diese Aufgabe löschen?'))return;await del('todos',d.id);closeSheet()},
  todoFilter:d=>{todoFilter=d.f;render()},todoShowDone:()=>{todoShowDone=!todoShowDone;render()},shopList,shopShare,
+ shopOpen:()=>shopList(),shopEdit:d=>shopEdit(d.id),shopShowDone:()=>{shopShowDone=!shopShowDone;render()},
+ shopToggle:async d=>{const x=S.shop.find(s=>s.id===d.id);x.done=!x.done;x.doneAt=x.done?today():null;await put('shop',x);render();
+  if(x.done){const it=shopInStock(x);if(it)toast(`${x.name} gekauft`,'Ins Lager buchen',()=>restockForm(it.id));else toast(`${x.name} gekauft ✓`)}},
+ shopDelete:async d=>{await del('shop',d.id);if(d.close)closeSheet();render()},
+ shopClear:async()=>{for(const x of S.shop.filter(x=>x.done))await del('shop',x.id);render()},
+ shopSnooze:async d=>{const it=S.inventory.find(i=>i.id===d.id);it.shopSnooze=it.qty;await put('inventory',it);render();toast('Ausgeblendet, bis sich der Bestand ändert')},
+ shopTodoPart:async d=>{const t=S.todos.find(x=>x.id===d.id);const p=t?.parts?.[+d.i];if(!p)return;p.bought=true;await put('todos',t);render();toast(`${p.name} abgehakt – bleibt im To-do „${t.title}“`)},
+ docOpen:d=>{const x=draft?.docs?.[+d.i];openDoc(d.id,x?.data)},toolDocDel:d=>{draft.docs.splice(+d.i,1);renderToolDocs()},
+ toolWy:d=>{const f=$('#fTool'),F=n=>f.elements.namedItem(n);const base=F('purchaseDate').value||today();F('warrantyUntil').value=addMonths(base,12*+d.y);F('warrantyLifetime').checked=false},
+ toolDocView:d=>openDoc(d.id),
  invForm:d=>invForm(d.id,d.ean),invDelete:async d=>{if(!confirm('Dieses Lagerteil löschen?'))return;await del('inventory',d.id);closeSheet()},
  invQty:async d=>{const it=S.inventory.find(i=>i.id===d.id);it.qty=Math.max(0,r3((it.qty||0)+ +d.d*invStep(it.unit)));await put('inventory',it);if(d.close){closeSheet();toast(`${it.name}: ${fmtQ(it.qty)} ${it.unit}`)}renderInvList()},
  invSet:async d=>{const it=S.inventory.find(i=>i.id===d.id);const v=prompt(`Bestand von „${it.name}“ in ${it.unit}:`,valN(it.qty||0));if(v===null)return;const n=num(v);if(n==null||n<0){toast('Ungültige Zahl');return}it.qty=r3(n);await put('inventory',it);renderInvList()},
@@ -2637,14 +2731,14 @@ const A={
  statsYear:d=>{statsYear=d.y;render()},
  exportJSON,importJSON:()=>$('#importFile').click(),exportCSV:d=>exportCSV(d.car),printBook:d=>printBook(d.car),doPrint:d=>doPrint(d.car),
  demoKeepCars:async()=>{if(!confirm('Alle Beispiel-Einträge, Intervalle, To-dos, Lagerteile, Tankungen und Termine löschen? Deine Autos bleiben.'))return;
-  for(const s of['entries','intervals','todos','inventory','fuel','odo','tyres','issues','guides','tools'])for(const x of S[s].filter(x=>x.demo))await del(s,x.id);
+  for(const s of['entries','intervals','todos','inventory','fuel','odo','tyres','issues','guides','tools','shop'])for(const x of S[s].filter(x=>x.demo))await del(s,x.id);
   for(const c of S.cars.filter(c=>c.demo)){delete c.demo;c.odo=null;c.deadlines=(c.deadlines||[]).map(d=>({...d,date:''}));await put('cars',c)}toast('Beispieldaten entfernt');nav('#/home')},
  demoAll:async()=>{if(!confirm('Alle Beispieldaten inklusive der Autos löschen?'))return;
-  for(const s of['entries','intervals','todos','inventory','fuel','odo','tyres','issues','guides','tools','cars'])for(const x of S[s].filter(x=>x.demo))await del(s,x.id);toast('Beispieldaten entfernt');nav('#/home')},
+  for(const s of['entries','intervals','todos','inventory','fuel','odo','tyres','issues','guides','tools','shop','cars'])for(const x of S[s].filter(x=>x.demo))await del(s,x.id);toast('Beispieldaten entfernt');nav('#/home')},
  wipe:async()=>{if(!confirm('Wirklich ALLE Daten löschen? Das kann nicht rückgängig gemacht werden.\n\nTipp: Vorher ein Backup speichern.'))return;await clearAll();toast('Alle Daten gelöscht');nav('#/home')},
 };
 document.addEventListener('click',e=>{if(e.target.id==='sheet'){closeSheet();return}const el=e.target.closest('[data-a]');if(!el)return;const f=A[el.dataset.a];if(f){e.preventDefault();const n=el.dataset.a;if(UNDO_LABEL[n])withUndo(n,()=>f(el.dataset,el,e));else f(el.dataset,el,e)}});
-const FORMS={restock:saveRestock,pk:savePk,tool:saveTool,tyre:saveTyre,issue:saveIssue,guide:saveGuide,receipt:saveReceipt,expose:saveExpose,ivTpl:saveIvTpl,sell:saveSell,car:saveCar,entry:saveEntry,todo:saveTodo,inv:saveInv,fuel:saveFuel,odo:saveOdo,iv:saveIv,spec:saveSpecs,dl:saveDl};
+const FORMS={shopAdd,shopEdit:saveShopEdit,restock:saveRestock,pk:savePk,tool:saveTool,tyre:saveTyre,issue:saveIssue,guide:saveGuide,receipt:saveReceipt,expose:saveExpose,ivTpl:saveIvTpl,sell:saveSell,car:saveCar,entry:saveEntry,todo:saveTodo,inv:saveInv,fuel:saveFuel,odo:saveOdo,iv:saveIv,spec:saveSpecs,dl:saveDl};
 let saving=false;
 document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target;const fn=FORMS[f.dataset.form];if(!fn||saving)return;saving=true;try{await fn(f)}catch(err){console.error(err);toast('Fehler beim Speichern: '+err.message)}finally{saving=false}});
 const CHANGES={
@@ -2665,6 +2759,7 @@ const FILES={
  carPhoto:async fl=>{if(!fl[0])return;let big;try{big=await compressImage(fl[0],2000,.9)}catch(e){toast('Bild konnte nicht gelesen werden');return}const d=await openCropper(big);if(!d)return;draft.photoSrc=big;draft.photoData=d;draft.photoChanged=true;$('#carPh').innerHTML=`<img src="${d}" alt="">`},
  entryPhotos:async fl=>{for(const f of fl){try{draft.photos.push({id:uid(),tag:'Foto',data:await compressImage(f)})}catch(e){toast('Bild konnte nicht gelesen werden')}}renderPhotos()},
  importJSON,
+ toolDocs:addToolDocs,
  toolPhoto:async fl=>{if(!fl[0])return;try{draft.photoData=await compressImage(fl[0],1000);draft.photoChanged=true;$('#toolPh').innerHTML=`<img src="${draft.photoData}" alt="">`}catch(e){toast('Bild konnte nicht gelesen werden')}},
  receipt:async fl=>{if(!fl[0])return;try{receiptForm(await compressImage(fl[0],1600,.75))}catch(e){toast('Bild konnte nicht gelesen werden')}},
 };
@@ -2720,8 +2815,10 @@ async function seed(){const P=(name,maker,qty,unit,price,o={})=>({name,maker,par
   stands=TL('Unterstellböcke 3 t (Paar)','','Hebe- & Sicherungstechnik','2019-05-20',39,{location:'Garage hinten'}),
   obd=TL('OBD2-Diagnosegerät','Autel','Diagnose & Elektrik','2022-02-10',59,{rentPrice:30,extraUses:3,location:'Lade 1',notes:'Fehlerspeicher auslesen kostet in der Werkstatt etwa 30 €.'}),
   spring=TL('Federspanner','KS Tools','Spezialwerkzeug','2021-04-08',45,{rentPrice:10,lentTo:'Markus',lentDate:'2026-09-28'}),
-  bleed=TL('Bremsenentlüftungsgerät','','Spezialwerkzeug','2024-09-01',79,{rentPrice:20,location:'Regal 2'});
- for(const x of[tq,nuss,jack,stands,obd,spring,bleed])await put('tools',x);
+  bleed=TL('Bremsenentlüftungsgerät','','Spezialwerkzeug','2024-09-01',79,{rentPrice:20,location:'Regal 2',warrantyUntil:'2027-09-01'}),
+  impact=TL('Akku-Schlagschrauber 18 V','','Elektrowerkzeug','2025-11-20',199,{rentPrice:15,location:'Werkzeugwagen',warrantyUntil:'2027-11-20',notes:'Seriennummer: hier eintragen'});
+ obd.warrantyUntil='2024-02-10';for(const x of[tq,nuss,jack,stands,obd,spring,bleed,impact])await put('tools',x);
+ for(const x of[{id:uid(),demo:true,name:'Scheibenwischer vorne',qty:1,unit:'Paar',maker:'Bosch',partNo:'',spec:'',invId:'',carId:a.id,note:'',done:false,created:new Date().toISOString()},{id:uid(),demo:true,name:'Einweghandschuhe Nitril',qty:1,unit:'Stk',maker:'',partNo:'',spec:'Gr. L',invId:'',carId:null,note:'',done:false,created:new Date().toISOString()}])await put('shop',x);
  ents[0].toolIds=[jack.id,stands.id,tq.id];ents[1].toolIds=[jack.id,stands.id,tq.id,nuss.id];ents[3].toolIds=[bleed.id,jack.id];ents[4].toolIds=[jack.id,stands.id,tq.id];ents[5].toolIds=[nuss.id,tq.id];ents[6].toolIds=[nuss.id,tq.id];ents[10].toolIds=[jack.id,stands.id];
  ents[1].parts[0].warranty=24;ents[1].parts[1].warranty=24;ents[1].parts[0].shop='Autoteile Online';ents[5].parts[0].warranty=24;ents[5].parts[1].warranty=24;
  for(const x of ents)await put('entries',x);
