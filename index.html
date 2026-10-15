@@ -156,6 +156,12 @@ h2 .h2a{color:var(--accent);text-transform:none;letter-spacing:0;font-weight:700
 .ctabs button .ico{width:22px;height:22px}.ctabs button.on{background:var(--accent);color:var(--on-accent)}
 .cdotr{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);vertical-align:2px}
 .seg2{display:flex;gap:6px;margin-bottom:12px}.seg2 button{flex:1;background:none;border:1px solid var(--line);color:var(--muted);font:inherit;font-size:14px;font-weight:600;padding:9px 4px;min-height:44px;border-radius:12px;cursor:pointer}.seg2 button.on{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+details.fsec{border:1px solid var(--line);border-radius:12px;margin:0 0 10px;background:var(--surface)}
+details.fsec>summary{list-style:none;display:flex;align-items:center;gap:10px;min-height:52px;padding:0 14px;cursor:pointer}
+details.fsec>summary::-webkit-details-marker{display:none}details.fsec>summary::after{content:'›';color:var(--muted);font-size:20px;transition:transform .2s;flex:none}
+details.fsec[open]>summary::after{transform:rotate(90deg)}details.fsec[open]>summary{border-bottom:1px solid var(--line);margin-bottom:10px}
+.fsec-sum{margin-left:auto;color:var(--muted);font-size:13.5px;text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:62%}
+.fsec-b{padding:0 12px 4px}
 details.fold{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:8px;padding:0 14px}
 details.fold>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 0;cursor:pointer;min-height:52px}
 details.fold>summary::-webkit-details-marker{display:none}
@@ -204,6 +210,8 @@ details.fold[open]{padding-bottom:12px}details.fold .kv{margin-bottom:10px}
 .mtile .mi{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,transparent)}
 .mtile .mi .ico{width:25px;height:25px}.mtile small{color:var(--muted);font-weight:500;font-size:11px;margin-top:-4px}
 .qbtn .ico{width:28px;height:28px;color:var(--accent)}
+.qbig .qbtn{min-height:108px;font-size:16.5px}.qbig .qbtn .ico{width:34px;height:34px}
+.qgrid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.qgrid3 .qbtn{min-height:78px;font-size:13.5px;gap:4px;padding:6px 4px;text-align:center}.qgrid3 .qbtn .ico{width:22px;height:22px}
 .chart{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 12px 8px;margin-bottom:12px}
 .chart-head{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
 .legend{display:flex;align-items:center;gap:5px;text-transform:none;letter-spacing:0;font-weight:600;flex-wrap:wrap;justify-content:flex-end}
@@ -310,7 +318,7 @@ header.top.with-tabs #hdrActions{flex:1;min-width:0;display:flex;justify-content
 :root[data-skin=retro] body{background:radial-gradient(circle at 9px 9px,rgba(0,0,0,.42) 1.7px,transparent 2.3px) 0 0/18px 18px,linear-gradient(180deg,#1d1914,#15120e);background-attachment:scroll,fixed}
 :root[data-skin=retro][data-theme=light] body{background:linear-gradient(rgba(120,90,40,.07) 1px,transparent 1px) 0 0/100% 24px,var(--bg)}
 /* Schild-Schrift */
-:root[data-skin=retro] :is(.dlg-box h3,header.top h1,h2,.sheet-head h3,nav.tabs button,.ctabs button,.seg2 button,.hdr-seg button,.big-seg button,.ccard b,.btn.primary,.grp-h,.badge-i b,.pill,.log-month,.chart-head,.wr-t,.mtile,.cal-d b,.tq-row b){font-family:var(--sign);font-weight:700;letter-spacing:.045em}
+:root[data-skin=retro] :is(details.fsec>summary b,.dlg-box h3,header.top h1,h2,.sheet-head h3,nav.tabs button,.ctabs button,.seg2 button,.hdr-seg button,.big-seg button,.ccard b,.btn.primary,.grp-h,.badge-i b,.pill,.log-month,.chart-head,.wr-t,.mtile,.cal-d b,.tq-row b){font-family:var(--sign);font-weight:700;letter-spacing:.045em}
 :root[data-skin=retro] :is(.dlg-box h3,header.top h1,h2,.sheet-head h3,nav.tabs button,.ctabs button,.ccard b,.btn.primary,.grp-h,.badge-i b,.pill,.wr-t){text-transform:uppercase}
 :root[data-skin=retro] .dlg-box{border:2px solid var(--edge);border-radius:12px;box-shadow:inset 0 1px 0 var(--hi),0 12px 40px rgba(0,0,0,.6)}
 /* Kopf- und Fußleiste: gebürstetes Metall */
@@ -326,8 +334,8 @@ header.top.with-tabs #hdrActions{flex:1;min-width:0;display:flex;justify-content
 :root[data-skin=retro] h2::before{content:'';width:20px;height:9px;flex:none;border-radius:2px;background:repeating-linear-gradient(-45deg,#e9c23c 0 4px,#1b1712 4px 8px);box-shadow:0 0 0 1px rgba(0,0,0,.4)}
 :root[data-skin=retro] h2 .h2a{margin-left:auto;font-family:var(--sign);letter-spacing:.04em}
 /* Karten: Blech mit Kante */
-:root[data-skin=retro] :is(.card,.item,details.fold,.ccard,.chart,.prow,.doc-row,.searchbar,.mtile,.qbtn,.inst){background:linear-gradient(180deg,var(--hi),transparent 38%),var(--surface);border:1px solid var(--line);box-shadow:inset 0 1px 0 var(--hi),0 1px 0 rgba(0,0,0,.45)}
-:root[data-skin=retro][data-theme=light] :is(.card,.item,details.fold,.ccard,.chart,.prow,.doc-row,.searchbar,.mtile,.qbtn,.inst){box-shadow:0 1px 0 rgba(90,70,40,.18)}
+:root[data-skin=retro] :is(.card,.item,details.fold,details.fsec,.ccard,.chart,.prow,.doc-row,.searchbar,.mtile,.qbtn,.inst){background:linear-gradient(180deg,var(--hi),transparent 38%),var(--surface);border:1px solid var(--line);box-shadow:inset 0 1px 0 var(--hi),0 1px 0 rgba(0,0,0,.45)}
+:root[data-skin=retro][data-theme=light] :is(.card,.item,details.fold,details.fsec,.ccard,.chart,.prow,.doc-row,.searchbar,.mtile,.qbtn,.inst){box-shadow:0 1px 0 rgba(90,70,40,.18)}
 :root[data-skin=retro] .item.st-over{border-left:5px solid var(--red)}:root[data-skin=retro] .item.st-soon{border-left:5px solid var(--yellow)}
 /* Auto-Schilder mit Nieten */
 :root[data-skin=retro] .ccard{position:relative;border-radius:8px;border-width:2px;border-left:7px solid var(--cc);padding:12px 26px 12px 12px}
@@ -2512,23 +2520,31 @@ function entryForm(o={}){const old=o.id?S.entries.find(e=>e.id===o.id):null;let 
  draft={kind:'entry',...base,toolIds:[...(base.toolIds||[])],id:old?old.id:null,todoId:o.todoId||null,issueId:o.issueId||null,photos:(base.photos||[]).map(p=>({...p}))};
  if(!old&&!o.intervalIds&&!o.copyOf)draft.intervalIds=autoIvIds(draft.carId,draft.category);
  const d=draft;
+ const sec=(id,title,open,inner)=>`<details class="fsec" id="sec-${id}" ${open?'open':''}><summary><b>${title}</b><span class="fsec-sum" id="sum-${id}"></span></summary><div class="fsec-b">${inner}</div></details>`;
  const body=`<form id="fEntry" data-form="entry">
  <label class="f"><span>Auto</span><select name="carId" data-change="entryCar">${carOptions(d.carId)}</select></label>
  <div class="grid2"><label class="f"><span>Datum</span><input type="date" name="date" value="${esc(d.date)}" required></label><label class="f"><span>km-Stand</span><input name="odo" inputmode="numeric" value="${valN(d.odo)}"></label></div>
  <label class="f"><span>Kategorie</span><select name="category" data-change="entryCat">${catOptions(d.category,null,true)}</select></label>
  <label class="f"><span>Titel</span><input name="title" value="${esc(d.title)}" placeholder="z. B. Ölwechsel mit Filter"></label>
- <label class="f"><span>Beschreibung / Arbeitsschritte</span><textarea name="desc">${esc(d.desc)}</textarea></label>
  <div class="seg"><label><input type="radio" name="diy" value="1" ${d.diy?'checked':''}><span>🔧 Selbst gemacht</span></label><label><input type="radio" name="diy" value="0" ${!d.diy?'checked':''}><span>🏭 Werkstatt</span></label></div>
+ <label class="f ws-only" ${d.diy?'hidden':''}><span>Werkstatt</span><input name="workshop" list="dl-shops" value="${esc(d.workshop)}" placeholder="z. B. Freie Werkstatt Huber"></label>
  <div class="grid2"><label class="f"><span>Arbeitszeit (h)</span><input name="hours" inputmode="decimal" value="${valN(d.hours)}"></label><label class="f"><span>Arbeitslohn (€)</span><input name="labor" inputmode="decimal" value="${valN(d.labor)}"></label></div>
- <label class="f"><span>Werkstatt (falls extern)</span><input name="workshop" list="dl-shops" value="${esc(d.workshop)}"></label>
- <h4>Teile & Betriebsstoffe</h4><div id="parts"></div><button type="button" class="btn block" data-a="partAdd">+ Teil / Betriebsstoff</button>
+ ${sec('parts','Teile & Betriebsstoffe',(d.parts||[]).length>0,`<div id="parts"></div><button type="button" class="btn block" data-a="partAdd">+ Teil / Betriebsstoff</button>`)}
  <div class="total"><span>Gesamtkosten</span><b id="entryTotal"></b></div>
- <h4>Wartungsintervalle zurücksetzen</h4><div id="ivChecks"></div>
- <h4>Verwendetes Werkzeug</h4><div id="toolBox">${toolPicker()}</div>
- <h4>Fotos & Belege</h4><div id="photos" class="thumbs"></div><div class="grid2"><label class="btn">📷 Foto<input type="file" accept="image/*" multiple hidden data-file="entryPhotos"></label><label class="btn">${ic('receipt','ico s')} Rechnung (PDF/Bild)<input type="file" accept="application/pdf,image/*" multiple hidden data-file="entryPhotos"></label></div>
- <label class="f"><span>Notizen</span><textarea name="notes">${esc(d.notes)}</textarea></label>${datalists()}</form>`;
+ ${sec('iv','Intervall erledigt',false,`<p class="sub" style="margin:0 0 4px">Angehakte Intervalle starten mit diesem Eintrag neu.</p><div id="ivChecks"></div>`)}
+ ${sec('tools','Werkzeug',false,`<div id="toolBox">${toolPicker()}</div>`)}
+ ${sec('photos','Fotos & Belege',(d.photos||[]).length>0,`<div id="photos" class="thumbs"></div><div class="grid2"><label class="btn">📷 Foto<input type="file" accept="image/*" multiple hidden data-file="entryPhotos"></label><label class="btn">${ic('receipt','ico s')} Rechnung (PDF/Bild)<input type="file" accept="application/pdf,image/*" multiple hidden data-file="entryPhotos"></label></div>`)}
+ ${sec('desc','Beschreibung & Notizen',!!(d.desc||d.notes),`<label class="f"><span>Beschreibung / Arbeitsschritte</span><textarea name="desc">${esc(d.desc)}</textarea></label><label class="f"><span>Notizen</span><textarea name="notes">${esc(d.notes)}</textarea></label>`)}
+ ${datalists()}</form>`;
  openSheet(old?'Eintrag bearbeiten':'Neuer Eintrag',body,`${old?`<button type="button" class="btn danger" data-a="entryDelete" data-id="${old.id}">Löschen</button>`:''}<button class="btn primary grow" type="submit" form="fEntry">Speichern</button>`);
- renderParts();renderIvChecks();renderPhotos();updateTotal();if(!old)ivAutoMatch(true)}
+ renderParts();renderIvChecks();renderPhotos();updateTotal();if(!old)ivAutoMatch(true);updSecs()}
+/* Zusammenfassung in den eingeklappten Abschnitten des Eintrag-Formulars */
+function updSecs(){const f=$('#fEntry');if(!f)return;const set=(k,v)=>{const el=$('#sum-'+k);if(el)el.textContent=v};
+ const pr=$$('#parts .prow').length,tot=$$('#parts [data-k=price]').reduce((s,i)=>s+(num(i.value)||0),0);set('parts',pr?`${pr} ${pr===1?'Teil':'Teile'}${tot?' · '+eur(tot):''}`:'keine');
+ const iv=$$('#ivChecks input:checked').map(i=>S.intervals.find(x=>x.id===i.value)?.name).filter(Boolean);set('iv',iv.length?'✓ '+iv.join(', '):'keins angehakt');
+ const tl=(draft?.toolIds||[]).filter(id=>S.tools.some(t=>t.id===id)).length;set('tools',tl?`${tl} ausgewählt`:'–');
+ const ph=draft?.photos||[],pdf=ph.filter(x=>x.type==='pdf').length,im=ph.length-pdf;set('photos',[im?`${im} Foto${im>1?'s':''}`:'',pdf?`${pdf} PDF`:''].filter(Boolean).join(' · ')||'–');
+ set('desc',[f.elements.namedItem('desc')?.value.trim()&&'Beschreibung',f.elements.namedItem('notes')?.value.trim()&&'Notizen'].filter(Boolean).join(' · ')||'–')}
 function partRow(p,i){const mode=draft.kind;
  const inv=mode==='entry'&&S.inventory.length?`<label class="f"><span>Aus dem Lager nehmen</span><select data-k="invId" data-change="partInv" data-i="${i}"><option value="">— nicht aus dem Lager —</option>${S.inventory.slice().sort(byName).map(it=>`<option value="${it.id}" ${p.invId===it.id?'selected':''}>${esc(it.name)}${it.maker?' · '+esc(it.maker):''} (${fmtQ(it.qty||0)} ${esc(it.unit||'')})</option>`).join('')}</select></label>`:'';
  return`<div class="prow"><div class="prow-head"><b>Position ${i+1}</b><span>${mode==='entry'&&S.inventory.some(x=>x.ean)?`<button type="button" class="iconbtn sm" data-a="scanPart" aria-label="Barcode scannen">📷</button> `:''}<button type="button" class="iconbtn sm" data-a="partDel" data-i="${i}" aria-label="Entfernen">✕</button></span></div>${inv}
@@ -2539,15 +2555,15 @@ function partRow(p,i){const mode=draft.kind;
  ${mode==='entry'?`<div class="grid2"><label class="f"><span>Händler / Bezugsquelle</span><input data-k="shop" list="dl-shops" value="${esc(p.shop)}"></label><label class="f"><span>Garantie</span><select data-k="warranty"><option value="">—</option>${[6,12,24,36,60].map(m=>`<option value="${m}" ${+p.warranty===m?'selected':''}>${m} Monate</option>`).join('')}</select></label></div>`:''}</div>`}
 function renderParts(){$('#parts').innerHTML=draft.parts.map(partRow).join('')||'<p class="muted">Noch keine Teile.</p>';if(draft.kind==='entry')updateTotal()}
 function readParts(){return $$('#parts .prow').map(r=>{const g=k=>$(`[data-k="${k}"]`,r);return{invId:g('invId')?.value||'',name:g('name').value.trim(),maker:g('maker').value.trim(),partNo:g('partNo').value.trim(),qty:num(g('qty').value),unit:g('unit').value,price:num(g('price').value),spec:g('spec').value.trim(),shop:g('shop')?.value.trim()||'',warranty:g('warranty')?num(g('warranty').value):null}})}
-function updateTotal(){const el=$('#entryTotal');if(!el)return;const p=$$('#parts [data-k=price]').reduce((s,i)=>s+(num(i.value)||0),0);el.textContent=eur(p+(num($('#fEntry [name=labor]').value)||0))}
+function updateTotal(){const el=$('#entryTotal');if(!el)return;const p=$$('#parts [data-k=price]').reduce((s,i)=>s+(num(i.value)||0),0);el.textContent=eur(p+(num($('#fEntry [name=labor]').value)||0));updSecs()}
 function renderIvChecks(){const box=$('#ivChecks');const ivs=S.intervals.filter(i=>i.carId===draft.carId);
- box.innerHTML=ivs.length?ivs.map(iv=>`<label class="checkline"><input type="checkbox" value="${iv.id}" ${draft.intervalIds.includes(iv.id)?'checked':''}><span>${esc(iv.name)} <span class="sub">(${esc(ivRule(iv))})</span></span></label>`).join(''):'<p class="sub">Für dieses Auto sind keine Intervalle angelegt.</p>'}
+ box.innerHTML=ivs.length?ivs.map(iv=>`<label class="checkline"><input type="checkbox" value="${iv.id}" ${draft.intervalIds.includes(iv.id)?'checked':''}><span>${esc(iv.name)} <span class="sub">(${esc(ivRule(iv))})</span></span></label>`).join(''):'<p class="sub">Für dieses Auto sind keine Intervalle angelegt.</p>';updSecs()}
 function ivAutoMatch(silent){if(!$('#ivChecks')||draft?.kind!=='entry')return;const txt=[$('#fEntry [name=title]').value,...$$('#parts [data-k=name]').map(i=>i.value)].join(' ').toLowerCase();
  const n=[];for(const iv of S.intervals.filter(i=>i.carId===draft.carId)){if((draft.ivOff||[]).includes(iv.id))continue;const cb=$(`#ivChecks input[value="${iv.id}"]`);
   if(cb&&!cb.checked&&ivKeywords(iv).some(k=>txt.includes(k))){cb.checked=true;n.push(iv.name)}}
- if(n.length&&!silent)toast('Intervall angehakt: '+n.join(', '))}
+ if(n.length&&!silent)toast('Intervall angehakt: '+n.join(', '));updSecs()}
 const checkedIv=()=>$$('#ivChecks input:checked').map(i=>i.value);
-function renderPhotos(){const box=$('#photos');if(!box)return;box.innerHTML=draft.photos.map((p,i)=>p.type==='pdf'?`<div class="thumb thumb-pdf" data-a="photoPdf" data-i="${i}"><span class="pdf-ic">${ic('receipt','ico')}<b>PDF</b><small>${esc((p.name||'Rechnung.pdf').replace(/\.pdf$/i,''))}</small></span><button type="button" class="tag" data-a="photoTag" data-i="${i}">${esc(p.tag||'Beleg')}</button><button type="button" class="x" data-a="photoDel" data-i="${i}" aria-label="Entfernen">✕</button></div>`:`<div class="thumb"><img ${p.data?`src="${p.data}"`:`data-photo="${p.id}"`} alt="" data-a="photoView"><button type="button" class="pen" data-a="photoAnno" data-i="${i}" aria-label="Beschriften">✏️</button><button type="button" class="tag" data-a="photoTag" data-i="${i}">${esc(p.tag||'Foto')}</button><button type="button" class="x" data-a="photoDel" data-i="${i}" aria-label="Entfernen">✕</button></div>`).join('');hydratePhotos(box)}
+function renderPhotos(){const box=$('#photos');if(!box)return;box.innerHTML=draft.photos.map((p,i)=>p.type==='pdf'?`<div class="thumb thumb-pdf" data-a="photoPdf" data-i="${i}"><span class="pdf-ic">${ic('receipt','ico')}<b>PDF</b><small>${esc((p.name||'Rechnung.pdf').replace(/\.pdf$/i,''))}</small></span><button type="button" class="tag" data-a="photoTag" data-i="${i}">${esc(p.tag||'Beleg')}</button><button type="button" class="x" data-a="photoDel" data-i="${i}" aria-label="Entfernen">✕</button></div>`:`<div class="thumb"><img ${p.data?`src="${p.data}"`:`data-photo="${p.id}"`} alt="" data-a="photoView"><button type="button" class="pen" data-a="photoAnno" data-i="${i}" aria-label="Beschriften">✏️</button><button type="button" class="tag" data-a="photoTag" data-i="${i}">${esc(p.tag||'Foto')}</button><button type="button" class="x" data-a="photoDel" data-i="${i}" aria-label="Entfernen">✕</button></div>`).join('');hydratePhotos(box);updSecs()}
 async function saveEntry(f){const fd=Object.fromEntries(new FormData(f));const old=draft.id?S.entries.find(e=>e.id===draft.id):null;
  {const bad=readParts().find(p=>{const it=p.invId&&S.inventory.find(i=>i.id===p.invId);return it&&!sameDim(p.unit,it.unit)});if(bad){toast(`„${bad.name}“: Einheit ${bad.unit} passt nicht zum Lager (${S.inventory.find(i=>i.id===bad.invId).unit})`);return}}
  if(!fd.carId){toast('Bitte ein Auto wählen');return}if(!fd.date){toast('Bitte ein Datum angeben');return}
@@ -2719,10 +2735,10 @@ async function saveOdo(f){const fd=Object.fromEntries(new FormData(f));const v=n
 /* ================= Schnelleingabe, Export, Druck ================= */
 function quick(){const r=parseHash();const cid=r.v==='car'?r.id:'';
  if(!activeCars().length)return carForm();draft={kind:'quick',carId:cid};
- openSheet('Neu …',`<div class="qgrid"><button class="qbtn" data-a="entryForm" data-car="${cid}">${ic('wrench')}Wartung / Reparatur</button><button class="qbtn" data-a="todoForm" data-car="${cid}">${ic('list')}To-do</button>
- <button class="qbtn" data-a="odoForm" data-car="${cid}">${ic('gauge')}km-Stand</button><button class="qbtn" data-a="fuelForm" data-car="${cid}">${ic('fuel')}Tanken</button>
- <label class="qbtn">${ic('receipt')}Beleg fotografieren<input type="file" accept="image/*" capture="environment" hidden data-file="receipt"></label><button class="qbtn" data-a="issueForm" data-car="${cid||defaultCarId()}">${ic('alert')}Fehler / Symptom</button>
- <button class="qbtn" data-a="pkDone" data-car="${cid||defaultCarId()}">${ic('shield')}Pickerl</button><button class="qbtn" data-a="quickWs">${ic('toolbox')}Werkzeug / Lager</button><button class="qbtn" data-a="guideForm" data-car="${cid}">${ic('book')}Anleitung</button><button class="qbtn" data-a="carForm">${ic('car')}Neues Auto</button></div>`)}
+ openSheet('Neu …',`<div class="qgrid qbig"><button class="qbtn" data-a="fuelForm" data-car="${cid}">${ic('fuel')}Tanken</button><button class="qbtn" data-a="entryForm" data-car="${cid}">${ic('wrench')}Wartung / Reparatur</button>
+ <button class="qbtn" data-a="odoForm" data-car="${cid}">${ic('gauge')}km-Stand</button><button class="qbtn" data-a="todoForm" data-car="${cid}">${ic('list')}To-do</button></div>
+ <div class="qgrid3"><button class="qbtn" data-a="pkDone" data-car="${cid||defaultCarId()}">${ic('shield')}Pickerl</button><button class="qbtn" data-a="issueForm" data-car="${cid||defaultCarId()}">${ic('alert')}Fehler</button><label class="qbtn">${ic('receipt')}Beleg<input type="file" accept="image/*" capture="environment" hidden data-file="receipt"></label>
+ <button class="qbtn" data-a="guideForm" data-car="${cid}">${ic('book')}Anleitung</button><button class="qbtn" data-a="quickWs">${ic('toolbox')}Werkzeug / Lager</button><button class="qbtn" data-a="carForm">${ic('car')}Neues Auto</button></div>`)}
 function download(name,content,type){const b=new Blob([content],{type});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
 const fileSafe=s=>String(s).replace(/[^\wäöüÄÖÜß-]+/g,'_');
 function exportCSV(carId){const c=car(carId);const q=v=>{const s=String(v??'');return /[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};const n=v=>v==null?'':String(v).replace('.',',');
@@ -3489,7 +3505,7 @@ const A={
  toolPhotoCrop:async()=>{let src=draft.photoSrc||draft.photoData;if(!src&&draft.photoId&&!draft.photoChanged)src=await getPhoto(draft.photoId);if(!src){toast('Zuerst ein Foto wählen');return}
   const d=await openCropper(src);if(!d)return;draft.photoSrc=src;draft.photoData=d;draft.photoChanged=true;draft.photoPos=null;$('#toolPh').innerHTML=`<img src="${d}" alt="">`},
  toolPhotoDel:()=>{draft.photoSrc=null;draft.photoChanged=true;draft.photoData=null;$('#toolPhCtl')?.classList.remove('has');$('#toolPh').innerHTML='<span style="font-size:42px">🔧</span>'},
- toolPick:(d,el)=>{const a=draft.toolIds||(draft.toolIds=[]);const i=a.indexOf(d.id);if(i>=0)a.splice(i,1);else{a.push(d.id);const t=S.tools.find(x=>x.id===d.id);if(t?.lentTo)toast(`Achtung: ${t.name} ist an ${t.lentTo} verliehen`)}el.classList.toggle('on',i<0)},
+ toolPick:(d,el)=>{const a=draft.toolIds||(draft.toolIds=[]);const i=a.indexOf(d.id);if(i>=0)a.splice(i,1);else{a.push(d.id);const t=S.tools.find(x=>x.id===d.id);if(t?.lentTo)toast(`Achtung: ${t.name} ist an ${t.lentTo} verliehen`)}el.classList.toggle('on',i<0);updSecs()},
  tyreForm:d=>tyreForm(d.car,d.id),tyreMount:d=>tyreMount(d.id),tyreUnmount:d=>tyreUnmount(d.id),
  tyreDelete:async d=>{await del('tyres',d.id);closeSheet()},
  tyOpen:d=>{if(sheetOpen)closeSheet();nav(`#/car/${d.car}/tyre`)},
@@ -3639,6 +3655,7 @@ document.addEventListener('change',async e=>{const t=e.target;
  if(t.closest('#fEntry')&&t.dataset.k==='unit'){const r=t.closest('.prow');const inv=$('[data-k=invId]',r)?.value;const it=inv&&S.inventory.find(i=>i.id===inv);if(it){if(!sameDim(t.value,it.unit))toast(`Lager führt „${it.name}“ in ${it.unit} – ${t.value} lässt sich nicht umrechnen`);else{const pr=invPriceFor(it,num($('[data-k=qty]',r).value),t.value);if(pr!=null)$('[data-k=price]',r).value=valN(pr)}}updateTotal()}
  if(t.closest('#fInv')&&t.dataset.inv){if(t.dataset.inv==='pu')invPqTouched=true;invPreview()}
  if(t.closest('#fEntry')&&(t.dataset.k==='name'||t.name==='title'))ivAutoMatch();
+ if(t.closest('#fEntry')){if(t.name==='diy'){const w=$('#fEntry .ws-only');if(w)w.hidden=t.value==='1'}updSecs()}
  if(t.closest('#ivChecks')&&!t.checked&&draft)draft.ivOff=[...(draft.ivOff||[]),t.value];if(t.dataset.change&&CHANGES[t.dataset.change])CHANGES[t.dataset.change](t);
  if(t.dataset.file&&FILES[t.dataset.file]){await FILES[t.dataset.file]([...t.files]);t.value=''}});
 document.addEventListener('input',e=>{const t=e.target;
@@ -3650,7 +3667,8 @@ document.addEventListener('input',e=>{const t=e.target;
  if(t.matches('[data-ac]'))acRender(t);
  else if(t.closest('#fEntry')){if(t.dataset.k==='qty'){const r=t.closest('.prow');const inv=$('[data-k=invId]',r)?.value;const it=inv&&S.inventory.find(i=>i.id===inv);const q=num(t.value);const pr=invPriceFor(it,q,$('[data-k=unit]',r).value);if(pr!=null)$('[data-k=price]',r).value=valN(pr)}updateTotal()}
  if(t.closest('#fInv')&&t.dataset.inv){if(t.dataset.inv==='pq')invPqTouched=true;invPreview()}
- if(t.closest('#fFuel')&&t.dataset.fuel){t.classList.remove('ocr-hit');fuelTriple(t.dataset.fuel)}});
+ if(t.closest('#fFuel')&&t.dataset.fuel){t.classList.remove('ocr-hit');fuelTriple(t.dataset.fuel)}
+ if(t.name==='desc'||t.name==='notes')updSecs()});
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',applyTheme);
 
 /* ================= Beispieldaten ================= */
