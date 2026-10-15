@@ -3,7 +3,7 @@
 # Braucht Python 3 mit Playwright (Chromium). Screenshots: tests/_shots/ (nicht im Git).
 cd "$(dirname "$0")/.." || exit 1
 fail=0
-for t in test_release test_logic test_nav test_backup test_robust test_perf; do
+for t in test_release test_logic test_nav test_backup test_robust test_ux test_perf; do
   echo "== $t"
   python3 "tests/$t.py" || fail=1
 done

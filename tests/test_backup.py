@@ -8,7 +8,10 @@ import harness as H
 from playwright.async_api import async_playwright
 
 STATE = "JSON.stringify(Object.fromEntries(STORES.filter(s=>s!=='photos').map(s=>[s,S[s].slice().sort((a,b)=>a.id<b.id?-1:1)])))"
-IMPORT = """async(txt)=>{await importJSON([new File([txt],'b.json',{type:'application/json'})]);await new Promise(r=>setTimeout(r,300))}"""
+# Backup einlesen; die Rückfrage („Wiederherstellen“) wird automatisch bestätigt
+IMPORT = """async(txt)=>{const p=importJSON([new File([txt],'b.json',{type:'application/json'})]);
+ for(let i=0;i<30;i++){const ok=document.querySelector('.dlg [data-x=ok]');if(ok){ok.click();break}await new Promise(r=>setTimeout(r,50))}
+ await p;await new Promise(r=>setTimeout(r,300))}"""
 DBCOUNT = """async()=>{const d=await openDB();const out={};for(const s of STORES){out[s]=await reqP(d.transaction(s).objectStore(s).count())}d.close();return out}"""
 
 

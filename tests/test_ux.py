@@ -1,0 +1,104 @@
+"""Bedienung: Löschen mit Rückgängig, eigene Dialoge, Standardwerte, Leere-Zustände, Tippflächen.
+
+python3 tests/test_ux.py
+"""
+import os, sys
+sys.path.insert(0, os.path.dirname(__file__))
+import harness as H
+from playwright.async_api import async_playwright
+
+SMALL = """()=>[...document.querySelectorAll('#view button,#view .btn,#view .chip,#sheet button,nav.tabs button,.fab')].filter(b=>{const r=b.getBoundingClientRect();return r.width&&r.height&&getComputedStyle(b).visibility!=='hidden'})
+ .map(b=>{const r=b.getBoundingClientRect();return{t:(b.textContent||b.getAttribute('aria-label')||b.className).trim().slice(0,30),w:Math.round(r.width),h:Math.round(r.height),c:b.className}})
+ .filter(x=>(x.h<40||x.w<40)&&!/linkbtn|h2a|ac-item|tag/.test(x.c))"""
+
+
+async def main():
+    c = H.Check('Bedienung')
+    base, srv = H.serve()
+    async with async_playwright() as p:
+        b = await p.chromium.launch()
+        ctx, page = await H.open_app(b, base)
+        ev = page.evaluate
+        dialogs = []
+        page.on('dialog', lambda d: dialogs.append(d.message))
+        cid = await ev("myCars()[0].id")
+
+        # Löschen ohne Rückfrage, Rückgängig stellt wieder her
+        eid = await ev(f"S.entries.find(e=>e.carId==='{cid}'&&e.category!=='Pickerl').id")
+        n0 = await ev("S.entries.length")
+        await ev(f"entryForm({{id:'{eid}'}})"); await page.wait_for_timeout(200)
+        await page.click('#sheet .sheet-foot .btn.danger'); await page.wait_for_timeout(400)
+        c.eq((await ev("S.entries.length"), await ev("sheetOpen")), (n0 - 1, False), 'Eintrag gelöscht, Fenster zu – ohne Rückfrage')
+        c.eq(dialogs, [], 'kein Browser-Popup')
+        c.ok(await ev("$('#undo').classList.contains('show')"), 'Rückgängig-Leiste sichtbar')
+        await page.click('#undoBtn'); await page.wait_for_timeout(400)
+        c.eq(await ev(f"!!S.entries.find(e=>e.id==='{eid}')"), True, 'Rückgängig stellt den Eintrag wieder her')
+
+        # Lagerbestand über eigenes Fenster
+        await H.go(page, '#/inv')
+        await page.click('#invList .qty span'); await page.wait_for_timeout(200)
+        c.ok(await ev("!!document.querySelector('.dlg input')"), 'Bestand-Fenster mit Eingabefeld')
+        await page.fill('.dlg input', '7,5'); await page.click('.dlg [data-x=ok]'); await page.wait_for_timeout(300)
+        c.eq(await ev("S.inventory.slice().sort(byName)[0].qty"), 7.5, 'Bestand mit Komma gesetzt')
+
+        # Zurück-Taste schließt nur das Fenster (Dialog), nicht das Werkzeug-Fenster darunter
+        tid = await ev("S.tools.find(t=>!t.lentTo).id")
+        await ev(f"toolView('{tid}')"); await page.wait_for_timeout(200)
+        await page.click('#sheet .sheet-foot .btn:not(.primary)'); await page.wait_for_timeout(200)
+        c.ok(await ev("!!document.querySelector('.dlg')"), 'Verleihen fragt im eigenen Fenster')
+        await page.go_back(timeout=3000, wait_until='commit'); await page.wait_for_timeout(300)
+        c.eq((await ev("!!document.querySelector('.dlg')"), await ev("sheetOpen")), (False, True), 'Zurück schließt nur das Frage-Fenster')
+        await ev("closeSheet(false,true)"); await page.wait_for_timeout(300)
+
+        # Archivieren ohne Rückfrage, mit Rückgängig
+        bmw = await ev("myCars()[1].id")
+        await ev(f"A.carArchive({{car:'{bmw}'}})"); await page.wait_for_timeout(300)
+        c.eq(await ev(f"car('{bmw}').archived"), True, 'Auto ins Archiv ohne Rückfrage')
+        await page.click('#toast .tbtn'); await page.wait_for_timeout(300)
+        c.eq(await ev(f"car('{bmw}').archived"), False, 'Archivieren rückgängig')
+
+        # Standardwerte: Zubehör übernimmt Akku-System & Marke, Parkside → 3 Jahre Garantie
+        await ev("(async()=>{const t=S.tools[0];t.system='Parkside Performance 20 V';t.brand='Parkside Performance';t.purchaseDate='2026-01-01';await put('tools',t)})()")
+        await ev("toolForm(null,'acc')"); await page.wait_for_timeout(200)
+        f = await ev("(()=>{const f=$('#fTool');return[f.elements.namedItem('system').value,f.elements.namedItem('brand').value,f.elements.namedItem('warrantyUntil').value]})()")
+        c.eq(f[:2], ['Parkside Performance 20 V', 'Parkside Performance'], 'neues Zubehör: Akku-System und Marke vorbelegt')
+        c.eq(f[2], await ev("addMonths(today(),36)"), 'Parkside: Garantie 3 Jahre vorbelegt')
+        await ev("closeSheet(false,true)"); await page.wait_for_timeout(200)
+        await ev("toolForm()"); await page.wait_for_timeout(200)
+        await page.fill('#fTool [name=brand]', 'Parkside'); await page.press('#fTool [name=brand]', 'Tab'); await page.wait_for_timeout(200)
+        c.eq(await ev("$('#fTool [name=warrantyUntil]').value"), await ev("addMonths(today(),36)"), 'Marke Parkside eingetippt → 3 Jahre Garantie')
+        c.ok(await ev("getComputedStyle($('#toolPhCtl [data-a=toolPhotoCrop]')).display==='none'"), 'ohne Foto keine Zuschnitt-Knöpfe')
+        await ev("closeSheet(false,true)"); await page.wait_for_timeout(200)
+
+        # runder +-Knopf nicht auf Werkstatt/Lager
+        await H.go(page, '#/tools')
+        c.ok(await ev("getComputedStyle($('.fab')).display==='none'"), 'kein +-Knopf auf Werkstatt')
+        await H.go(page, '#/home')
+        c.ok(await ev("getComputedStyle($('.fab')).display!=='none'"), '+-Knopf auf Start')
+
+        # Tippflächen auf den wichtigsten Seiten
+        small = []
+        for h in ['#/home', f'#/car/{cid}', f'#/car/{cid}/iv', '#/tools', '#/inv', '#/shop', '#/todos', '#/stats', '#/settings']:
+            await H.go(page, h)
+            small += [dict(x, page=h) for x in await ev(SMALL)]
+        await ev(f"entryForm({{carId:'{cid}'}})"); await page.wait_for_timeout(200)
+        small += [dict(x, page='entryForm') for x in await ev(SMALL)]
+        await ev("closeSheet(false,true)")
+        for x in small[:12]:
+            print('   klein:', x)
+        c.eq(len(small), 0, 'alle Knöpfe mindestens 40 px')
+        c.eq(page.errors, [], 'keine JS-Fehler')
+        await b.close()
+
+        # leere Datenbank: Willkommen mit Schritten
+        b = await p.chromium.launch()
+        ctx, page = await H.open_app(b, base, empty=True)
+        t = await page.evaluate("$('#view').textContent")
+        c.ok('Willkommen' in t and 'Erstes Auto anlegen' in t, 'leere App: Willkommen mit nächsten Schritten')
+        await H.go(page, '#/stats')
+        c.ok('Noch keine Daten' in await page.evaluate("$('#view').textContent"), 'leere Statistik erklärt, was kommt')
+        await b.close()
+    return c.done()
+
+if __name__ == '__main__':
+    H.run(main)
