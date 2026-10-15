@@ -19,4 +19,4 @@ python3 tests/test_logic.py  # nur Rechnungen
 | `crawl.py` | Screenshots aller Seiten und Fenster (`python3 tests/crawl.py dark 390 demo`) |
 | `montage.py` | fasst Screenshots zu Übersichtsbildern zusammen |
 
-Bei jedem Release: `CACHE` in `sw.js` **und** `APP_VER` in `index.html` hochzählen.
+Bei jedem Release nur `APP_VER` in `index.html` hochzählen – `sw.js` übernimmt die Version automatisch (`sw.js?v=…`).

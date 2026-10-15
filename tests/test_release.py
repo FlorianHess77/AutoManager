@@ -11,11 +11,10 @@ def main():
     c = H.Check('Release')
     sw = open(os.path.join(H.ROOT, 'sw.js'), encoding='utf-8').read()
     html = open(os.path.join(H.ROOT, 'index.html'), encoding='utf-8').read()
-    cache = re.search(r"const CACHE='([^']+)'", sw)
-    app = re.search(r"const APP_VER='([^']+)'", html)
-    c.ok(cache and app, 'CACHE und APP_VER gefunden')
-    if cache and app:
-        c.eq(app.group(1), cache.group(1), 'APP_VER (index.html) = CACHE (sw.js)')
+    app = re.search(r"const APP_VER='garage-v(\d+)'", html)
+    c.ok(app, 'APP_VER in index.html gefunden')
+    c.ok("searchParams.get('v')" in sw and 'garage-v' not in sw, 'sw.js übernimmt die Version aus index.html (keine eigene Nummer)')
+    c.ok("register('sw.js?v='" in html, 'Service Worker wird mit Version registriert')
     for f in re.findall(r"'\./([^']*)'", sw.split('FILES=')[1].split(';')[0]):
         if f:
             c.ok(os.path.exists(os.path.join(H.ROOT, f)), f'Datei für Offline-Cache vorhanden: {f}')

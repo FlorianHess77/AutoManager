@@ -3749,15 +3749,17 @@ async function seed(){const P=(name,maker,qty,unit,price,o={})=>({name,maker,par
 })();
 
 /* ================= Updates ================= */
-const APP_VER='garage-v47';// muss zu CACHE in sw.js passen
+const APP_VER='garage-v49';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
 const verNum=v=>+(/(\d+)\s*$/.exec(v||'')||[0,0])[1];
-function setupUpdates(){const sw=navigator.serviceWorker;let shown=false;
- const ask=()=>{if(sw.controller)sw.controller.postMessage('version')};
- sw.addEventListener('message',e=>{const v=e.data?.version;if(!shown&&v&&verNum(v)>verNum(APP_VER)){shown=true;updateBanner()}});
- sw.addEventListener('controllerchange',ask);
- sw.register('sw.js').then(reg=>{ask();
-  // App aus dem Hintergrund geholt: nach neuer Version schauen
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){reg.update().catch(()=>{});setTimeout(ask,1500)}})}).catch(()=>{})}
+/* Neue Version erkennen: index.html vom Server holen und die Versionsnummer vergleichen.
+   Der Hinweis kommt nur, wenn der Server wirklich eine NEUERE Version hat. */
+let updShown=false,updLast=0;
+async function checkUpdate(){if(updShown||!navigator.onLine||Date.now()-updLast<60000)return;updLast=Date.now();
+ try{const t=await(await fetch('./index.html',{cache:'no-cache'})).text();const v=/const APP_VER='([^']+)'/.exec(t)?.[1];if(v&&verNum(v)>verNum(APP_VER)){updShown=true;updateBanner()}}catch(e){}}
+function setupUpdates(){navigator.serviceWorker.register('sw.js?v='+APP_VER.replace(/^garage-/,'')).catch(()=>{});
+ setTimeout(checkUpdate,4000);
+ // App aus dem Hintergrund geholt: nach neuer Version schauen
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkUpdate()})}
 function updateBanner(){if($('#updBar'))return;const d=document.createElement('div');d.id='updBar';d.className='upd';
  d.innerHTML=`<span>✨ Neue Version der App ist da</span><button type="button" class="btn primary" id="updGo">Neu laden</button><button type="button" class="iconbtn sm" id="updX" aria-label="Später">✕</button>`;
  document.body.appendChild(d);$('#updGo').onclick=()=>location.reload();$('#updX').onclick=()=>d.remove()}

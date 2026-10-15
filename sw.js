@@ -1,12 +1,10 @@
 // Offline-Cache für Garage & Wartungsmanager
-// Bei jedem Release CACHE hochzählen – und APP_VER in index.html auf denselben Wert setzen.
-const CACHE='garage-v48';
+// Die Version kommt aus index.html (APP_VER) über sw.js?v=… – hier nichts hochzählen.
+const CACHE='garage-'+(new URL(location.href).searchParams.get('v')||'dev');
 const OCR='garage-ocr';
 const FILES=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES.map(f=>new Request(f,{cache:'reload'})))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==CACHE&&x!==OCR).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
-// Die Seite fragt nach der Version, um „Neue Version – neu laden“ anzuzeigen
-self.addEventListener('message',e=>{if(e.data==='version'&&e.source)e.source.postMessage({version:CACHE})});
 self.addEventListener('fetch',e=>{
   if(e.request.method!=='GET')return;
   const url=new URL(e.request.url);
