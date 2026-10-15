@@ -3749,7 +3749,7 @@ async function seed(){const P=(name,maker,qty,unit,price,o={})=>({name,maker,par
 })();
 
 /* ================= Updates ================= */
-const APP_VER='garage-v46';// muss zu CACHE in sw.js passen
+const APP_VER='garage-v47';// muss zu CACHE in sw.js passen
 const verNum=v=>+(/(\d+)\s*$/.exec(v||'')||[0,0])[1];
 function setupUpdates(){const sw=navigator.serviceWorker;let shown=false;
  const ask=()=>{if(sw.controller)sw.controller.postMessage('version')};

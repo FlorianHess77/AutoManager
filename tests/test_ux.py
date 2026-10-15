@@ -70,6 +70,25 @@ async def main():
         c.ok(await ev("getComputedStyle($('#toolPhCtl [data-a=toolPhotoCrop]')).display==='none'"), 'ohne Foto keine Zuschnitt-Knöpfe')
         await ev("closeSheet(false,true)"); await page.wait_for_timeout(200)
 
+        # Eintrag-Formular: einklappbare Abschnitte mit Zusammenfassung, Werkstatt-Feld nur bei „Werkstatt“
+        await ev(f"entryForm({{carId:'{cid}'}})"); await page.wait_for_timeout(200)
+        c.eq(await ev("$$('#fEntry details.fsec[open]').length"), 0, 'neuer Eintrag: Abschnitte eingeklappt')
+        c.eq(await ev("$('#sum-parts').textContent"), 'keine', 'Zusammenfassung Teile: keine')
+        c.ok(await ev("$('#fEntry .ws-only').hidden"), 'Werkstatt-Feld bei „selbst“ ausgeblendet')
+        await page.click('#fEntry .seg label:nth-child(2)'); await page.wait_for_timeout(100)
+        c.ok(not await ev("$('#fEntry .ws-only').hidden"), 'Werkstatt-Feld bei „Werkstatt“ sichtbar')
+        await page.fill('#fEntry [name=title]', 'Ölwechsel'); await page.dispatch_event('#fEntry [name=title]', 'change'); await page.wait_for_timeout(200)
+        c.ok('Motoröl' in await ev("$('#sum-iv').textContent"), 'automatisch angehaktes Intervall steht in der Zusammenfassung')
+        await ev("closeSheet(false,true)"); await page.wait_for_timeout(200)
+        oil = await ev(f"S.entries.find(e=>e.carId==='{cid}'&&e.category==='Ölwechsel').id")
+        await ev(f"entryForm({{copyOf:'{oil}'}})"); await page.wait_for_timeout(200)
+        c.ok(await ev("$('#sec-parts').open") and '3 Teile' in await ev("$('#sum-parts').textContent"), 'kopierter Eintrag: Teile offen, „3 Teile“')
+        await ev("closeSheet(false,true)"); await page.wait_for_timeout(200)
+        # Neu-Menü: Tanken zuerst
+        await ev("quick()"); await page.wait_for_timeout(200)
+        c.eq(await ev("$('#sheet .qbig .qbtn').textContent.trim()"), 'Tanken', 'Neu-Menü beginnt mit Tanken')
+        await ev("closeSheet(false,true)"); await page.wait_for_timeout(200)
+
         # runder +-Knopf nicht auf Werkstatt/Lager
         await H.go(page, '#/tools')
         c.ok(await ev("getComputedStyle($('.fab')).display==='none'"), 'kein +-Knopf auf Werkstatt')
