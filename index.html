@@ -125,11 +125,14 @@ input[type=checkbox],input[type=radio]{width:auto;min-height:0}
 .rack.shut .rk-chev{transform:rotate(180deg)}
 .rk-wrap{position:relative;overflow:hidden}
 .rk-body{padding:4px 8px 10px}
-.door{position:absolute;left:0;right:0;top:0;height:0;overflow:hidden;cursor:pointer;z-index:2;
- background:linear-gradient(90deg,#0003,#fff1 30%,#0002 70%,#0004),repeating-linear-gradient(#a9aeb3 0 5px,#c9ced2 5px 8px,#7d8287 8px 10px,#6a6f74 10px 11px);box-shadow:inset 0 -6px 0 #4b4f53}
-.door i{position:absolute;left:50%;bottom:10px;width:56px;height:8px;margin-left:-28px;border-radius:4px;background:linear-gradient(#e6e6e6,#777);box-shadow:0 1px 0 #0008}
-.door span{position:absolute;left:50%;top:9px;transform:translateX(-50%);white-space:nowrap;background:#1b160f;color:#f0b43c;font:700 12px ui-monospace,monospace;padding:3px 8px;border-radius:2px;box-shadow:inset 0 0 0 1px #f0b43c55}
-.rack.shut .rk-body{display:none}.rack.shut .door{position:relative;height:62px}
+.door{position:absolute;left:0;right:0;top:0;height:100%;transform:translateY(-101%);visibility:hidden;overflow:hidden;cursor:pointer;z-index:2;
+ background:linear-gradient(90deg,#0005,#ffffff0e 35%,#0003 75%,#0006),repeating-linear-gradient(#4b4339 0 5px,#5f5548 5px 8px,#3a332a 8px 10px,#221d17 10px 11px)}
+.door:after{content:'';position:absolute;left:0;right:0;bottom:0;height:6px;background:repeating-linear-gradient(-45deg,#f0b43c 0 7px,#1b160f 7px 14px)}
+.door i{position:absolute;left:50%;bottom:13px;width:56px;height:7px;margin-left:-28px;border-radius:4px;background:linear-gradient(#f3d27a,#a87a1c);box-shadow:0 1px 0 #000a}
+.door span{position:absolute;left:50%;top:9px;transform:translateX(-50%);white-space:nowrap;background:#1b160f;color:#f0b43c;font:700 12px ui-monospace,monospace;padding:3px 8px;border-radius:2px;box-shadow:inset 0 0 0 1px #f0b43c55,0 1px 0 #ffffff14}
+.rack.anim .door{visibility:visible}
+.rack.shut .rk-body{display:none}.rack.shut .door{position:relative;height:62px;transform:none;visibility:visible}
+.rk-head:active .slbl,.door:active span{transform:translateY(1px)}.door:active span{transform:translate(-50%,1px)}
 .beam{height:10px;background:linear-gradient(#f2853a,#c0480f);box-shadow:0 4px 0 #0007}
 .cons{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 6px;align-items:end}
 .con{text-align:center;font-size:11px;min-width:0}
@@ -2348,12 +2351,17 @@ function renderInvList(){const box=$('#invList');if(!box)return;const w=invQ.toL
   return`<section class="rack${shut?' shut':''}" data-loc="${esc(l)}"><button type="button" class="rk-head" data-a="invShelf" data-loc="${esc(l)}" aria-expanded="${!shut}"><span class="slbl">${esc(l)} <small>${its.length} ${its.length===1?'Artikel':'Artikel'}</small></span>${nl?'<span class="rk-lamp" title="nachkaufen"></span>':''}<span class="rk-chev">▲</span></button>
   <div class="rk-wrap"><div class="rk-body"><div class="cons">${its.map(i=>`<div class="con${low(i)?' low':''}${(i.qty||0)<=0?' empty':''}"><div class="fig" data-a="invForm" data-id="${i.id}">${invFig(i)}<span class="stk" data-a="invSet" data-id="${i.id}">${fmtQ(i.qty||0)} ${esc(i.unit||'')}</span></div><b data-a="invForm" data-id="${i.id}">${esc(i.name)}</b>${low(i)?'<div class="need">⚠ nachkaufen</div>':''}<button type="button" class="iconbtn sm" data-a="invTake" data-id="${i.id}" aria-label="entnehmen">−</button></div>`).join('')}</div></div>
   <div class="door" data-a="invShelf" data-loc="${esc(l)}"><span>${its.length} Artikel${nl?` · ${nl} nachkaufen`:''}</span><i></i></div></div><div class="beam"></div></section>`}).join('')}
-function invShelfToggle(l){const r=[...$$('#invList .rack')].find(x=>x.dataset.loc===l);if(!r)return;const close=!r.classList.contains('shut');
+function invShelfToggle(l){const r=[...$$('#invList .rack')].find(x=>x.dataset.loc===l);if(!r||r.classList.contains('anim'))return;const close=!r.classList.contains('shut');
  if(close)invShut.add(l);else invShut.delete(l);try{localStorage.setItem('garage.invShut',JSON.stringify([...invShut]))}catch(e){}
- const d=r.querySelector('.door'),wrap=r.querySelector('.rk-wrap'),h=r.querySelector('.rk-body').offsetHeight||wrap.offsetHeight,fast=matchMedia('(prefers-reduced-motion: reduce)').matches;
- r.querySelector('.rk-head').setAttribute('aria-expanded',!close);
- if(close){if(fast||!d.animate){r.classList.add('shut');return}r.classList.add('rolling');d.animate([{height:'0px'},{height:h+'px'}],{duration:380,easing:'cubic-bezier(.5,0,.8,.6)'}).onfinish=()=>{d.style.height='';r.classList.add('shut')};d.style.height=h+'px';r.querySelector('.rk-chev').style.transform='rotate(180deg)'}
- else{r.classList.remove('shut');r.querySelector('.rk-chev').style.transform='';if(fast||!d.animate)return;const H=r.querySelector('.rk-body').offsetHeight;d.animate([{height:H+'px'},{height:'0px'}],{duration:420,easing:'cubic-bezier(.2,.4,.5,1)'})}}
+ r.querySelector('.rk-head').setAttribute('aria-expanded',!close);r.querySelector('.rk-chev').style.transform=close?'rotate(180deg)':'rotate(0deg)';
+ const wrap=r.querySelector('.rk-wrap'),d=r.querySelector('.door'),D=62;
+ if(matchMedia('(prefers-reduced-motion: reduce)').matches||!wrap.animate){r.classList.toggle('shut',close);return}
+ // Tor und Regalboden bewegen sich gleichzeitig – ein kurzer Zug, kein Nachspringen
+ const H=close?wrap.offsetHeight:(r.classList.remove('shut'),wrap.offsetHeight),o={duration:close?200:230,easing:'cubic-bezier(.25,.8,.3,1)'};
+ r.classList.add('anim');
+ wrap.animate([{height:(close?H:D)+'px'},{height:(close?D:H)+'px'}],o);
+ d.animate([{transform:close?'translateY(-100%)':'translateY(0)'},{transform:close?'translateY(0)':'translateY(-100%)'}],o).onfinish=()=>{r.classList.remove('anim');if(close)r.classList.add('shut');
+  else{const b=r.getBoundingClientRect().bottom,nav=$('nav.tabs')?.getBoundingClientRect().top||innerHeight;if(b>nav)window.scrollBy({top:Math.min(b-nav+8,r.getBoundingClientRect().top-70),behavior:'smooth'})}}}
 
 let gQ='';
 function viewSearch(){return{title:'Suche',tab:'search',back:'#/home',html:`<input id="gq" type="search" placeholder="Was suchst du? z. B. Zündkerze, Bremse, 5W-40 …" value="${esc(gQ)}" autocomplete="off" enterkeyhint="search" style="width:100%;margin-bottom:12px"><div id="gRes"></div>`,after:()=>{renderSearch();const i=$('#gq');i.focus();i.setSelectionRange(i.value.length,i.value.length)}}}
@@ -3847,7 +3855,7 @@ async function seed(){const P=(name,maker,qty,unit,price,o={})=>({name,maker,par
 })();
 
 /* ================= Updates ================= */
-const APP_VER='garage-v53';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
+const APP_VER='garage-v54';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
 const verNum=v=>+(/(\d+)\s*$/.exec(v||'')||[0,0])[1];
 /* Neue Version erkennen: index.html vom Server holen und die Versionsnummer vergleichen.
    Der Hinweis kommt nur, wenn der Server wirklich eine NEUERE Version hat. */
