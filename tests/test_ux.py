@@ -36,7 +36,8 @@ async def main():
 
         # Lagerbestand über eigenes Fenster
         await H.go(page, '#/inv')
-        await page.click('#invList .qty span'); await page.wait_for_timeout(200)
+        fid = await ev("S.inventory.slice().sort(byName)[0].id")
+        await page.click(f'#invList .stk[data-id="{fid}"]'); await page.wait_for_timeout(200)
         c.ok(await ev("!!document.querySelector('.dlg input')"), 'Bestand-Fenster mit Eingabefeld')
         await page.fill('.dlg input', '7,5'); await page.click('.dlg [data-x=ok]'); await page.wait_for_timeout(300)
         c.eq(await ev("S.inventory.slice().sort(byName)[0].qty"), 7.5, 'Bestand mit Komma gesetzt')
@@ -60,6 +61,18 @@ async def main():
         await page.click('.dlg [data-x=ok]'); await page.wait_for_timeout(400)
         c.eq(await ev(f"S.inventory.find(i=>i.id==='{iid}').qty"), q0, 'Entnahme im Verlauf zurückgenommen')
         await ev("closeSheet(false,true)"); await page.wait_for_timeout(300)
+
+        # Regalböden nach Lagerort, Rolltor klappt ein und bleibt zu
+        await H.go(page, '#/inv')
+        locs = await ev("[...new Set(S.inventory.map(i=>(i.location||'').trim()||INV_NOLOC))].length")
+        c.eq(await ev("$$('#invList .rack').length"), locs, 'ein Regalboden je Lagerort')
+        await page.click('#invList .rack .rk-head'); await page.wait_for_timeout(600)
+        loc = await ev("$('#invList .rack.shut')?.dataset.loc")
+        c.ok(loc and await ev("$('#invList .rack.shut .rk-body').offsetHeight===0"), 'Rolltor zu: Boden eingeklappt')
+        await page.reload(); await H.ready(page); await H.go(page, '#/inv')
+        c.eq(await ev("$('#invList .rack.shut')?.dataset.loc"), loc, 'eingeklappt bleibt nach Neustart')
+        await page.click('#invList .rack.shut .door'); await page.wait_for_timeout(600)
+        c.eq(await ev("$$('#invList .rack.shut').length"), 0, 'Tippen aufs Rolltor öffnet wieder')
 
         # Zurück-Taste schließt nur das Fenster (Dialog), nicht das Werkzeug-Fenster darunter
         tid = await ev("S.tools.find(t=>!t.lentTo).id")

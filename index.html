@@ -113,6 +113,35 @@ input[type=checkbox],input[type=radio]{width:auto;min-height:0}
 .qty{display:flex;align-items:center;gap:6px;flex:none}
 .qty span{min-width:62px;text-align:center;font-weight:700;font-size:14px}
 .item.empty-stock{opacity:.6}
+/* Teilelager als Schwerlastregal: Boden = Lagerort, Teile als Gebinde, Rolltor zum Einklappen */
+.rack{position:relative;margin:0 9px 16px;border-left:9px solid #e0601f;border-right:9px solid #e0601f;background:radial-gradient(circle,#0007 1.4px,transparent 1.6px) 0 0/12px 12px,#231f19;color:#e9e0cf}
+.rack:before,.rack:after{content:'';position:absolute;top:0;bottom:0;width:9px;background:repeating-linear-gradient(#0000 0 10px,#0008 10px 16px)}
+.rack:before{left:-9px}.rack:after{right:-9px}
+.rk-head{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:6px 8px;background:none;border:0;color:inherit;cursor:pointer;text-align:left}
+.slbl{display:inline-flex;gap:6px;align-items:baseline;font:700 12px var(--sign,system-ui);letter-spacing:.1em;text-transform:uppercase;background:#f0b43c;color:#1b160f;padding:3px 8px;border-radius:2px;box-shadow:1px 1px 0 #0008;max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slbl small{font:600 11px system-ui;letter-spacing:0;opacity:.7}
+.rk-lamp{width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffe9a6,#f0a020 55%,#8a5200);box-shadow:0 0 8px #f0a020}
+.rk-chev{margin-left:auto;width:32px;height:32px;display:grid;place-items:center;border-radius:6px;background:#3a332a;color:#f0b43c;font-size:14px;transition:transform .3s}
+.rack.shut .rk-chev{transform:rotate(180deg)}
+.rk-wrap{position:relative;overflow:hidden}
+.rk-body{padding:4px 8px 10px}
+.door{position:absolute;left:0;right:0;top:0;height:0;overflow:hidden;cursor:pointer;z-index:2;
+ background:linear-gradient(90deg,#0003,#fff1 30%,#0002 70%,#0004),repeating-linear-gradient(#a9aeb3 0 5px,#c9ced2 5px 8px,#7d8287 8px 10px,#6a6f74 10px 11px);box-shadow:inset 0 -6px 0 #4b4f53}
+.door i{position:absolute;left:50%;bottom:10px;width:56px;height:8px;margin-left:-28px;border-radius:4px;background:linear-gradient(#e6e6e6,#777);box-shadow:0 1px 0 #0008}
+.door span{position:absolute;left:50%;top:9px;transform:translateX(-50%);white-space:nowrap;background:#1b160f;color:#f0b43c;font:700 12px ui-monospace,monospace;padding:3px 8px;border-radius:2px;box-shadow:inset 0 0 0 1px #f0b43c55}
+.rack.shut .rk-body{display:none}.rack.shut .door{position:relative;height:62px}
+.beam{height:10px;background:linear-gradient(#f2853a,#c0480f);box-shadow:0 4px 0 #0007}
+.cons{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 6px;align-items:end}
+.con{text-align:center;font-size:11px;min-width:0}
+.con .fig{position:relative;width:76px;margin:0 auto;cursor:pointer}
+.con svg{display:block;width:76px;height:96px;filter:drop-shadow(2px 3px 0 #0008)}
+.con .stk{position:absolute;left:50%;top:56px;transform:translateX(-50%);min-width:48px;padding:3px 5px;background:#f3eee2;color:#1f1a14;border-radius:2px;font:700 13px ui-monospace,monospace;white-space:nowrap;box-shadow:0 1px 0 #0006;cursor:pointer}
+.con.low .stk,.con.empty .stk{color:#b3261e}
+.con b{display:block;font-size:11.5px;line-height:1.2;margin:5px 0 0;color:#f3eee2;hyphens:auto;overflow-wrap:break-word;cursor:pointer}
+.con .need{color:#ffc43c;font-weight:700;margin-top:2px}
+.con .iconbtn{margin-top:6px;background:#3a332a;color:#fff;font-size:20px;box-shadow:inset 0 -3px 0 #0006}
+.con.empty .iconbtn{opacity:.4}
+.con.empty svg{opacity:.75}
 .bars .barrow{margin-bottom:10px}
 .bars .barrow .row{margin-bottom:4px;font-size:14px}
 .sheet{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
@@ -2293,11 +2322,38 @@ let invQ='';
 function viewInv(){const low=lowStock();const all=S.inventory,val=all.reduce((x,i)=>x+(i.price!=null&&i.qty>0?i.price*i.qty:0),0),noP=all.filter(i=>i.price==null&&i.qty>0).length,y=today().slice(0,4);let bc=0;const spent=all.reduce((x,i)=>x+(i.buys||[]).filter(b=>(b.date||'').startsWith(y)).reduce((z,b)=>(bc++,z+(b.price||0)),0),0);
  let h=workshopChips('inv')+`<div class="grid2"><div class="card"><div class="sub">Lagerwert</div><div class="big">${eur(val)}</div><div class="sub">${all.length} Artikel${noP?` · ${noP} ohne Preis`:''}</div></div><div class="card"><div class="sub">Ausgaben ${y}</div><div class="big">${eur(spent)}</div><div class="sub">${bc?`${bc} Einkäufe`:'noch nichts gekauft'}</div></div></div>`+(low.length?`<div class="note warn">⚠ ${low.length} Artikel unter Mindestbestand – <button class="linkbtn" data-a="shopOpen">Einkaufsliste</button></div>`:'')+`<div class="row" style="gap:8px;margin-bottom:10px;flex-wrap:nowrap"><input id="invQ" type="search" placeholder="Lager durchsuchen …" value="${esc(invQ)}" style="flex:1"><button class="btn" data-a="scanInv" style="flex:none">📷 Scan</button><button class="btn" data-a="invLog" style="flex:none" aria-label="Lager-Verlauf">🕘</button></div><div id="invList"></div><button class="btn primary block" data-a="invForm">+ Teil / Betriebsstoff</button>`;
  return{title:'Werkstatt',html:h,tab:'inv',after:renderInvList}}
+const invUnitShape=u=>({l:'can',ml:'bottle',Dose:'spray',g:'jar',kg:'bucket',m:'roll'})[u]||'box';
+const INV_COL={can:['#e9b52a','#b98a12'],bottle:['#e9b52a','#b98a12'],spray:['#d24b2a','#9c3017'],jar:['#3a72c9','#24508f'],bucket:['#3a72c9','#24508f'],roll:['#e0601f','#a8410f'],box:['#4a9a52','#2f6f37']};
+const INV_SHAPE={can:[22,'M14 22h12v-8h14v8h22a6 6 0 0 1 6 6v58a6 6 0 0 1-6 6H14a6 6 0 0 1-6-6V28a6 6 0 0 1 6-6z','<path d="M44 14h14a4 4 0 0 1 4 4v4" fill="none" stroke="#0006" stroke-width="4"/>'],
+ bottle:[28,'M31 6h14v12l9 10v58a6 6 0 0 1-6 6H28a6 6 0 0 1-6-6V28l9-10z',''],
+ spray:[24,'M20 24h36a4 4 0 0 1 4 4v62a4 4 0 0 1-4 4H20a4 4 0 0 1-4-4V28a4 4 0 0 1 4-4z','<path d="M26 22h24v-6h-6v-8h-12v8h-6z" fill="#d8d8d8"/><rect x="44" y="9" width="10" height="4" fill="#d8d8d8"/>'],
+ jar:[40,'M10 40h56a4 4 0 0 1 4 4v42a6 6 0 0 1-6 6H12a6 6 0 0 1-6-6V44a4 4 0 0 1 4-4z','<rect x="8" y="32" width="60" height="10" rx="2" fill="#24508f"/>'],
+ bucket:[30,'M8 30h60l-6 58a5 5 0 0 1-5 4H19a5 5 0 0 1-5-4z','<path d="M12 30Q38 2 64 30" fill="none" stroke="#bbb" stroke-width="3"/>'],
+ box:[30,'M6 30h64v62H6z','<path d="M6 30l10-12h44l10 12" fill="#0003" stroke="#0005" stroke-width="2"/>'],
+ roll:[0,'','']};
+function invFull(i){let m=Math.max(i.qty||0,(i.minQty||0)*2,i.packQty||0);for(const b of i.buys||[]){try{m=Math.max(m,conv(b.qty,b.unit||i.unit,i.unit)||0)}catch(e){}}return m||1}
+function invFig(i){const k=invUnitShape(i.unit),[c1,c2]=INV_COL[k],f=Math.max(0,Math.min(1,(i.qty||0)/invFull(i)));
+ if(k==='roll'){const r=12+22*f;return`<svg viewBox="0 0 76 96" aria-hidden="true"><rect x="8" y="88" width="60" height="6" rx="2" fill="#555"/><circle cx="38" cy="56" r="${r}" fill="${c1}" stroke="${c2}" stroke-width="2"/>${[.7,.45].map(x=>`<circle cx="38" cy="56" r="${Math.max(10,r*x)}" fill="none" stroke="${c2}" stroke-width="1.5"/>`).join('')}<circle cx="38" cy="56" r="9" fill="#2c2620" stroke="#888" stroke-width="2"/></svg>`}
+ const [top,d,extra]=INV_SHAPE[k],y=92-(92-top)*f,id='cf'+i.id;
+ return`<svg viewBox="0 0 76 96" aria-hidden="true"><defs><clipPath id="${id}"><path d="${d}"/></clipPath></defs>${extra}<path d="${d}" fill="#2c2620"/><g clip-path="url(#${id})"><rect x="0" y="${y}" width="76" height="96" fill="${c1}"/><rect x="0" y="${y}" width="76" height="3" fill="#fff5"/><rect x="0" y="0" width="12" height="96" fill="#fff1"/></g><path d="${d}" fill="none" stroke="${c1}" stroke-width="2.5"/></svg>`}
+let invShut=(()=>{try{return new Set(JSON.parse(localStorage.getItem('garage.invShut')||'[]'))}catch(e){return new Set()}})();
+const INV_NOLOC='Ohne festen Platz';
 function renderInvList(){const box=$('#invList');if(!box)return;const w=invQ.toLowerCase().split(/\s+/).filter(Boolean);
  const list=S.inventory.filter(i=>{const hay=[i.name,i.maker,i.partNo,i.location,i.spec,...(i.fits||[]).map(carName)].join(' ').toLowerCase();return w.every(x=>hay.includes(x))}).sort(byName);
- box.innerHTML=list.map(i=>`<div class="item ${(i.qty||0)<=0?'empty-stock':''}"><div class="grow" data-a="invForm" data-id="${i.id}"><b>${esc(i.name)}</b>
- <div class="sub">${esc([i.maker,i.partNo,i.spec].filter(Boolean).join(' · '))}</div><div class="sub">${[i.price!=null?esc(upLabel(i.price,i.unit)):'',i.location?'📍 '+esc(i.location):'',(i.fits||[]).length?'für '+esc(i.fits.map(carName).join(', ')):''].filter(Boolean).join(' · ')}</div>${i.minQty!=null&&(i.qty||0)<i.minQty?`<div class="sub low">⚠ unter Mindestbestand (${fmtQ(i.minQty)} ${esc(i.unit)}) – nachkaufen</div>`:''}</div>
- <div class="qty"><button class="iconbtn sm" data-a="invTake" data-id="${i.id}" aria-label="entnehmen">−</button><span data-a="invSet" data-id="${i.id}" style="cursor:pointer">${fmtQ(i.qty||0)} ${esc(i.unit||'')}</span></div></div>`).join('')||(w.length?'<p class="muted">Keine Treffer.</p>':empty('Das Lager ist leer.<br><span class="sub">Öl, Filter, Bremsenreiniger … mit Mindestbestand anlegen – fällt der Bestand darunter, kommt der Artikel von selbst auf die Einkaufsliste.</span>','',''))}
+ if(!list.length){box.innerHTML=w.length?'<p class="muted">Keine Treffer.</p>':empty('Das Lager ist leer.<br><span class="sub">Öl, Filter, Bremsenreiniger … mit Lagerort und Mindestbestand anlegen – jeder Lagerort wird ein eigener Regalboden. Fällt der Bestand unter den Mindestbestand, kommt der Artikel von selbst auf die Einkaufsliste.</span>','','');return}
+ const g=new Map();for(const i of list){const l=(i.location||'').trim()||INV_NOLOC;if(!g.has(l))g.set(l,[]);g.get(l).push(i)}
+ const locs=[...g.keys()].sort((a,b)=>(a===INV_NOLOC)-(b===INV_NOLOC)||a.localeCompare(b,'de'));
+ const low=i=>i.minQty!=null&&(i.qty||0)<i.minQty;
+ box.innerHTML=locs.map(l=>{const its=g.get(l),nl=its.filter(low).length,shut=!w.length&&invShut.has(l);
+  return`<section class="rack${shut?' shut':''}" data-loc="${esc(l)}"><button type="button" class="rk-head" data-a="invShelf" data-loc="${esc(l)}" aria-expanded="${!shut}"><span class="slbl">${esc(l)} <small>${its.length} ${its.length===1?'Artikel':'Artikel'}</small></span>${nl?'<span class="rk-lamp" title="nachkaufen"></span>':''}<span class="rk-chev">▲</span></button>
+  <div class="rk-wrap"><div class="rk-body"><div class="cons">${its.map(i=>`<div class="con${low(i)?' low':''}${(i.qty||0)<=0?' empty':''}"><div class="fig" data-a="invForm" data-id="${i.id}">${invFig(i)}<span class="stk" data-a="invSet" data-id="${i.id}">${fmtQ(i.qty||0)} ${esc(i.unit||'')}</span></div><b data-a="invForm" data-id="${i.id}">${esc(i.name)}</b>${low(i)?'<div class="need">⚠ nachkaufen</div>':''}<button type="button" class="iconbtn sm" data-a="invTake" data-id="${i.id}" aria-label="entnehmen">−</button></div>`).join('')}</div></div>
+  <div class="door" data-a="invShelf" data-loc="${esc(l)}"><span>${its.length} Artikel${nl?` · ${nl} nachkaufen`:''}</span><i></i></div></div><div class="beam"></div></section>`}).join('')}
+function invShelfToggle(l){const r=[...$$('#invList .rack')].find(x=>x.dataset.loc===l);if(!r)return;const close=!r.classList.contains('shut');
+ if(close)invShut.add(l);else invShut.delete(l);try{localStorage.setItem('garage.invShut',JSON.stringify([...invShut]))}catch(e){}
+ const d=r.querySelector('.door'),wrap=r.querySelector('.rk-wrap'),h=r.querySelector('.rk-body').offsetHeight||wrap.offsetHeight,fast=matchMedia('(prefers-reduced-motion: reduce)').matches;
+ r.querySelector('.rk-head').setAttribute('aria-expanded',!close);
+ if(close){if(fast||!d.animate){r.classList.add('shut');return}r.classList.add('rolling');d.animate([{height:'0px'},{height:h+'px'}],{duration:380,easing:'cubic-bezier(.5,0,.8,.6)'}).onfinish=()=>{d.style.height='';r.classList.add('shut')};d.style.height=h+'px';r.querySelector('.rk-chev').style.transform='rotate(180deg)'}
+ else{r.classList.remove('shut');r.querySelector('.rk-chev').style.transform='';if(fast||!d.animate)return;const H=r.querySelector('.rk-body').offsetHeight;d.animate([{height:H+'px'},{height:'0px'}],{duration:420,easing:'cubic-bezier(.2,.4,.5,1)'})}}
 
 let gQ='';
 function viewSearch(){return{title:'Suche',tab:'search',back:'#/home',html:`<input id="gq" type="search" placeholder="Was suchst du? z. B. Zündkerze, Bremse, 5W-40 …" value="${esc(gQ)}" autocomplete="off" enterkeyhint="search" style="width:100%;margin-bottom:12px"><div id="gRes"></div>`,after:()=>{renderSearch();const i=$('#gq');i.focus();i.setSelectionRange(i.value.length,i.value.length)}}}
@@ -3627,6 +3683,7 @@ const A={
  invForm:d=>invForm(d.id,d.ean),invDelete:async d=>{await del('inventory',d.id);closeSheet()},
  invTake:async d=>{const it=S.inventory.find(i=>i.id===d.id);if(!it)return;await invTake(it);if(d.close)closeSheet()},
  invLog:d=>invLogSheet(d.id),
+ invShelf:d=>invShelfToggle(d.loc),
  invMoveUndo:async d=>{await invMoveUndo(d.it,d.m,true)},
  invQty:async d=>{const it=S.inventory.find(i=>i.id===d.id);it.qty=Math.max(0,r3((it.qty||0)+ +d.d*invStep(it.unit)));await put('inventory',it);if(d.close){closeSheet();toast(`${it.name}: ${fmtQ(it.qty)} ${it.unit}`)}renderInvList()},
  invSet:async d=>{const it=S.inventory.find(i=>i.id===d.id);const v=await askText(`${it.name} – Bestand korrigieren`,`Tatsächlicher Bestand in ${it.unit} (Neukäufe bitte über „📦 + Packung“ mit Preis)`,valN(it.qty||0),{mode:'decimal',ok:'Speichern'});if(v===null)return;const n=num(v);if(n==null||n<0){toast('Ungültige Zahl');return}
@@ -3790,7 +3847,7 @@ async function seed(){const P=(name,maker,qty,unit,price,o={})=>({name,maker,par
 })();
 
 /* ================= Updates ================= */
-const APP_VER='garage-v52';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
+const APP_VER='garage-v53';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
 const verNum=v=>+(/(\d+)\s*$/.exec(v||'')||[0,0])[1];
 /* Neue Version erkennen: index.html vom Server holen und die Versionsnummer vergleichen.
    Der Hinweis kommt nur, wenn der Server wirklich eine NEUERE Version hat. */
