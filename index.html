@@ -2361,7 +2361,7 @@ function viewBackup(){const l=lsGet('garage.lastBackup');
  <p>Letzte Sicherung: <b>${l?fmtD(l.slice(0,10)):'noch nie'}</b></p><button class="btn primary block" data-a="shareBackup">📤 Backup teilen (z. B. Google Drive)</button><button class="btn block" data-a="exportJSON">💾 Backup als Datei speichern</button>
  <button class="btn block" data-a="importJSON">Backup wiederherstellen …</button><p class="sub" id="storeInfo"></p></div>
  <h2>Historie als CSV / Scheckheft</h2>${S.cars.sort(byName).map(c=>`<div class="item"><div class="grow"><b>${esc(dispName(c))}</b></div><button class="btn" data-a="exportCSV" data-car="${c.id}" style="min-height:44px">CSV</button><button class="btn" data-a="printBook" data-car="${c.id}" style="min-height:44px">PDF</button></div>`).join('')||'<p class="muted">Keine Autos.</p>'}`;
- return{title:'Backup & Export',html:h,tab:'more',back:'#/more',after:async()=>{try{const e=await navigator.storage.estimate();const p=await navigator.storage.persisted?.();const el=$('#storeInfo');if(el)el.textContent=`Belegt: ${fmtN((e.usage||0)/1048576,1)} MB · Dauerhafter Speicher: ${p?'ja':'nicht garantiert'}`}catch(x){}}}}
+ return{title:'Backup & Export',html:h,tab:'more',back:'#/more',after:async()=>{prepShare().catch(()=>{});try{const e=await navigator.storage.estimate();const p=await navigator.storage.persisted?.();const el=$('#storeInfo');if(el)el.textContent=`Belegt: ${fmtN((e.usage||0)/1048576,1)} MB · Dauerhafter Speicher: ${p?'ja':'nicht garantiert'}`}catch(x){}}}}
 
 function viewSettings(){const th=lsGet('garage.theme')||'dark';
  let h=`<h2 id="navcfg">Untere Leiste</h2><div id="navCfg">${navCfgHTML()}</div><h2>Tankbelege lesen</h2><div class="card"><p class="sub" style="margin-top:0">Die Texterkennung läuft direkt am Handy, deine Belege werden nirgends hochgeladen. Sie braucht einmalig ca. 15 MB Download, danach geht es auch offline.</p><button class="btn block" id="ocrPre" data-a="ocrPreload">${lsGet('garage.ocrReady')?'✓ Bereit – erneut laden':'Jetzt herunterladen'}</button></div><h2>Darstellung</h2><div class="seg">${[['retro','Retro-Garage'],['classic','Klassisch']].map(([k,l])=>`<label><input type="radio" name="skin" value="${k}" ${(lsGet('garage.skin')||'retro')===k?'checked':''} data-change="skin"><span>${l}</span></label>`).join('')}</div><div class="seg">${[['dark','Dunkel'],['light','Hell'],['system','System']].map(([k,l])=>`<label><input type="radio" name="theme" value="${k}" ${th===k?'checked':''} data-change="theme"><span>${l}</span></label>`).join('')}</div>`;
@@ -3044,11 +3044,22 @@ async function saveReceipt(f){const fd=Object.fromEntries(new FormData(f));const
 
 /* ================= Backup teilen ================= */
 async function backupJSON(){const photos=await allPhotos();const prefs={};['garage.nav','garage.theme','garage.skin','garage.backupDays','garage.rate','garage.rateFactor','garage.badges'].forEach(k=>{const v=lsGet(k);if(v!=null)prefs[k]=v});return JSON.stringify({app:'garage-wartung',version:2,exported:new Date().toISOString(),prefs,data:Object.fromEntries(STORES.filter(s=>s!=='photos').map(s=>[s,S[s]])),photos})}
-async function shareBackup(){const json=await backupJSON(),base=`garage-backup-${today()}`;
- const tries=[new File([json],base+'.json',{type:'application/json'}),new File([json],base+'.txt',{type:'text/plain'})];
- const file=tries.find(f=>{try{return navigator.canShare?.({files:[f]})}catch(e){return false}});
- if(file){try{await navigator.share({files:[file],title:'Garage-Backup'});lsSet('garage.lastBackup',new Date().toISOString());toast('Backup geteilt');render()}catch(e){if(e.name!=='AbortError')toast('Teilen nicht möglich')}return}
- download(base+'.json',json,'application/json');lsSet('garage.lastBackup',new Date().toISOString());toast('Teilen wird hier nicht unterstützt – Datei gespeichert');render()}
+/* Teilen braucht einen frischen Fingertipp: Chrome erlaubt navigator.share nur kurz nach dem Antippen.
+   Das Backup (mit Fotos) zu bauen dauert länger – darum wird es beim Öffnen der Backup-Seite vorbereitet. */
+let sharePrep=null;
+function prepShare(){if(sharePrep&&sharePrep.v===dataVer)return sharePrep.p;const v=dataVer;
+ const p=backupJSON().then(json=>{const base=`garage-backup-${today()}`;const tries=[new File([json],base+'.json',{type:'application/json'}),new File([json],base+'.txt',{type:'text/plain'})];
+  return{json,base,file:tries.find(f=>{try{return navigator.canShare?.({files:[f]})}catch(e){return false}})||null}});
+ sharePrep={v,p,ready:null};p.then(r=>{if(sharePrep?.p===p)sharePrep.ready=r}).catch(()=>{sharePrep=null});return p}
+const saveBackupFile=r=>{download(r.base+'.json',r.json,'application/json');lsSet('garage.lastBackup',new Date().toISOString());toast('Backup gespeichert (Downloads)');render()};
+async function doShare(r){if(!r.file){saveBackupFile(r);return}
+ try{await navigator.share({files:[r.file],title:'Garage-Backup'});lsSet('garage.lastBackup',new Date().toISOString());toast('Backup geteilt');render()}
+ catch(e){if(e.name==='AbortError')return;console.warn(e);toast('Teilen ging nicht','Als Datei speichern',()=>saveBackupFile(r))}}
+async function shareBackup(){const ready=sharePrep&&sharePrep.v===dataVer&&sharePrep.ready;
+ if(ready){doShare(ready);return}
+ toast('Backup wird vorbereitet …');let r;try{r=await prepShare()}catch(e){toast('Backup konnte nicht erstellt werden: '+errText(e));return}
+ // der Fingertipp ist inzwischen „abgelaufen“ – kurz nochmal tippen lassen
+ toast('Backup ist bereit','Jetzt teilen',()=>doShare(r))}
 
 /* ================= Verkaufs-Exposé ================= */
 function exposeForm(id){const c=car(id),x=c.expose||{};const pk=pickerlStatus(c);
@@ -3749,7 +3760,7 @@ async function seed(){const P=(name,maker,qty,unit,price,o={})=>({name,maker,par
 })();
 
 /* ================= Updates ================= */
-const APP_VER='garage-v49';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
+const APP_VER='garage-v50';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
 const verNum=v=>+(/(\d+)\s*$/.exec(v||'')||[0,0])[1];
 /* Neue Version erkennen: index.html vom Server holen und die Versionsnummer vergleichen.
    Der Hinweis kommt nur, wenn der Server wirklich eine NEUERE Version hat. */

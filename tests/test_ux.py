@@ -89,6 +89,12 @@ async def main():
         c.eq(await ev("$('#sheet .qbig .qbtn').textContent.trim()"), 'Tanken', 'Neu-Menü beginnt mit Tanken')
         await ev("closeSheet(false,true)"); await page.wait_for_timeout(200)
 
+        # Backup teilen: wird beim Öffnen der Seite vorbereitet, Tippen teilt sofort (Chrome braucht frischen Fingertipp)
+        await ev("navigator.canShare=()=>true;window._shared=0;navigator.share=async()=>{if(!navigator.userActivation.isActive)throw new DOMException('x','NotAllowedError');window._shared++};1")
+        await H.go(page, '#/backup'); await page.wait_for_timeout(1500)
+        await page.click('[data-a=shareBackup]'); await page.wait_for_timeout(500)
+        c.eq(await ev("window._shared"), 1, 'Backup teilen klappt mit einem Tipp')
+
         # runder +-Knopf nicht auf Werkstatt/Lager
         await H.go(page, '#/tools')
         c.ok(await ev("getComputedStyle($('.fab')).display==='none'"), 'kein +-Knopf auf Werkstatt')
