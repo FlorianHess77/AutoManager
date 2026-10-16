@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import harness as H
 from playwright.async_api import async_playwright
 
-PAGES = ['#/home', '#/cars', '#/todos', '#/tools', '#/inv', '#/shop', '#/search', '#/calendar', '#/stats',
+PAGES = ['#/home', '#/cars', '#/todos', '#/ws', '#/tools', '#/inv', '#/shop', '#/search', '#/calendar', '#/stats',
          '#/prices', '#/warranty', '#/archive', '#/backup', '#/settings', '#/help', '#/more']
 CAR_TABS = ['ov', 'hist', 'fuel', 'odo', 'iv', 'tyre', 'issue', 'tech', 'guide', 'docs']
 

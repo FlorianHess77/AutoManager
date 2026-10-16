@@ -41,7 +41,7 @@ async def main():
         await page.reload(); await H.ready(page)
         cid = await page.evaluate("myCars()[0].id")
         res = {}
-        for h in ['#/home', '#/cars', f'#/car/{cid}', f'#/car/{cid}/hist', f'#/car/{cid}/iv', f'#/car/{cid}/fuel', '#/tools', '#/inv', '#/stats', '#/calendar', '#/search', '#/more']:
+        for h in ['#/home', '#/cars', f'#/car/{cid}', f'#/car/{cid}/hist', f'#/car/{cid}/iv', f'#/car/{cid}/fuel', '#/ws', '#/tools', '#/inv', '#/stats', '#/calendar', '#/search', '#/more']:
             res[h] = await page.evaluate(TIME, h)
         await page.evaluate("A.homeTab({t:'log'})")
         res['Verlauf'] = await page.evaluate(TIME, '#/home')
