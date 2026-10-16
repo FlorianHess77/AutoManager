@@ -1770,7 +1770,7 @@ async function loadAll(){for(const s of STORES){if(s==='photos')continue;S[s]=aw
 /* Daten absichern (nur im Arbeitsspeicher, Format bleibt gleich): Zahlen, die als Text gespeichert sind,
    werden zu Zahlen; fehlende Listen/Datumsfelder bekommen leere Werte, damit keine Ansicht abstürzt. */
 const NORM={cars:{n:['odo','purchasePrice','purchaseOdo','insYear'],a:['deadlines','specs','docs']},entries:{n:['odo','hours','labor'],a:['parts','photos','intervalIds','toolIds'],d:1},
- intervals:{n:['km','months','warnKm','warnDays','baseOdo']},todos:{n:['prio'],a:['parts','toolIds']},inventory:{n:['qty','price','minQty','packPrice','packQty','packUnitQty','shopSnooze'],a:['buys','fits']},
+ intervals:{n:['km','months','warnKm','warnDays','baseOdo']},todos:{n:['prio'],a:['parts','toolIds']},inventory:{n:['qty','price','minQty','packPrice','packQty','packUnitQty','shopSnooze'],a:['buys','fits','moves']},
  fuel:{n:['odo','liters','price','ppl'],d:1},odo:{n:['odo'],d:1},tyres:{n:['price','tFL','tFR','tRL','tRR','kmTotal','mountedOdo']},issues:{n:['odo'],d:1},
  tools:{n:['price','paid','rentPrice','extraUses'],a:['docs']},shop:{n:['qty']},guides:{a:['photos']}};
 function normalizeAll(){const fix=(o,keys)=>{if(!o||typeof o!=='object')return;for(const k of keys)if(typeof o[k]==='string')o[k]=num(o[k])};
@@ -2291,13 +2291,13 @@ function viewTodos(){let list=S.todos.filter(t=>todoFilter===''?true:todoFilter=
 
 let invQ='';
 function viewInv(){const low=lowStock();const all=S.inventory,val=all.reduce((x,i)=>x+(i.price!=null&&i.qty>0?i.price*i.qty:0),0),noP=all.filter(i=>i.price==null&&i.qty>0).length,y=today().slice(0,4);let bc=0;const spent=all.reduce((x,i)=>x+(i.buys||[]).filter(b=>(b.date||'').startsWith(y)).reduce((z,b)=>(bc++,z+(b.price||0)),0),0);
- let h=workshopChips('inv')+`<div class="grid2"><div class="card"><div class="sub">Lagerwert</div><div class="big">${eur(val)}</div><div class="sub">${all.length} Artikel${noP?` · ${noP} ohne Preis`:''}</div></div><div class="card"><div class="sub">Ausgaben ${y}</div><div class="big">${eur(spent)}</div><div class="sub">${bc?`${bc} Einkäufe`:'noch nichts gekauft'}</div></div></div>`+(low.length?`<div class="note warn">⚠ ${low.length} Artikel unter Mindestbestand – <button class="linkbtn" data-a="shopOpen">Einkaufsliste</button></div>`:'')+`<div class="row" style="gap:8px;margin-bottom:10px;flex-wrap:nowrap"><input id="invQ" type="search" placeholder="Lager durchsuchen …" value="${esc(invQ)}" style="flex:1"><button class="btn" data-a="scanInv" style="flex:none">📷 Scan</button></div><div id="invList"></div><button class="btn primary block" data-a="invForm">+ Teil / Betriebsstoff</button>`;
+ let h=workshopChips('inv')+`<div class="grid2"><div class="card"><div class="sub">Lagerwert</div><div class="big">${eur(val)}</div><div class="sub">${all.length} Artikel${noP?` · ${noP} ohne Preis`:''}</div></div><div class="card"><div class="sub">Ausgaben ${y}</div><div class="big">${eur(spent)}</div><div class="sub">${bc?`${bc} Einkäufe`:'noch nichts gekauft'}</div></div></div>`+(low.length?`<div class="note warn">⚠ ${low.length} Artikel unter Mindestbestand – <button class="linkbtn" data-a="shopOpen">Einkaufsliste</button></div>`:'')+`<div class="row" style="gap:8px;margin-bottom:10px;flex-wrap:nowrap"><input id="invQ" type="search" placeholder="Lager durchsuchen …" value="${esc(invQ)}" style="flex:1"><button class="btn" data-a="scanInv" style="flex:none">📷 Scan</button><button class="btn" data-a="invLog" style="flex:none" aria-label="Lager-Verlauf">🕘</button></div><div id="invList"></div><button class="btn primary block" data-a="invForm">+ Teil / Betriebsstoff</button>`;
  return{title:'Werkstatt',html:h,tab:'inv',after:renderInvList}}
 function renderInvList(){const box=$('#invList');if(!box)return;const w=invQ.toLowerCase().split(/\s+/).filter(Boolean);
  const list=S.inventory.filter(i=>{const hay=[i.name,i.maker,i.partNo,i.location,i.spec,...(i.fits||[]).map(carName)].join(' ').toLowerCase();return w.every(x=>hay.includes(x))}).sort(byName);
  box.innerHTML=list.map(i=>`<div class="item ${(i.qty||0)<=0?'empty-stock':''}"><div class="grow" data-a="invForm" data-id="${i.id}"><b>${esc(i.name)}</b>
  <div class="sub">${esc([i.maker,i.partNo,i.spec].filter(Boolean).join(' · '))}</div><div class="sub">${[i.price!=null?esc(upLabel(i.price,i.unit)):'',i.location?'📍 '+esc(i.location):'',(i.fits||[]).length?'für '+esc(i.fits.map(carName).join(', ')):''].filter(Boolean).join(' · ')}</div>${i.minQty!=null&&(i.qty||0)<i.minQty?`<div class="sub low">⚠ unter Mindestbestand (${fmtQ(i.minQty)} ${esc(i.unit)}) – nachkaufen</div>`:''}</div>
- <div class="qty"><button class="iconbtn sm" data-a="invQty" data-id="${i.id}" data-d="-1" aria-label="weniger">−</button><span data-a="invSet" data-id="${i.id}" style="cursor:pointer">${fmtQ(i.qty||0)} ${esc(i.unit||'')}</span><button class="iconbtn sm" data-a="invQty" data-id="${i.id}" data-d="1" aria-label="mehr">+</button></div></div>`).join('')||(w.length?'<p class="muted">Keine Treffer.</p>':empty('Das Lager ist leer.<br><span class="sub">Öl, Filter, Bremsenreiniger … mit Mindestbestand anlegen – fällt der Bestand darunter, kommt der Artikel von selbst auf die Einkaufsliste.</span>','',''))}
+ <div class="qty"><button class="iconbtn sm" data-a="invTake" data-id="${i.id}" aria-label="entnehmen">−</button><span data-a="invSet" data-id="${i.id}" style="cursor:pointer">${fmtQ(i.qty||0)} ${esc(i.unit||'')}</span></div></div>`).join('')||(w.length?'<p class="muted">Keine Treffer.</p>':empty('Das Lager ist leer.<br><span class="sub">Öl, Filter, Bremsenreiniger … mit Mindestbestand anlegen – fällt der Bestand darunter, kommt der Artikel von selbst auf die Einkaufsliste.</span>','',''))}
 
 let gQ='';
 function viewSearch(){return{title:'Suche',tab:'search',back:'#/home',html:`<input id="gq" type="search" placeholder="Was suchst du? z. B. Zündkerze, Bremse, 5W-40 …" value="${esc(gQ)}" autocomplete="off" enterkeyhint="search" style="width:100%;margin-bottom:12px"><div id="gRes"></div>`,after:()=>{renderSearch();const i=$('#gq');i.focus();i.setSelectionRange(i.value.length,i.value.length)}}}
@@ -2685,7 +2685,7 @@ function invForm(id,ean){const it=id?S.inventory.find(i=>i.id===id):{qty:1,unit:
  <label class="f"><span>Spezifikation</span><input name="spec" value="${esc(it.spec)}"></label><label class="f"><span>Lagerort</span><input name="location" value="${esc(it.location)}" placeholder="z. B. Regal 2, Kiste Bremse"></label>
  <span class="sub">Passt für</span>${S.cars.sort(byName).map(c=>`<label class="checkline"><input type="checkbox" name="fits" value="${c.id}" ${(it.fits||[]).includes(c.id)?'checked':''}> ${esc(dispName(c))}</label>`).join('')}
  <label class="f" style="margin-top:8px"><span>Notiz</span><textarea name="note">${esc(it.note)}</textarea></label>${datalists()}</form>
- ${id&&(it.buys||[]).length?`<h4>Käufe</h4>${it.buys.slice().reverse().slice(0,8).map(b=>`<div class="row between sub" style="padding:4px 0"><span>${fmtD(b.date)} · +${fmtQ(b.qty)} ${esc(b.unit)}${b.shop?' · '+esc(b.shop):''}</span><span>${b.price!=null?eur(b.price):''}</span></div>`).join('')}`:''}`;
+ ${id?(()=>{const mv=invMoves(id);return mv.length?`<h4>Verlauf</h4>${mv.slice(0,15).map(m=>invMoveHTML(m,false)).join('')}${mv.length>15?`<button type="button" class="morebtn" data-a="invLog" data-id="${id}">Alle ${mv.length} anzeigen</button>`:''}`:''})():''}`;
  openSheet(id?'Lagerteil bearbeiten':'Neues Lagerteil',body,`${id?`<button class="btn danger" data-a="invDelete" data-id="${id}">Löschen</button><button class="btn" data-a="restockForm" data-id="${id}">📦 + Packung</button>`:''}<button class="btn primary grow" type="submit" form="fInv">Speichern</button>`);invPreview()}
 let invPqTouched=false;
 function invPreview(){const f=$('#fInv');if(!f)return;const F=n=>f.elements.namedItem(n);const u=F('unit').value;
@@ -3112,6 +3112,30 @@ async function saveRestock(f){const fd=Object.fromEntries(new FormData(f));const
  (it.buys=it.buys||[]).push({id:uid(),date:fd.date||today(),qty:q,unit:fd.unit,price:paid,shop:fd.shop.trim()});
  await put('inventory',it);closeSheet();toast(`+${fmtQ(q)} ${fd.unit} · Bestand ${fmtQ(it.qty)} ${it.unit}`);render()}
 
+/* ================= Lager-Verlauf ================= */
+// Bewegungen: Käufe (buys), Entnahmen mit „−“ und Korrekturen (moves, Menge in der Lager-Einheit), Verbrauch in Einträgen (aus den Einträgen abgeleitet)
+async function invTake(it){const q=it.qty||0;if(q<=0){toast(`${it.name}: nichts mehr auf Lager`);return}const take=Math.min(invStep(it.unit),q);
+ it.qty=r3(q-take);const m={id:uid(),date:today(),ts:new Date().toISOString(),qty:-take,kind:'take'};(it.moves=it.moves||[]).push(m);await put('inventory',it);renderInvList();
+ toast(`−${fmtQ(take)} ${it.unit} ${it.name} · Bestand ${fmtQ(it.qty)}`,'Rückgängig',()=>invMoveUndo(it.id,m.id))}
+async function invMoveUndo(itId,mId,ask){const it=S.inventory.find(i=>i.id===itId);const m=it?.moves?.find(x=>x.id===mId);if(!m)return;
+ if(ask&&!await askConfirm(`${m.kind==='fix'?'Korrektur':'Entnahme'} von ${fmtQ(Math.abs(m.qty))} ${it.unit} „${it.name}“ vom ${fmtD(m.date)} zurücknehmen?`,'Zurücknehmen',false,'Rückgängig'))return;
+ it.qty=r3(Math.max(0,(it.qty||0)-m.qty));it.moves=it.moves.filter(x=>x!==m);await put('inventory',it);toast(`Zurückgenommen · Bestand ${fmtQ(it.qty)} ${it.unit}`);
+ renderInvList();if($('#invLogList'))invLogRender();else if(sheetOpen&&$('#fInv'))invForm(it.id)}
+function invMoves(itemId){const out=[],its=itemId?S.inventory.filter(i=>i.id===itemId):S.inventory;
+ for(const it of its){for(const b of it.buys||[])out.push({kind:'buy',it,date:b.date||'',ts:b.date||'',qty:b.qty,unit:b.unit||it.unit,price:b.price,shop:b.shop});
+  for(const m of it.moves||[])out.push({kind:m.kind,it,id:m.id,date:m.date,ts:m.ts||m.date,qty:m.qty,unit:it.unit})}
+ for(const e of S.entries)for(const p of e.parts||[]){if(!p.invId||(itemId&&p.invId!==itemId))continue;const it=S.inventory.find(i=>i.id===p.invId);if(it)out.push({kind:'entry',it,e,date:e.date,ts:e.date,qty:-(p.qty||0),unit:p.unit||it.unit})}
+ return out.sort((a,b)=>(b.ts||'').localeCompare(a.ts||''))}
+function invMoveHTML(m,showName=true){const plus=m.qty>0,q=`${plus?'+':'−'}${fmtQ(Math.abs(m.qty))} ${esc(m.unit||'')}`;
+ const what=m.kind==='buy'?['Gekauft',m.shop,m.price!=null?eur(m.price):''].filter(Boolean).join(' · '):m.kind==='entry'?`Verbraucht: ${esc(m.e.title||m.e.category)} · ${esc(carName(m.e.carId))}`:m.kind==='fix'?'Bestand korrigiert':'Entnommen';
+ const undo=m.kind==='take'||m.kind==='fix';
+ return`<div class="item" ${m.kind==='entry'?`data-a="entryView" data-id="${m.e.id}"`:showName?`data-a="invForm" data-id="${m.it.id}"`:'style="cursor:default"'}><span class="cat" style="--c:${plus?'var(--green)':'#b07cf0'}">${plus?'＋':'－'}</span><div class="grow">${showName?`<b>${esc(m.it.name)}</b>`:''}<div class="${showName?'sub':''}"><b style="color:var(--text)">${q}</b> · ${fmtD(m.date)}</div><div class="sub">${what}</div></div>${undo?`<button type="button" class="iconbtn sm" data-a="invMoveUndo" data-it="${m.it.id}" data-m="${m.id}" aria-label="Rückgängig">↶</button>`:''}</div>`}
+let invLogFor='';
+function invLogSheet(id){invLogFor=id||'';const it=id&&S.inventory.find(i=>i.id===id);openSheet(it?`Verlauf · ${it.name}`:'Lager-Verlauf',`<p class="sub" style="margin-top:0">Käufe, Entnahmen mit „−“, Korrekturen und Verbrauch in Einträgen. Mit ↶ nimmst du eine Entnahme oder Korrektur zurück.</p><div id="invLogList"></div>`);invLogRender()}
+function invLogRender(){const box=$('#invLogList');if(!box)return;const mv=invMoves(invLogFor);let h='',mon='';
+ for(const m of mv.slice(0,200)){const k=(m.date||'').slice(0,7);if(k!==mon){mon=k;h+=`<div class="log-month"><span>${k?new Date(k+'-01T12:00:00').toLocaleDateString('de-AT',{month:'long',year:'numeric'}):'ohne Datum'}</span></div>`}h+=invMoveHTML(m,!invLogFor)}
+ box.innerHTML=h||'<p class="muted">Noch keine Bewegungen.</p>'}
+
 /* ================= Barcode-Scanner ================= */
 let scanStream=null,scanTimer=null;
 function stopScan(){clearInterval(scanTimer);scanTimer=null;scanStream?.getTracks().forEach(t=>t.stop());scanStream=null;const o=$('#scanner');o.classList.add('hidden');o.innerHTML=''}
@@ -3128,7 +3152,7 @@ async function openScanner(){
 const invByCode=c=>S.inventory.find(i=>i.ean&&i.ean===c);
 async function scanInv(){const c=await openScanner();if(!c)return;const it=invByCode(c);
  if(it){openSheet('📷 Gefunden',`<div class="item" style="cursor:default"><span class="cat" style="--c:var(--green)">✓</span><div class="grow"><b>${esc(it.name)}</b><div class="sub">${esc([it.maker,it.spec].filter(Boolean).join(' · '))}</div><div class="sub">Bestand: <b style="color:var(--text)">${fmtQ(it.qty||0)} ${esc(it.unit)}</b>${it.location?' · 📍 '+esc(it.location):''}</div></div></div>
-  <div class="grid2"><button class="btn" data-a="invQty" data-id="${it.id}" data-d="-1" data-close="1">− ${fmtQ(invStep(it.unit))} ${esc(it.unit)} entnehmen</button><button class="btn primary" data-a="restockForm" data-id="${it.id}">📦 Packung gekauft</button></div>`,`<button class="btn grow" data-a="invForm" data-id="${it.id}">Bearbeiten</button>`);return}
+  <div class="grid2"><button class="btn" data-a="invTake" data-id="${it.id}" data-close="1">− ${fmtQ(invStep(it.unit))} ${esc(it.unit)} entnehmen</button><button class="btn primary" data-a="restockForm" data-id="${it.id}">📦 Packung gekauft</button></div>`,`<button class="btn grow" data-a="invForm" data-id="${it.id}">Bearbeiten</button>`);return}
  const free=S.inventory.filter(i=>!i.ean).sort(byName);
  openSheet('Unbekannter Barcode',`<p>Code <b>${esc(c)}</b> ist noch keinem Artikel zugeordnet.</p><button class="btn primary block" data-a="invForm" data-ean="${esc(c)}">+ Neuer Artikel mit diesem Code</button>
  ${free.length?`<h4>Oder einem vorhandenen Artikel zuordnen</h4>${free.map(i=>`<div class="item" data-a="eanAssign" data-id="${i.id}" data-ean="${esc(c)}"><div class="grow"><b>${esc(i.name)}</b><div class="sub">${esc([i.maker,i.spec].filter(Boolean).join(' · '))}</div></div><span class="muted">›</span></div>`).join('')}`:''}`)}
@@ -3173,6 +3197,7 @@ function activityItems(){if(actCache&&actCache.v===dataVer)return actCache.items
  for(const o of S.odo)add({date:o.date,cat:'km-Stand',carId:o.carId,icon:ibox('gauge'),title:`km-Stand ${kmT(o.odo)}`,sub:'manuell eingetragen',act:`data-a="go" data-h="#/car/${o.carId}/odo"`});
  for(const x of S.issues)add({date:x.date,cat:'Fehler',carId:x.carId,icon:ibox(x.status==='solved'?'check':'alert',x.status==='solved'?'var(--green)':'var(--yellow)'),title:x.title,sub:['Fehler erfasst',x.codes,x.status==='solved'?'gelöst':'offen'].filter(Boolean).join(' · '),act:`data-a="issueForm" data-id="${x.id}" data-car="${x.carId}"`});
  for(const t of S.todos)if(t.done&&t.doneAt&&!t.entryId)add({date:t.doneAt,cat:'To-do',carId:t.carId,icon:ibox('check','var(--green)'),title:t.title,sub:'Aufgabe erledigt',act:`data-a="todoForm" data-id="${t.id}"`});
+ for(const i of S.inventory)for(const m of i.moves||[])add({date:m.date,cat:'Lager',carId:null,icon:ibox('box','#b07cf0'),title:`${i.name} ${m.kind==='fix'?'korrigiert':'entnommen'}`,sub:`${m.qty>0?'+':'−'}${fmtQ(Math.abs(m.qty))} ${i.unit}${m.kind==='fix'?' · Bestand korrigiert':''}`,act:`data-a="invLog" data-id="${i.id}"`});
  for(const i of S.inventory)for(const b of i.buys||[])add({date:b.date,cat:'Lager',carId:null,icon:ibox('box','#b07cf0'),title:`${i.name} gekauft`,sub:[`+${fmtQ(b.qty)} ${b.unit}`,i.maker,b.shop].filter(Boolean).join(' · '),amount:b.price,act:`data-a="invForm" data-id="${i.id}"`});
  for(const t of S.tools)if(t.purchaseDate)add({date:t.purchaseDate,cat:'Werkzeug',carId:null,icon:ibox('cart','#2dd4bf'),title:`${t.name} gekauft`,sub:[t.brand,t.paid!=null&&t.price!=null&&t.paid!==t.price?'Wert '+eur(t.price):''].filter(Boolean).join(' · '),amount:toolPaid(t),act:`data-a="toolView" data-id="${t.id}"`});
  for(const c of S.cars){if(c.purchase)add({date:c.purchase,cat:'Auto',carId:c.id,icon:ibox('car',carColor(c.id)),title:`${dispName(c)} gekauft`,sub:c.purchaseOdo!=null?kmT(c.purchaseOdo):'',amount:c.purchasePrice,noSum:true,act:`data-a="go" data-h="#/car/${c.id}"`});
@@ -3600,8 +3625,12 @@ const A={
  toolWy:d=>{const f=$('#fTool'),F=n=>f.elements.namedItem(n);const base=F('purchaseDate').value||today();F('warrantyUntil').value=addMonths(base,12*+d.y);F('warrantyLifetime').checked=false},
  toolDocView:d=>openDoc(d.id),
  invForm:d=>invForm(d.id,d.ean),invDelete:async d=>{await del('inventory',d.id);closeSheet()},
+ invTake:async d=>{const it=S.inventory.find(i=>i.id===d.id);if(!it)return;await invTake(it);if(d.close)closeSheet()},
+ invLog:d=>invLogSheet(d.id),
+ invMoveUndo:async d=>{await invMoveUndo(d.it,d.m,true)},
  invQty:async d=>{const it=S.inventory.find(i=>i.id===d.id);it.qty=Math.max(0,r3((it.qty||0)+ +d.d*invStep(it.unit)));await put('inventory',it);if(d.close){closeSheet();toast(`${it.name}: ${fmtQ(it.qty)} ${it.unit}`)}renderInvList()},
- invSet:async d=>{const it=S.inventory.find(i=>i.id===d.id);const v=await askText(it.name,`Bestand in ${it.unit}`,valN(it.qty||0),{mode:'decimal',ok:'Speichern'});if(v===null)return;const n=num(v);if(n==null||n<0){toast('Ungültige Zahl');return}it.qty=r3(n);await put('inventory',it);renderInvList()},
+ invSet:async d=>{const it=S.inventory.find(i=>i.id===d.id);const v=await askText(`${it.name} – Bestand korrigieren`,`Tatsächlicher Bestand in ${it.unit} (Neukäufe bitte über „📦 + Packung“ mit Preis)`,valN(it.qty||0),{mode:'decimal',ok:'Speichern'});if(v===null)return;const n=num(v);if(n==null||n<0){toast('Ungültige Zahl');return}
+  const diff=r3(n-(it.qty||0));if(!diff)return;it.qty=r3(n);(it.moves=it.moves||[]).push({id:uid(),date:today(),ts:new Date().toISOString(),qty:diff,kind:'fix'});await put('inventory',it);renderInvList();toast(`Bestand korrigiert (${diff>0?'+':''}${fmtQ(diff)} ${it.unit})`)},
  restockForm:d=>restockForm(d.id),scanInv,eanAssign:async d=>{const it=S.inventory.find(i=>i.id===d.id);it.ean=d.ean;await put('inventory',it);closeSheet();toast(`Code zugeordnet: ${it.name}`)},
  scanEan:async()=>{const c=await openScanner();if(c){$('#fInv [name=ean]').value=c;const o=invByCode(c);if(o&&o.id!==draft.id)toast(`Achtung: Code gehört schon zu „${o.name}“`)}},
  scanPart:(d,el)=>scanPart(el.closest('.prow')),
@@ -3761,7 +3790,7 @@ async function seed(){const P=(name,maker,qty,unit,price,o={})=>({name,maker,par
 })();
 
 /* ================= Updates ================= */
-const APP_VER='garage-v51';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
+const APP_VER='garage-v52';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
 const verNum=v=>+(/(\d+)\s*$/.exec(v||'')||[0,0])[1];
 /* Neue Version erkennen: index.html vom Server holen und die Versionsnummer vergleichen.
    Der Hinweis kommt nur, wenn der Server wirklich eine NEUERE Version hat. */

@@ -40,6 +40,26 @@ async def main():
         c.ok(await ev("!!document.querySelector('.dlg input')"), 'Bestand-Fenster mit Eingabefeld')
         await page.fill('.dlg input', '7,5'); await page.click('.dlg [data-x=ok]'); await page.wait_for_timeout(300)
         c.eq(await ev("S.inventory.slice().sort(byName)[0].qty"), 7.5, 'Bestand mit Komma gesetzt')
+        c.eq(await ev("S.inventory.slice().sort(byName)[0].moves.at(-1).kind"), 'fix', 'Korrektur steht im Verlauf')
+
+        # Lager: kein +, „−“ entnimmt mit Rückgängig, Verlauf mit Zurücknehmen
+        c.eq(await ev("$$('#invList [aria-label=mehr]').length"), 0, 'kein +-Knopf in der Lagerliste')
+        iid = await ev("S.inventory.slice().sort(byName)[0].id")
+        q0 = await ev(f"S.inventory.find(i=>i.id==='{iid}').qty")
+        await page.click(f'#invList [data-a=invTake][data-id="{iid}"]'); await page.wait_for_timeout(300)
+        c.ok(await ev(f"S.inventory.find(i=>i.id==='{iid}').qty") < q0, '„−“ verringert den Bestand')
+        c.eq(await ev(f"S.inventory.find(i=>i.id==='{iid}').moves.at(-1).kind"), 'take', 'Entnahme im Verlauf')
+        await page.click('#toast .tbtn'); await page.wait_for_timeout(300)
+        c.eq(await ev(f"[S.inventory.find(i=>i.id==='{iid}').qty,S.inventory.find(i=>i.id==='{iid}').moves.some(m=>m.kind==='take')]"), [q0, False], 'Rückgängig im Hinweis stellt Bestand her')
+        await page.click(f'#invList [data-a=invTake][data-id="{iid}"]'); await page.wait_for_timeout(300)
+        await ev(f"(()=>{{const e=S.entries.find(e=>e.carId==='{cid}');(e.parts=e.parts||[]).push({{name:'Test',invId:'{iid}',qty:1}});return 1}})()")
+        await page.click('[data-a=invLog]'); await page.wait_for_timeout(300)
+        c.ok(await ev("$$('#invLogList .item').length") > 0, 'Lager-Verlauf zeigt Bewegungen')
+        c.ok('Verbraucht' in await ev("$('#invLogList').textContent"), 'Verlauf zeigt Verbrauch aus Einträgen')
+        await page.click('#invLogList [data-a=invMoveUndo]'); await page.wait_for_timeout(200)
+        await page.click('.dlg [data-x=ok]'); await page.wait_for_timeout(400)
+        c.eq(await ev(f"S.inventory.find(i=>i.id==='{iid}').qty"), q0, 'Entnahme im Verlauf zurückgenommen')
+        await ev("closeSheet(false,true)"); await page.wait_for_timeout(300)
 
         # Zurück-Taste schließt nur das Fenster (Dialog), nicht das Werkzeug-Fenster darunter
         tid = await ev("S.tools.find(t=>!t.lentTo).id")
