@@ -3048,13 +3048,14 @@ async function backupJSON(){const photos=await allPhotos();const prefs={};['gara
    Das Backup (mit Fotos) zu bauen dauert länger – darum wird es beim Öffnen der Backup-Seite vorbereitet. */
 let sharePrep=null;
 function prepShare(){if(sharePrep&&sharePrep.v===dataVer)return sharePrep.p;const v=dataVer;
- const p=backupJSON().then(json=>{const base=`garage-backup-${today()}`;const tries=[new File([json],base+'.json',{type:'application/json'}),new File([json],base+'.txt',{type:'text/plain'})];
+ const p=backupJSON().then(json=>{const base=`garage-backup-${today()}`;// Chrome teilt .json-Dateien nicht (meldet „erlaubt“, lehnt dann aber ab) – darum als .txt; Wiederherstellen liest beides
+  const tries=[new File([json],base+'.txt',{type:'text/plain'})];
   return{json,base,file:tries.find(f=>{try{return navigator.canShare?.({files:[f]})}catch(e){return false}})||null}});
  sharePrep={v,p,ready:null};p.then(r=>{if(sharePrep?.p===p)sharePrep.ready=r}).catch(()=>{sharePrep=null});return p}
 const saveBackupFile=r=>{download(r.base+'.json',r.json,'application/json');lsSet('garage.lastBackup',new Date().toISOString());toast('Backup gespeichert (Downloads)');render()};
 async function doShare(r){if(!r.file){saveBackupFile(r);return}
  try{await navigator.share({files:[r.file],title:'Garage-Backup'});lsSet('garage.lastBackup',new Date().toISOString());toast('Backup geteilt');render()}
- catch(e){if(e.name==='AbortError')return;console.warn(e);toast('Teilen ging nicht','Als Datei speichern',()=>saveBackupFile(r))}}
+ catch(e){if(e.name==='AbortError')return;console.warn(e);toast(`Teilen ging nicht (${e.name||e})`,'Als Datei speichern',()=>saveBackupFile(r))}}
 async function shareBackup(){const ready=sharePrep&&sharePrep.v===dataVer&&sharePrep.ready;
  if(ready){doShare(ready);return}
  toast('Backup wird vorbereitet …');let r;try{r=await prepShare()}catch(e){toast('Backup konnte nicht erstellt werden: '+errText(e));return}
@@ -3760,7 +3761,7 @@ async function seed(){const P=(name,maker,qty,unit,price,o={})=>({name,maker,par
 })();
 
 /* ================= Updates ================= */
-const APP_VER='garage-v50';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
+const APP_VER='garage-v51';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
 const verNum=v=>+(/(\d+)\s*$/.exec(v||'')||[0,0])[1];
 /* Neue Version erkennen: index.html vom Server holen und die Versionsnummer vergleichen.
    Der Hinweis kommt nur, wenn der Server wirklich eine NEUERE Version hat. */
