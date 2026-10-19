@@ -165,6 +165,22 @@ async def main():
           const s=ivStatus(v);return{kmLeft:s.kmLeft,date:s.last.date}})()""")
         c.eq(r['date'], '2026-06-01', 'Intervall: letztes Datum')
 
+        # Überfällig nach km, Datum noch nicht erreicht → „seit 46 km überfällig“ ohne verwirrendes „bis …“
+        await ev("T.reset()")
+        r = await ev("""(async()=>{const c=await T.car({});const v=await T.iv({carId:c.id,km:15000,months:12});
+          await T.entry({carId:c.id,date:addMonths(today(),-5),odo:181000,intervalIds:[v.id]});
+          await T.entry({carId:c.id,date:today(),odo:196046});
+          const s=ivStatus(v);return{st:s.st,text:s.text}})()""")
+        c.eq(r['st'], 'over', 'km überschritten → überfällig')
+        c.eq(r['text'].replace('\xa0', ' '), 'seit 46 km überfällig (fällig bei 196.000 km)', 'Text: seit wie vielen km überfällig + Fällig-km')
+        # Überfällig nach Datum, km noch nicht erreicht → Tage statt „noch … km“
+        await ev("T.reset()")
+        r = await ev("""(async()=>{const c=await T.car({});const v=await T.iv({carId:c.id,km:15000,months:12});
+          await T.entry({carId:c.id,date:addMonths(today(),-12).replace(/\\d\\d$/,'01'),odo:100000,intervalIds:[v.id]});
+          await T.entry({carId:c.id,date:today(),odo:101000});
+          const s=ivStatus(v);return{st:s.st,text:s.text,d:-s.daysLeft}})()""")
+        c.ok(r['st'] == 'over' and r['text'].startswith('seit ') and f"({r['d']} Tag" in r['text'] and 'noch' not in r['text'], f"Datum überschritten: „seit … überfällig (n Tage)“ ({r['text']})")
+
         # ---------- Jahresrückblick: Teilelager-Einkäufe zählen zu den Ausgaben ----------
         await ev("T.reset()")
         r = await ev("""(async()=>{await put('inventory',{id:uid(),name:'Öl',qty:5,unit:'l',price:8,buys:[{id:uid(),date:'2026-03-01',qty:5,unit:'l',price:40}]});

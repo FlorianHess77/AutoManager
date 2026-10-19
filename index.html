@@ -113,6 +113,7 @@ input[type=checkbox],input[type=radio]{width:auto;min-height:0}
 .qty{display:flex;align-items:center;gap:6px;flex:none}
 .qty span{min-width:62px;text-align:center;font-weight:700;font-size:14px}
 .item.empty-stock{opacity:.6}
+.sub.over-t{color:var(--red);font-weight:700}
 /* Teilelager als Schwerlastregal: Boden = Lagerort, Teile als Gebinde, Rolltor zum Einklappen */
 .rack{position:relative;margin:0 9px 16px;border-left:9px solid #e0601f;border-right:9px solid #e0601f;background:radial-gradient(circle,#0007 1.4px,transparent 1.6px) 0 0/12px 12px,#231f19;color:#e9e0cf}
 .rack:before,.rack:after{content:'';position:absolute;top:0;bottom:0;width:9px;background:repeating-linear-gradient(#0000 0 10px,#0008 10px 16px)}
@@ -1906,8 +1907,13 @@ function ivStatus(iv){const last=ivLast(iv);const cur=carOdo(iv.carId);let kmLef
  let st;if(kmLeft==null&&daysLeft==null)st='unknown';
  else if((kmLeft!=null&&kmLeft<0)||(daysLeft!=null&&daysLeft<0))st='over';
  else if((kmLeft!=null&&kmLeft<=(iv.warnKm??1000))||(daysLeft!=null&&daysLeft<=(iv.warnDays??30)))st='soon';else st='ok';
- const p=[];if(kmLeft!=null)p.push(kmLeft<0?`${fmtN(-kmLeft)} km überfällig`:`noch ${fmtN(kmLeft)} km`);
- if(daysLeft!=null)p.push(daysLeft<0?`seit ${fmtD(dueDate)} fällig`:`bis ${fmtD(dueDate)}`);
+ const p=[],kmOver=kmLeft!=null&&kmLeft<0,dOver=daysLeft!=null&&daysLeft<0;
+ // überfällig: nur sagen, seit wie vielen km bzw. Tagen – der noch nicht erreichte Teil („bis …“) verwirrt hier nur
+ const dTxt=-daysLeft===1?'1 Tag':fmtN(-daysLeft)+' Tagen';
+ if(kmOver&&dOver)p.push(`seit ${fmtN(-kmLeft)} km und ${dTxt} überfällig (fällig bei ${kmT(dueKm)} / am ${fmtD(dueDate)})`);
+ else if(kmOver)p.push(`seit ${fmtN(-kmLeft)} km überfällig (fällig bei ${kmT(dueKm)})`);
+ else if(dOver)p.push(`seit ${fmtD(dueDate)} überfällig (${-daysLeft===1?'1 Tag':fmtN(-daysLeft)+' Tage'})`);
+ if(!kmOver&&!dOver){if(kmLeft!=null)p.push(`noch ${fmtN(kmLeft)} km`);if(daysLeft!=null)p.push(`bis ${fmtD(dueDate)}`)}
  let estDate=null;if(kmLeft!=null&&kmLeft>=0){estDate=kmEta(iv.carId,kmLeft);if(estDate&&(!dueDate||estDate<dueDate))p.push('≈ '+fmtMonY(estDate))}
  let pct=0;if(kmLeft!=null)pct=Math.max(pct,(cur-last.odo)/iv.km);
  if(daysLeft!=null){const tot=daysUntil(dueDate)-daysUntil(last.date);pct=Math.max(pct,tot>0?-daysUntil(last.date)/tot:1)}
@@ -2323,8 +2329,8 @@ function viewCar(id,tab){const c=car(id);const G0=CAR_GROUPS.find(g=>g.k===tab);
   <div class="chips"><button class="chip ${!histCat?'on':''}" data-a="histCat" data-c="">Alle</button>${MAIN_CATS.map(k=>`<button class="chip ${histCat===k?'on':''}" data-a="histCat" data-c="${k}">${k}</button>`).join('')}</div><div id="histList"></div>
   <button class="btn primary block" data-a="entryForm" data-car="${id}">+ Wartung / Reparatur</button>`;after=()=>renderHistList(id)}
  if(tab==='iv'){const SO={over:0,soon:1,ok:2,unknown:3};const ivs=S.intervals.filter(i=>i.carId===id).map(iv=>({iv,s:ivStatus(iv),g:ivGroup(iv)}));
-  const card=({iv,s})=>isRetro()?`<div class="item iv-g st-${s.st}" data-a="ivOpen" data-id="${iv.id}">${gaugeHTML(s.pct,s.st)}<div class="grow"><div class="row between" style="flex-wrap:nowrap;align-items:flex-start"><b>${esc(iv.name)}</b><span class="badge st">${ST_LABEL[s.st]}</span></div><div class="sub">${esc(s.text)}${s.st==='unknown'?' – tippen und „zuletzt erledigt“ eintragen':''}</div><div class="sub">${esc(ivRule(iv))} · zuletzt ${s.last.date?fmtD(s.last.date):'–'}</div></div></div>`:`<div class="item col st-${s.st}" data-a="ivOpen" data-id="${iv.id}"><div class="row between"><b>${esc(iv.name)}</b><span class="badge st">${ST_LABEL[s.st]}</span></div>
-  <div class="bar"><i style="width:${Math.max(0,Math.min(100,s.pct*100)).toFixed(0)}%"></i></div><div class="sub">${esc(s.text)}${s.st==='unknown'?' – tippen und „zuletzt erledigt“ eintragen':''}</div>
+  const card=({iv,s})=>isRetro()?`<div class="item iv-g st-${s.st}" data-a="ivOpen" data-id="${iv.id}">${gaugeHTML(s.pct,s.st)}<div class="grow"><div class="row between" style="flex-wrap:nowrap;align-items:flex-start"><b>${esc(iv.name)}</b><span class="badge st">${ST_LABEL[s.st]}</span></div><div class="sub${s.st==='over'?' over-t':''}">${esc(s.text)}${s.st==='unknown'?' – tippen und „zuletzt erledigt“ eintragen':''}</div><div class="sub">${esc(ivRule(iv))} · zuletzt ${s.last.date?fmtD(s.last.date):'–'}${s.last.odo!=null?' bei '+kmT(s.last.odo):''}</div></div></div>`:`<div class="item col st-${s.st}" data-a="ivOpen" data-id="${iv.id}"><div class="row between"><b>${esc(iv.name)}</b><span class="badge st">${ST_LABEL[s.st]}</span></div>
+  <div class="bar"><i style="width:${Math.max(0,Math.min(100,s.pct*100)).toFixed(0)}%"></i></div><div class="sub${s.st==='over'?' over-t':''}">${esc(s.text)}${s.st==='unknown'?' – tippen und „zuletzt erledigt“ eintragen':''}</div>
   <div class="sub">${esc(ivRule(iv))} · zuletzt ${s.last.date?fmtD(s.last.date):'–'}${s.last.odo!=null?' bei '+kmT(s.last.odo):''}</div></div>`;
   const cnt=k=>ivs.filter(x=>x.s.st===k).length;
   if(ivs.length)h+=`<div class="row" style="margin-bottom:4px">${cnt('over')?`<span class="badge st-over st">${cnt('over')} überfällig</span>`:''}${cnt('soon')?`<span class="badge st-soon st">${cnt('soon')} bald fällig</span>`:''}<span class="badge">${ivs.length} Intervalle</span></div>`;
@@ -2743,7 +2749,7 @@ async function saveIv(f){const fd=Object.fromEntries(new FormData(f));const old=
 function ivOpen(id){const iv=S.intervals.find(i=>i.id===id);if(!iv)return;const s=ivStatus(iv);
  const hist=S.entries.filter(e=>(e.intervalIds||[]).includes(id)).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
  openSheet(iv.name,(isRetro()?`<div class="item iv-g st-${s.st}" style="cursor:default">${gaugeHTML(s.pct,s.st)}<div class="grow"><div class="row between"><b>${esc(carName(iv.carId))}</b><span class="badge st">${ST_LABEL[s.st]}</span></div><div>${esc(s.text)}</div></div></div>`:`<div class="item col st-${s.st}" style="cursor:default"><div class="row between"><b>${esc(carName(iv.carId))}</b><span class="badge st">${ST_LABEL[s.st]}</span></div><div class="bar"><i style="width:${Math.max(0,Math.min(100,s.pct*100)).toFixed(0)}%"></i></div><div>${esc(s.text)}</div></div>`)+`
- <dl class="kv card"><dt>Intervall</dt><dd>${esc(ivRule(iv))}</dd><dt>Zuletzt</dt><dd>${s.last.date?fmtD(s.last.date):'–'}${s.last.odo!=null?' · '+kmT(s.last.odo):''}</dd>${s.dueKm!=null?`<dt>Fällig bei</dt><dd>${kmT(s.dueKm)}</dd>`:''}${s.dueDate?`<dt>Fällig am</dt><dd>${fmtD(s.dueDate)}</dd>`:''}</dl>
+ <dl class="kv card"><dt>Intervall</dt><dd>${esc(ivRule(iv))}</dd><dt>Zuletzt</dt><dd>${s.last.date?fmtD(s.last.date):'–'}${s.last.odo!=null?' · '+kmT(s.last.odo):''}</dd>${s.dueKm!=null?`<dt>Fällig bei</dt><dd>${kmT(s.dueKm)}</dd><dt>km-Stand jetzt</dt><dd>${kmT(carOdo(iv.carId))}${s.kmLeft<0?` <b style="color:var(--red)">(+${fmtN(-s.kmLeft)} km drüber)</b>`:''}</dd>`:''}${s.dueDate?`<dt>Fällig am</dt><dd>${fmtD(s.dueDate)}</dd>`:''}</dl>
  ${hist.length?`<h4>Bisher</h4>${hist.map(e=>entryHTML(e)).join('')}`:''}`,
  `<button class="btn" data-a="ivForm" data-id="${id}" data-car="${iv.carId}">Bearbeiten</button><button class="btn primary grow" data-a="ivDone" data-id="${id}">✓ Erledigt eintragen</button>`)}
 function dlOpen(carId,id){const c=car(carId);const d=(c.deadlines||[]).find(x=>x.id===id);if(!d)return;const s=dlStatus(d);draft={kind:'dl',carId,id};
@@ -4030,7 +4036,7 @@ async function seed(){const P=(name,maker,qty,unit,price,o={})=>({name,maker,par
 })();
 
 /* ================= Updates ================= */
-const APP_VER='garage-v55';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
+const APP_VER='garage-v56';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
 const verNum=v=>+(/(\d+)\s*$/.exec(v||'')||[0,0])[1];
 /* Neue Version erkennen: index.html vom Server holen und die Versionsnummer vergleichen.
    Der Hinweis kommt nur, wenn der Server wirklich eine NEUERE Version hat. */
