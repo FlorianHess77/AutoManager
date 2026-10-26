@@ -157,6 +157,20 @@ async def main():
         await H.go(page, '#/settings'); await page.click('[data-change=wsRoom]'); await page.wait_for_timeout(300)
         c.eq(await ev("$('#tabs [data-nk=tools]').dataset.h"), '#/ws', 'Raum wieder an')
 
+        # Batterie: Spannung eintragen, Chronik, Meilenstein-Hinweis
+        await H.go(page, f'#/car/{cid}')
+        await page.click('#view [data-a=batOpen]'); await page.wait_for_timeout(300)
+        await page.click('#sheet [data-a=batMeasure]'); await page.wait_for_timeout(200)
+        await page.fill('.dlg input', '12,48'); await page.click('.dlg [data-x=ok]'); await page.wait_for_timeout(400)
+        c.eq(await ev(f"car('{cid}').battery.checks.at(-1).volt"), 12.48, 'Batterie: Spannung mit Komma gespeichert')
+        await ev("closeSheet(false,true)"); await page.wait_for_timeout(200)
+        await page.click('#view [data-h^="#/chronik/"]'); await page.wait_for_timeout(400)
+        c.ok(await ev("location.hash.startsWith('#/chronik/')&&$$('#view .ch-ev').length>=3&&!!$('#view .ch-year')"), 'Chronik: Zeitleiste mit Jahren')
+        n0 = await ev("$$('#view .ch-ev').length")
+        await page.click('#view .seg label:nth-child(2)'); await page.wait_for_timeout(300)
+        c.ok(await ev("$$('#view .ch-ev').length") > n0, 'Chronik „Alles“ zeigt mehr Einträge')
+        await ev("chronAll=false;1")
+
         # runder +-Knopf nicht auf Werkstatt/Lager
         await H.go(page, '#/tools')
         c.ok(await ev("getComputedStyle($('.fab')).display==='none'"), 'kein +-Knopf auf Werkstatt')

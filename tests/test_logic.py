@@ -181,6 +181,36 @@ async def main():
           const s=ivStatus(v);return{st:s.st,text:s.text,d:-s.daysLeft}})()""")
         c.ok(r['st'] == 'over' and r['text'].startswith('seit ') and f"({r['d']} Tag" in r['text'] and 'noch' not in r['text'], f"Datum überschritten: „seit … überfällig (n Tage)“ ({r['text']})")
 
+        # ---------- Batterie ----------
+        await ev("T.reset()")
+        r = await ev("""(async()=>{const c=await T.car({});const a=batDue(c);
+          await T.entry({carId:c.id,date:'2019-04-01',title:'Batterie getauscht'});const I=batInfo(car(c.id));
+          c.battery={checks:[{id:'m1',date:today(),volt:12.1}]};await put('cars',c);const b=batDue(car(c.id));
+          c.battery={date:addMonths(today(),-12),checks:[]};await put('cars',c);const d=batDue(car(c.id));
+          return{a,src:I.src,date:I.date,b:b&&b.st,bt:b&&b.text,d}})()""")
+        c.eq(r['a'], None, 'Batterie ohne Datum: kein Hinweis')
+        c.eq((r['src'], r['date']), ('entry', '2019-04-01'), 'Batterie-Einbau aus Eintrag „Batterie getauscht“ erkannt')
+        c.ok(r['b'] == 'soon' and '12,10 V' in r['bt'], f"schwache Messung → Hinweis ({r['bt']})")
+        c.eq(r['d'], None, 'neue Batterie (1 Jahr): kein Hinweis')
+        # ---------- Fehlercodes ----------
+        r = await ev("""(async()=>{const c=await T.car({});await put('issues',{id:'i1',carId:c.id,date:'2025-01-01',title:'AGR',codes:'P0401, p0101',status:'solved',solution:'gereinigt'});
+          return{l:codeList('p0401 P0401,c1234 xx'),h:codeHist(codeList('P0401'),'neu').map(x=>[x.k,x.prev.length]),n:codeHist(codeList('P0401'),'i1').length}})()""")
+        c.eq(r['l'], ['P0401', 'C1234'], 'Fehlercodes erkannt, groß, ohne Doppelte')
+        c.eq((r['h'], r['n']), ([['P0401', 1]], 0), 'Code schon einmal aufgetreten (nicht der Fehler selbst)')
+        # ---------- km-Meilensteine ----------
+        await ev("T.reset()")
+        r = await ev("""(async()=>{const c=await T.car({purchase:'2020-01-01',purchaseOdo:195000});
+          await T.entry({carId:c.id,date:'2021-05-01',odo:201000});await T.entry({carId:c.id,date:'2023-01-01',odo:223000});
+          return{n:[msNext(195000),msNext(220000),msNext(300000)],x:msCrossed(car(c.id)).map(x=>[x.m,x.date])}})()""")
+        c.eq(r['n'], [200000, 222222, 333333], 'nächster Meilenstein (50.000er und Schnapszahlen)')
+        c.eq(r['x'], [[200000, '2021-05-01'], [222222, '2023-01-01']], 'in der Besitzzeit erreichte Meilensteine mit Datum')
+        # ---------- Backup-Vergleich ----------
+        r = await ev("""(()=>{const data={};for(const s of STORES)if(s!=='photos')data[s]=S[s].map(x=>({...x}));
+          const same=backupDiff(data).same;data.entries=data.entries.slice(1);data.entries.push({id:'new1',date:'2026-01-01',title:'neu'});data.cars[0]={...data.cars[0],name:'anders'};
+          const d=backupDiff(data);return{same,add:d.add,lose:d.lose,chg:d.chg}})()""")
+        c.eq(r['same'], True, 'Backup gleich wie App → „entspricht genau“')
+        c.eq((r['add'], r['lose'], r['chg']), (['1 Eintrag'], ['1 Eintrag'], ['1 Auto']), 'Backup-Vergleich: dazu / verloren / geändert')
+
         # ---------- Jahresrückblick: Teilelager-Einkäufe zählen zu den Ausgaben ----------
         await ev("T.reset()")
         r = await ev("""(async()=>{await put('inventory',{id:uid(),name:'Öl',qty:5,unit:'l',price:8,buys:[{id:uid(),date:'2026-03-01',qty:5,unit:'l',price:40}]});

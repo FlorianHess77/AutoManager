@@ -114,6 +114,31 @@ input[type=checkbox],input[type=radio]{width:auto;min-height:0}
 .qty span{min-width:62px;text-align:center;font-weight:700;font-size:14px}
 .item.empty-stock{opacity:.6}
 .sub.over-t{color:var(--red);font-weight:700}
+/* Meilensteine */
+.km-card{position:relative;overflow:hidden}
+.ms-hint{margin-top:6px;font-size:13px;font-weight:700;color:var(--accent)}
+.km-card.ms-hit .odo-d,.km-card.ms-hit .big{animation:msGlow .8s ease-in-out 4}
+@keyframes msGlow{50%{box-shadow:0 0 14px 3px #f0b43c;filter:brightness(1.35)}}
+.ms-conf{position:absolute;inset:0;pointer-events:none}.ms-conf i{position:absolute;top:-10px;left:var(--x);width:7px;height:11px;border-radius:2px;animation:msFall var(--d) ease-in var(--dl) both}
+@keyframes msFall{to{transform:translateY(150px) rotate(var(--r));opacity:0}}
+.ms-ribbon{position:absolute;right:10px;top:10px;background:var(--accent);color:var(--on-accent);font-weight:800;font-size:12px;padding:4px 10px;border-radius:999px;animation:wsPop .4s cubic-bezier(.3,1.8,.5,1)}
+/* Chronik */
+.ch-head .ch-stats{margin:12px 0 0;text-align:center}.ch-stats div{display:flex;flex-direction:column;background:var(--surface2);border-radius:10px;padding:8px 4px}.ch-stats b{font-size:15px}.ch-stats span{font-size:12px;color:var(--muted)}
+.chron{position:relative;padding-left:30px;margin:14px 0}
+.chron:before{content:'';position:absolute;left:12px;top:6px;bottom:6px;width:3px;border-radius:2px;background:linear-gradient(var(--accent),var(--line))}
+.ch-year{display:flex;align-items:baseline;gap:10px;margin:18px 0 8px -30px;padding-left:0}
+.ch-year b{font-size:22px;background:var(--bg);padding-right:6px}.ch-year span{font-size:13px;color:var(--muted)}
+.ch-ev{position:relative;display:flex;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin:0 0 10px;min-height:44px}
+.ch-ev[data-a]{cursor:pointer}
+.ch-ev .ch-dot{position:absolute;left:-30px;top:50%;margin-top:-13px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13px;background:var(--surface2);box-shadow:0 0 0 3px var(--bg)}
+.ch-ev img{width:58px;height:58px;object-fit:cover;border-radius:8px;flex:none}
+.ch-ev .amt{font-weight:700;white-space:nowrap}
+.ch-ev.small{padding:6px 12px;opacity:.85}.ch-ev.small b{font-weight:600;font-size:14px}
+.ch-ev.key{border-color:var(--accent)}.ch-ev.ms{background:linear-gradient(90deg,rgba(240,180,60,.18),transparent);border-color:#f0b43c}
+/* Backup-Vergleich */
+.bd{border-radius:10px;padding:10px 12px;margin:0 0 10px;font-size:14px}.bd ul{margin:6px 0 2px;padding-left:20px}
+.bd-lose{background:rgba(239,83,80,.14);border:1px solid rgba(239,83,80,.5)}.bd-chg{background:rgba(240,180,60,.12);border:1px solid rgba(240,180,60,.45)}.bd-add{background:rgba(74,154,82,.14);border:1px solid rgba(74,154,82,.45)}
+.dlg-box .bd-wrap{max-height:52vh;overflow:auto;margin:0 -4px 8px;padding:0 4px}
 /* Teilelager als Schwerlastregal: Boden = Lagerort, Teile als Gebinde, Rolltor zum Einklappen */
 .rack{position:relative;margin:0 9px 16px;border-left:9px solid #e0601f;border-right:9px solid #e0601f;background:radial-gradient(circle,#0007 1.4px,transparent 1.6px) 0 0/12px 12px,#231f19;color:#e9e0cf}
 .rack:before,.rack:after{content:'';position:absolute;top:0;bottom:0;width:9px;background:repeating-linear-gradient(#0000 0 10px,#0008 10px 16px)}
@@ -1926,7 +1951,8 @@ function dueItems(carId){const out=[];for(const c of(carId?activeCars():remCars(
  const pk=pickerlStatus(c);if(pk)out.push({kind:'pk',id:'pk',carId:c.id,label:pk.label,st:pk.st,text:pk.text,score:daysUntil(pk.ws)});
  const ty=tyreDue(c);if(ty)out.push({kind:ty.generic?'tg':'ty',id:'ty',carId:c.id,label:ty.label,st:ty.st,text:ty.text,score:daysUntil(ty.date)});
  for(const t of S.tyres.filter(t=>t.carId===c.id)){const w=tyreWarn(t)[0];if(w)out.push({kind:'ty',id:t.id,carId:c.id,label:`${t.season}reifen${t.brand?' '+t.brand:''}`,st:w.st,text:w.t,score:0})}
- for(const d of c.deadlines||[]){const s=dlStatus(d);out.push({kind:'dl',id:d.id,carId:c.id,label:d.label,st:s.st,text:s.text,score:s.days??1e9})}}
+ for(const d of c.deadlines||[]){const s=dlStatus(d);out.push({kind:'dl',id:d.id,carId:c.id,label:d.label,st:s.st,text:s.text,score:s.days??1e9})}
+ const bd=c.archived?null:batDue(c);if(bd)out.push({kind:'bat',id:'bat',carId:c.id,label:'Batterie',st:bd.st,text:bd.text,score:bd.st==='over'?-1:30})}
  const ord={over:0,soon:1,ok:2,unknown:3};return out.sort((a,b)=>ord[a.st]-ord[b.st]||a.score-b.score)}
 /* Pickerl (§57a KFG, PKW), Monat = EZ-Monat (Lochung)
    bis 18.5.2027: 3-2-1 (3 J. nach EZ, dann 2 J., danach jährlich), möglich 1 Monat vorher bis 4 Monate nachher
@@ -2065,7 +2091,7 @@ const prioBadge=p=>`<span class="badge ${p==1?'st-over st':p==3?'':'st-soon st'}
 /* ================= Untere Leiste (anpassbar) ================= */
 const NAV_ITEMS=[
  {k:'home',h:'#/home',i:'home',l:'Start',tab:'home',r:['home']},
- {k:'cars',h:'#/cars',i:'car',l:'Garage',tab:'cars',r:['cars','car']},
+ {k:'cars',h:'#/cars',i:'car',l:'Garage',tab:'cars',r:['cars','car','chronik']},
  {k:'todos',h:'#/todos',i:'list',l:'To-dos',tab:'todos',r:['todos']},
  {k:'tools',get h(){return wsRoomOn()?'#/ws':'#/tools'},i:'wrench',l:'Werkstatt',tab:'inv',r:['ws','tools','inv','shop']},
  {k:'inv',h:'#/inv',i:'box',l:'Teilelager',tab:'inv2',r:['inv']},
@@ -2162,14 +2188,17 @@ const BADGES=[
  ['km50k','🌍','Vielfahrer','50.000 km seit dem Kauf eines Autos',D=>D.cars.some(c=>(ownCost(c).kmDriven||0)>=50000)],
  ['loyal','🤝','Treue Seele','Ein Auto seit 5 Jahren',D=>D.cars.some(c=>c.purchase&&!c.sold&&daysUntil(c.purchase)<=-1826)],
  ['help','🫶','Hilfsbereit','An einem fremden Auto geschraubt',D=>S.entries.some(e=>isForeign(e.carId))],
- ['backup','💾','Auf Nummer sicher','Ein Backup gemacht',D=>!!lsGet('garage.lastBackup')]];
+ ['backup','💾','Auf Nummer sicher','Ein Backup gemacht',D=>!!lsGet('garage.lastBackup')],
+ ['ms100','🏁','Runde Sache','Mit einem eigenen Auto eine 100.000er-Marke geknackt',D=>D.cars.some(c=>msCrossed(c).some(x=>x.m%100000===0))],
+ ['ms300','🏆','Dauerläufer','Ein eigenes Auto mit über 300.000 km',D=>D.cars.some(c=>!c.sold&&(carOdo(c.id)||0)>=300000)],
+ ['rep','🍀','Schnapszahl','Eine Schnapszahl am Tacho erlebt (z. B. 222.222 km)',D=>D.cars.some(c=>msCrossed(c).some(x=>MS_REP.includes(x.m)))]];
 function badgeData(){const ents=S.entries.filter(e=>!isForeign(e.carId)&&!e.demo);const diy=ents.filter(e=>e.diy&&!isPk(e));return{ents,diy,fuel:S.fuel.filter(f=>!isForeign(f.carId)&&!f.demo),cars:S.cars.filter(c=>!c.foreign),tools:S.tools,saved:savedDIY(ents).saved}}
 function earnedBadges(){const D=badgeData();return BADGES.filter(b=>{try{return b[4](D)}catch(e){return false}}).map(b=>b[0])}
 function badgesHTML(){const got=new Set(earnedBadges());const on=BADGES.filter(b=>got.has(b[0])),off=BADGES.filter(b=>!got.has(b[0]));
  return`<h2>Abzeichen <span class="h2n">${on.length} / ${BADGES.length}</span></h2>${on.length?`<div class="badges">${on.map(b=>`<button class="badge-i" data-a="badgeInfo" data-k="${b[0]}"><span>${b[1]}</span><b>${esc(b[2])}</b></button>`).join('')}</div>`:'<p class="muted">Noch keine – das erste gibt es für den ersten Eintrag.</p>'}
  ${off.length?`<details class="fold"><summary><b>Noch offen</b><span>${off.length}</span></summary>${off.map(b=>`<div class="row" style="padding:7px 0;gap:10px;opacity:.75"><span style="font-size:18px">🔒</span><div class="grow"><b style="font-size:14px">${esc(b[2])}</b><div class="sub">${esc(b[3])}</div></div></div>`).join('')}</details>`:''}`}
 let badgeTimer=null;
-function badgeCheck(){clearTimeout(badgeTimer);badgeTimer=setTimeout(()=>{if(hasDemo())return;const now=earnedBadges();let seen;try{seen=JSON.parse(lsGet('garage.badges')||'null')}catch(e){seen=null}
+function badgeCheck(){clearTimeout(badgeTimer);badgeTimer=setTimeout(()=>{try{msCheck()}catch(e){console.error(e)}if(hasDemo())return;const now=earnedBadges();let seen;try{seen=JSON.parse(lsGet('garage.badges')||'null')}catch(e){seen=null}
  if(!seen){lsSet('garage.badges',JSON.stringify(now));return}const nw=now.filter(k=>!seen.includes(k));if(nw.length){lsSet('garage.badges',JSON.stringify([...new Set([...seen,...now])]));const b=BADGES.find(x=>x[0]===nw[0]);toast(`${b[1]} Neues Abzeichen: ${b[2]}${nw.length>1?` (+${nw.length-1})`:''}`)}},600)}
 function yearKm(carId,y){const pts=[...S.entries.filter(e=>e.carId===carId&&e.odo!=null).map(e=>[e.date,e.odo]),...S.fuel.filter(f=>f.carId===carId&&f.odo!=null).map(f=>[f.date,f.odo]),...S.odo.filter(o=>o.carId===carId).map(o=>[o.date,o.odo])];const c=car(carId);if(c?.purchaseOdo!=null&&c.purchase)pts.push([c.purchase,c.purchaseOdo]);
  const inY=pts.filter(p=>p[0].startsWith(y)).map(p=>p[1]);if(!inY.length)return null;const before=pts.filter(p=>p[0]<y+'-01-01').map(p=>p[1]);const start=before.length?Math.max(...before):Math.min(...inY);const d=Math.max(...inY)-start;return d>0?d:null}
@@ -2229,24 +2258,24 @@ function parseHash(){const p=(location.hash||'#/home').replace(/^#\/?/,'').split
 function render(){try{renderView()}catch(err){console.error(err);
  $('#title').textContent='Garage';$('#backBtn').hidden=true;$('#hdrActions').innerHTML='';
  $('#view').innerHTML=`<div class="note warn"><b>Diese Seite konnte nicht angezeigt werden.</b><div class="sub" style="margin-top:4px">Deine Daten sind nicht betroffen. Technischer Hinweis: ${esc(err.message)}</div></div><button class="btn primary block" data-a="go" data-h="#/home">Zur Übersicht</button><button class="btn block" data-a="go" data-h="#/backup">Backup erstellen</button>`}}
-function renderView(){const r=parseHash();let o;if(r.v!=='car')odoRolled='';document.body.classList.toggle('nofab',['tools','inv','shop','ws'].includes(r.v));
+function renderView(){const r=parseHash();let o;if(r.v!=='car')odoRolled='';document.body.classList.toggle('nofab',['tools','inv','shop','ws','chronik'].includes(r.v));
  routePrev=routeCur;routeCur=r;if(r.v!=='ws')wsStop();document.body.classList.toggle('wsroom',r.v==='ws'&&wsRoomOn());
  switch(r.v){case'cars':o=viewCars();break;case'car':o=car(r.id)?viewCar(r.id,r.tab||'ov'):viewHome();break;case'todos':o=viewTodos();break;
   case'inv':o=viewInv();break;case'more':o=viewMore();break;case'stats':o=viewStats();break;case'backup':o=viewBackup();break;
-  case'settings':o=viewSettings();if(r.id==='nav'){const a=o.after;o.after=()=>{a&&a();setTimeout(()=>$('#navcfg')?.scrollIntoView({block:'start'}),0)}}break;case'shop':o=viewShop();break;case'tools':o=viewTools();break;case'ws':o=wsRoomOn()?viewWs():viewTools();break;case'calendar':o=viewCalendar();break;case'prices':o=viewPrices();break;case'warranty':o=viewWarranty();break;case'archive':o=viewArchive();break;case'help':o=viewHelp();break;case'search':o=viewSearch();break;default:o=viewHome()}
+  case'settings':o=viewSettings();if(r.id==='nav'){const a=o.after;o.after=()=>{a&&a();setTimeout(()=>$('#navcfg')?.scrollIntoView({block:'start'}),0)}}break;case'shop':o=viewShop();break;case'tools':o=viewTools();break;case'ws':o=wsRoomOn()?viewWs():viewTools();break;case'calendar':o=viewCalendar();break;case'prices':o=viewPrices();break;case'warranty':o=viewWarranty();break;case'archive':o=viewArchive();break;case'help':o=viewHelp();break;case'search':o=viewSearch();break;case'chronik':o=car(r.id)?viewChronik(r.id):viewHome();break;default:o=viewHome()}
  $('#title').textContent=o.title;document.title=o.title==='Garage'?'Garage':o.title+' · Garage';
  const b=$('#backBtn');b.hidden=!o.back;b.dataset.h=o.back||'';
  $('#hdrActions').innerHTML=o.actions||'';$('header.top').classList.toggle('with-tabs',!!o.hdrTabs);
  renderNav(r,o);
  $('#view').innerHTML=o.html;hydratePhotos($('#view'));
- badgeCheck();if(o.after)o.after();$('#view .chips .chip.on')?.scrollIntoView({inline:'center',block:'nearest'})}
+ badgeCheck();if(o.after)o.after();if(r.v==='car'&&(r.tab||'ov')==='ov'&&msFx[r.id])setTimeout(()=>msPlay(r.id),350);$('#view .chips .chip.on')?.scrollIntoView({inline:'center',block:'nearest'})}
 
 function tileHTML(c){const nd=nextDue(c.id);
  return`<div class="tile" data-a="go" data-h="#/car/${c.id}"><div class="ph ${c.photoId?'':'nophoto'}">${c.photoId?`<img data-photo="${c.photoId}" alt="" style="${ppos(c)}">`:CAR_SVG}</div><div class="body">
  <div class="row between"><b class="t">${esc(dispName(c))}</b>${c.plate?`<span class="plate">${esc(c.plate)}</span>`:''}</div>
  <div class="sub">${esc([[c.make,c.model].filter(Boolean).join(' '),carOdo(c.id)!=null?kmT(carOdo(c.id)):''].filter(Boolean).join(' · '))||'Noch keine Daten'}</div>
  ${nd?`<div class="due st-${nd.st}"><span class="dot"></span><span>${esc(nd.label)}: ${esc(nd.text)}</span></div>`:''}</div></div>`}
-const dueItemHTML=(d,showCar=true)=>`<div class="item st-${d.st}" data-a="${({iv:'ivOpen',dl:'dlOpen',pk:'pkOpen',ty:'tyOpen',tg:'tyGenOpen',km:'odoForm'})[d.kind]}" data-id="${d.id}" data-car="${d.carId}"><span class="dot"></span><div class="grow"><b>${esc(d.label)}</b><div class="sub">${showCar?carTag(d.carId)+' ':''}${esc(d.text)}</div></div><span class="muted">›</span></div>`;
+const dueItemHTML=(d,showCar=true)=>`<div class="item st-${d.st}" data-a="${({iv:'ivOpen',dl:'dlOpen',pk:'pkOpen',ty:'tyOpen',tg:'tyGenOpen',km:'odoForm',bat:'batOpen'})[d.kind]}" data-id="${d.id}" data-car="${d.carId}"><span class="dot"></span><div class="grow"><b>${esc(d.label)}</b><div class="sub">${showCar?carTag(d.carId)+' ':''}${esc(d.text)}</div></div><span class="muted">›</span></div>`;
 function todoHTML(t,showCar=true){const meta=[prioBadge(t.prio)];if(showCar)meta.push(t.carId?carTag(t.carId):'Allgemein');
  if(t.due&&!t.done){const d=daysUntil(t.due);meta.push(`<span style="${d<0?'color:var(--red);font-weight:700':''}">fällig ${fmtD(t.due)}</span>`)}
  if(t.done&&t.doneAt)meta.push('erledigt '+fmtD(t.doneAt));if(t.parts?.length)meta.push(`${t.parts.length} Teil${t.parts.length>1?'e':''}`);
@@ -2306,20 +2335,21 @@ function viewCar(id,tab){const c=car(id);const G0=CAR_GROUPS.find(g=>g.k===tab);
  if(tab==='ov'){const ents=carEntries(id),y=today().slice(0,4),fc=fuelCalc(id);
   const tot=ents.reduce((s,e)=>s+entryCost(e),0),totY=ents.filter(e=>e.date.startsWith(y)).reduce((s,e)=>s+entryCost(e),0),oc=ownCost(c);
   h+=`${c.photoId?`<div class="ph stretch" style="border-radius:var(--radius);margin-bottom:12px"><img data-photo="${c.photoId}" alt="" style="${ppos(c)}"></div>`:''}
-  <div class="card row between"><div><div class="sub">Kilometerstand</div>${isRetro()?odoHTML(carOdo(id),id):`<div class="big">${kmT(carOdo(id))}</div>`}</div>${c.archived?'':`<button class="btn" data-a="odoForm" data-car="${id}">km +</button>`}</div>
+  <div class="card row between km-card"><div><div class="sub">Kilometerstand</div>${isRetro()?odoHTML(carOdo(id),id):`<div class="big">${kmT(carOdo(id))}</div>`}${msHintHTML(c)}</div>${c.archived?'':`<button class="btn" data-a="odoForm" data-car="${id}">km +</button>`}</div>
   ${c.archived?'':`<div class="grid3" style="margin-bottom:12px"><button class="btn" data-a="entryForm" data-car="${id}">+ Eintrag</button><button class="btn" data-a="todoForm" data-car="${id}">+ To-do</button><button class="btn" data-a="fuelForm" data-car="${id}">⛽ Tanken</button></div>
   ${openIss?`<div class="note warn">⚠ ${openIss} offene${openIss>1?'':'r'} Fehler – <button class="linkbtn" data-a="go" data-h="#/car/${id}/issue">ansehen</button></div>`:''}
   ${c.foreign&&!c.reminders?'':(()=>{const due=dueItems(id).filter(d=>d.st!=='unknown'||d.kind==='dl');const show=carDueAll===id?due:due.slice(0,3);
    return`<h2>Als Nächstes <button class="h2a" data-a="dlNew" data-car="${id}">+ Frist</button></h2>${!c.firstReg&&!c.foreign?`<div class="note warn">Erstzulassung fehlt – ohne sie kann das Pickerl nicht berechnet werden. <button class="linkbtn" data-a="carForm" data-id="${id}">Jetzt eintragen</button></div>`:''}${show.map(d=>dueItemHTML(d,false)).join('')||'<p class="muted">Keine Termine.</p>'}${due.length>3?`<button class="morebtn" data-a="carDueAll" data-car="${id}">${carDueAll===id?'Weniger anzeigen ⌃':`Alle ${due.length} anzeigen ⌄`}</button>`:''}`})()}`}
   <h2>Details</h2>
   <details class="fold"><summary><b>Fahrzeugdaten</b><span>${esc([c.model||c.make,c.year,c.power&&c.power.split('/').pop().trim()].filter(Boolean).join(' · '))}</span></summary><dl class="kv">${[['Marke / Modell',[c.make,c.model].filter(Boolean).join(' ')],['Baujahr',c.year],['Kennzeichen',c.plate],['FIN',c.vin],['Typenschein-Nr.',c.hsn],['Motorcode',c.engine],['Leistung',c.power],['Kraftstoff',c.fuel],['Erstzulassung',c.firstReg&&fmtD(c.firstReg)],['Pickerl-Monat (Lochung)',c.firstReg&&c.firstReg.slice(5,7)],['Kaufdatum',c.purchase&&fmtD(c.purchase)],['km beim Kauf',c.purchaseOdo!=null&&kmT(c.purchaseOdo)]].filter(x=>x[1]).map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl><button class="btn block" data-a="carForm" data-id="${id}">✎ Bearbeiten</button></details>
+  ${c.foreign?'':batRowHTML(c)}
   ${c.foreign?`<details class="fold"><summary><b>Arbeiten an diesem Auto</b><span>${ents.length} Einträge</span></summary><dl class="kv"><dt>Einträge</dt><dd>${ents.length}</dd><dt>Teile & Material</dt><dd>${eur(ents.reduce((s,e)=>s+partsCost(e),0))}</dd><dt>Arbeitszeit</dt><dd>${fmtN(ents.reduce((s,e)=>s+(e.hours||0),0),1)} h</dd>${ents[0]?`<dt>Zuletzt</dt><dd>${fmtD(ents[0].date)}</dd>`:''}</dl></details>`:`<details class="fold"><summary><b>Kosten & Bilanz</b><span>${oc.buy!=null&&oc.months>0?eur(oc.total/oc.months)+' / Monat':eur(oc.run)}${oc.kmDriven>0&&oc.buy!=null?' · '+eur(oc.total/oc.kmDriven)+'/km':''}</span></summary><dl class="kv">${oc.buy!=null?`<dt>Kaufpreis</dt><dd>${eur(oc.buy)}</dd>`:''}${oc.sell!=null?`<dt>Verkaufspreis</dt><dd>${eur(oc.sell)}</dd>`:''}${oc.buy!=null&&oc.sell!=null?`<dt>Wertverlust</dt><dd>${eur(oc.buy-oc.sell)}</dd>`:''}
   <dt>Wartung & Reparatur</dt><dd>${eur(oc.maint)}${oc.pre?`<div class="sub">ohne ${eur(oc.pre)} vor dem Kauf</div>`:''}</dd>${c.archived?'':`<dt>davon ${y}</dt><dd>${eur(totY)}</dd>`}<dt>Kraftstoff</dt><dd>${eur(oc.fuel)}</dd>${oc.ins?`<dt>Versicherung & Steuer</dt><dd>${eur(oc.ins)}<div class="sub">${eur(c.insYear)} / Jahr anteilig</div></dd>`:''}
   ${oc.buy!=null?`<dt><b>Gesamtkosten${c.sold?'':' bisher'}</b></dt><dd><b>${eur(oc.total)}</b></dd>`:''}${oc.buy!=null&&oc.months>0?`<dt>pro Monat</dt><dd>${eur(oc.total/oc.months)}</dd>`:''}
   ${oc.months!=null?`<dt>Besitzdauer</dt><dd>${fmtMonths(oc.months)}</dd>`:''}${oc.kmDriven>0?`<dt>Gefahren seit Kauf</dt><dd>${kmT(oc.kmDriven)}</dd>${oc.buy!=null?`<dt>pro km</dt><dd>${eur(oc.total/oc.kmDriven)}</dd>`:''}<dt>Laufende Kosten pro km</dt><dd>${eur(oc.run/oc.kmDriven)}<div class="sub">ohne Kaufpreis / Wertverlust</div></dd>`:''}</dl>
   ${oc.buy==null?`<p class="sub">Tipp: Kaufpreis unter ✎ eintragen, dann siehst du die Gesamtbilanz.</p>`:!c.insYear&&!c.archived?`<p class="sub">Tipp: Versicherung + Steuer pro Jahr unter ✎ eintragen, dann ist die Rechnung vollständig.</p>`:''}</details>`}`;
   const td=sortTodos(S.todos.filter(t=>t.carId===id&&!t.done));if(!c.archived)h+=`<details class="fold"><summary><b>Offene To-dos</b><span>${td.length||'keine'}</span></summary>${td.map(t=>todoHTML(t,false)).join('')}<button class="btn block" data-a="todoForm" data-car="${id}">+ To-do</button></details>`;
-  h+=`<button class="btn block" style="margin-top:6px" data-a="carMenu" data-car="${id}">⋯ Drucken, Export, Verkauf, Archiv …</button>`}
+  h+=`<button class="btn block" style="margin-top:6px" data-a="go" data-h="#/chronik/${id}">📜 Chronik – vom Kauf bis heute</button><button class="btn block" style="margin-top:6px" data-a="carMenu" data-car="${id}">⋯ Drucken, Export, Verkauf, Archiv …</button>`}
  if(tab==='docs'){h+=carDocsHTML(c).replace('<h2>Dokumente</h2>','');
   const pks=S.entries.filter(e=>e.carId===id&&isPk(e)).sort((a,b)=>b.date.localeCompare(a.date));
   if(pks.length)h+=`<h2>Pickerl-Gutachten</h2>`+pks.map(e=>{const r=pkRes(e),fs=e.photos||[];const head=`Pickerl ${fmtD(e.date)}`,res=r.l.split(' – ')[0];
@@ -2358,7 +2388,7 @@ function viewCar(id,tab){const c=car(id);const G0=CAR_GROUPS.find(g=>g.k===tab);
    return`<div class="item" ${r.id?`data-a="odoDelete" data-id="${r.id}"`:''}><div class="grow"><b>${kmT(r.odo)}</b><div class="sub">${fmtD(r.date)} · ${esc(r.src)}</div></div>${diff>0?`<span class="sub">+${fmtN(diff)} km</span>`:''}${r.id?'<span class="muted">✕</span>':''}</div>`}).join('')||empty('Noch keine km-Stände.','','')}
  return{title:dispName(c),html:h,tab:c.archived?'more':'cars',back:c.archived?'#/archive':'#/cars',actions:`<button class="iconbtn" data-a="torqueSheet" data-car="${id}" aria-label="Drehmomente">🔩</button> <button class="iconbtn" data-a="carMenu" data-car="${id}" aria-label="Mehr">⋯</button>`,after}}
 function carMenu(id){const c=car(id);const it=(a,i,l,cls='')=>`<button class="mitem ${cls}" data-a="carMenuGo" data-x="${a}" data-car="${id}"><span>${i}</span>${l}</button>`;
- openSheet(dispName(c),`<div class="mlist">${it('carForm','✎','Auto bearbeiten')}${it('printBook','🖨️','Scheckheft drucken / als PDF')}${c.archived||c.foreign?'':it('exposeForm','📄','Verkaufs-Exposé')}${it('qrSheet','🔳','QR-Aufkleber')}${it('exportCSV','📊','Historie als CSV')}
+ openSheet(dispName(c),`<div class="mlist">${it('carForm','✎','Auto bearbeiten')}${it('chronOpen','📜','Chronik')}${it('printBook','🖨️','Scheckheft drucken / als PDF')}${c.archived||c.foreign?'':it('exposeForm','📄','Verkaufs-Exposé')}${it('qrSheet','🔳','QR-Aufkleber')}${it('exportCSV','📊','Historie als CSV')}
  ${c.archived?`${c.sold?it('sellForm','💶','Verkaufsdaten bearbeiten'):''}${it('carArchive','↩️','Zurück in die Garage holen')}`:c.foreign?it('carArchive','🗄️','Ins Archiv'):`${it('sellForm','💶','Als verkauft markieren')}${it('carArchive','🗄️','Ins Archiv (ohne Verkauf, z. B. abgemeldet)')}`}
  ${it('carDelete','🗑️','Endgültig löschen','red')}</div>`)}
 function renderHistList(id){const box=$('#histList');if(!box)return;const words=histQ.toLowerCase().split(/\s+/).filter(Boolean);
@@ -2434,7 +2464,7 @@ function renderSearch(){const box=$('#gRes');if(!box)return;const w=gQ.toLowerCa
  grp('Teilelager',S.inventory.filter(i=>hit([i.name,i.maker,i.partNo,i.spec,i.location,i.ean])).map(i=>row(`data-a="invForm" data-id="${i.id}"`,ibox('box','#b07cf0'),i.name,`${fmtQ(i.qty||0)} ${esc(i.unit||'Stk')}${i.location?' · 📍 '+esc(i.location):''}`)));
  grp('Werkzeug',S.tools.filter(t=>hit([t.name,t.brand,t.category,t.location,t.notes,t.system])).map(t=>row(`data-a="toolView" data-id="${t.id}"`,ibox('wrench','var(--accent)'),t.name,esc([t.brand,t.location&&'📍 '+t.location].filter(Boolean).join(' · ')))));
  grp('Anleitungen',S.guides.filter(g=>hit([g.title,g.text,g.notes,g.steps&&JSON.stringify(g.steps)])).map(g=>row(`data-a="guideView" data-id="${g.id}"`,ibox('book','var(--accent)'),g.title,'',g.carId)));
- grp('Fehler',S.issues.filter(x=>hit([x.title,x.code,x.desc,x.notes])).map(x=>row(`data-a="issueForm" data-id="${x.id}" data-car="${x.carId}"`,ibox('alert','var(--yellow)'),x.title||x.code,x.status==='solved'?'gelöst':'offen',x.carId)));
+ grp('Fehler',S.issues.filter(x=>hit([x.title,x.codes,x.desc,x.solution])).map(x=>row(`data-a="issueForm" data-id="${x.id}" data-car="${x.carId}"`,ibox('alert','var(--yellow)'),x.title||x.code,x.status==='solved'?'gelöst':'offen',x.carId)));
  grp('Reifen',S.tyres.filter(t=>hit([t.brand,t.model,t.size,t.dot,t.season,t.location])).map(t=>row(`data-a="tyOpen" data-car="${t.carId}"`,ibox('tire','var(--accent)'),`${t.season}reifen ${t.brand||''}`,esc([t.model,t.size].filter(Boolean).join(' · ')),t.carId)));
  box.innerHTML=G.join('')||`<p class="muted">Nichts gefunden für „${esc(gQ)}“.</p>`}
 function viewArchive(){const arch=S.cars.filter(c=>c.archived).sort((a,b)=>(b.sold?.date||'').localeCompare(a.sold?.date||''));
@@ -2497,10 +2527,10 @@ function viewSettings(){const th=lsGet('garage.theme')||'dark';
 function viewHelp(){const T=(t,items)=>`<details class="fold"><summary><b>${t}</b><span>${items.length}</span></summary><ul style="padding-left:20px;margin:0 0 4px">${items.map(x=>`<li style="margin-bottom:6px">${x}</li>`).join('')}</ul></details>`;
  return{title:'Hilfe',tab:'more',back:'#/more',html:`<div class="card"><b>App am Handy installieren</b><p class="sub" style="margin:6px 0 0">In Chrome rechts oben ⋮ → <b>App installieren</b>. Danach startet sie vom Startbildschirm und läuft komplett offline. Deine Daten bleiben auf diesem Handy – darum regelmäßig ein Backup machen.</p></div>
  ${T('Einträge & Intervalle',['Beim Speichern eines Eintrags passende Intervalle anhaken – dann springt die Fälligkeit automatisch weiter. Kommt ein passendes Teil im Eintrag vor, wird das Intervall von selbst angehakt.','„Kopieren“ in einem Eintrag spart Tipparbeit beim nächsten Ölwechsel.','In der Historie nach „Bremsflüssigkeit“ suchen zeigt sofort, wann es zuletzt war.','Beim Tippen eines Teilenamens erscheinen bereits verwendete Artikel mit Hersteller, Nummer und letztem Preis – antippen füllt alles aus.','Eigene Intervalle für jedes Bauteil: Auto › Wartung › Intervalle › „+ Eigenes Bauteil“.','Ein erledigtes To-do lässt sich mit „→ Eintrag“ direkt in die Historie übernehmen, inklusive Teile.'])}
- ${T('Pickerl, Fristen & Reifen',['Das Pickerl wird aus der Erstzulassung berechnet – bis 18.5.2027 nach 3-2-1 mit 4 Monaten Nachfrist, ab 19.5.2027 nach 4-2-2-2-1: bis 4 Monate vorher möglich, <b>keine Nachfrist mehr</b>.','Nach der Begutachtung über + › Pickerl eintragen – dann springt es auf den nächsten Termin. Mängel können gleich als To-dos angelegt werden.','Fristen wie Vignette, Versicherung oder Pannendienst: Auto › Übersicht › „+ Frist“.','Reifen mit DOT und Profiltiefe anlegen, mit „Montieren“ wechseln – die km werden mitgezählt. Winterreifenpflicht (situativ) 1.11.–15.4.'])}
+ ${T('Pickerl, Fristen & Reifen',['Batterie: Auto › Übersicht › Batterie. Einbaudatum und gemessene Ruhespannung eintragen – vor dem Winter und ab 5 Jahren erinnert die App ans Messen.','Das Pickerl wird aus der Erstzulassung berechnet – bis 18.5.2027 nach 3-2-1 mit 4 Monaten Nachfrist, ab 19.5.2027 nach 4-2-2-2-1: bis 4 Monate vorher möglich, <b>keine Nachfrist mehr</b>.','Nach der Begutachtung über + › Pickerl eintragen – dann springt es auf den nächsten Termin. Mängel können gleich als To-dos angelegt werden.','Fristen wie Vignette, Versicherung oder Pannendienst: Auto › Übersicht › „+ Frist“.','Reifen mit DOT und Profiltiefe anlegen, mit „Montieren“ wechseln – die km werden mitgezählt. Winterreifenpflicht (situativ) 1.11.–15.4.'])}
  ${T('Tanken & Kosten',['„Tankbeleg fotografieren“ liest Liter, Literpreis, Betrag, Sorte, Datum und Tankstelle – du ergänzt nur den km-Stand.','Der Verbrauch wird zwischen zwei Volltankungen mit km-Stand berechnet.','Kaufpreis, km beim Kauf und Versicherung + Steuer eintragen – dann zeigt „Kosten & Bilanz“ deine Kosten pro Monat und pro km seit dem Kauf.'])}
  ${T('Werkstatt, Lager & Einkauf',['Die Werkstatt ist ein Raum: Werkzeugwagen = Werkzeug, Regal = Teilelager, Zettel an der Lochwand = Einkaufsliste, Lagerbuch auf der Werkbank = Lager-Verlauf, Uhr = Kalender, Reifenstapel = Reifen. Handy leicht neigen bewegt den Raum mit. Lieber gleich die Liste? Einstellungen › Darstellung › „Werkstatt als Raum zeigen“ ausschalten.','Werkzeug mit Kaufpreis und „Leihen würde kosten“ anlegen und bei Wartungen auswählen – die App rechnet, ab wann es sich bezahlt macht.','Akkus und Ladegeräte als Zubehör mit Akku-System anlegen (z. B. Parkside Performance 20 V) – dann siehst du, was wozu passt. Bei Parkside werden 3 Jahre Garantie vorgeschlagen.','Rechnung als Foto oder PDF und „Garantie bis“ hinterlegen – unter Mehr › Garantien siehst du alles auf einen Blick.','Lager: Preis so eintragen wie bezahlt (z. B. 12 € für 250 g). Teile aus dem Lager werden beim Eintrag automatisch abgebucht. Mit Mindestbestand kommt der Artikel von selbst auf die Einkaufsliste.'])}
- ${T('Autos, Dokumente & Fremde Autos',['Dokumente (Kaufvertrag, Zulassungsschein, Versicherung …): Auto › Infos › Dokumente.','Verkaufte Autos landen im Archiv (Mehr › Archiv) – mit Bilanz aus Kauf, Verkauf und allen Kosten.','Fremde Autos (Freunde, Familie) unter Garage › Fremde Autos – sie erscheinen nicht auf deiner Startseite und nicht in deinen Statistiken.','QR-Aufkleber (Auto › ⋯) in den Motorraum kleben – Scannen öffnet direkt das Auto. 🔩 oben im Auto öffnet den Drehmoment-Spickzettel.'])}
+ ${T('Autos, Dokumente & Fremde Autos',['📜 Chronik (Auto › Übersicht, ganz unten): alles vom Kauf bis heute auf einer Zeitleiste – große Reparaturen, Pickerl, km-Meilensteine. Als PDF speicherbar.','Fehlercodes beim Fehler eintragen (z. B. P0401) – gab es den Code schon einmal, zeigt die App sofort, was damals die Lösung war.','Backup einspielen zeigt vorher, was dazukommt, was verloren geht und ob das Backup älter ist als deine Daten.','Dokumente (Kaufvertrag, Zulassungsschein, Versicherung …): Auto › Infos › Dokumente.','Verkaufte Autos landen im Archiv (Mehr › Archiv) – mit Bilanz aus Kauf, Verkauf und allen Kosten.','Fremde Autos (Freunde, Familie) unter Garage › Fremde Autos – sie erscheinen nicht auf deiner Startseite und nicht in deinen Statistiken.','QR-Aufkleber (Auto › ⋯) in den Motorraum kleben – Scannen öffnet direkt das Auto. 🔩 oben im Auto öffnet den Drehmoment-Spickzettel.'])}
  ${T('Sicherheit',['Versehentlich gelöscht? Unten erscheint 10 Sekunden lang „Rückgängig“.','Formular aus Versehen geschlossen? Oben erscheint „Eingaben verworfen – Rückgängig“.','„Backup teilen“ schickt die Sicherung direkt an Google Drive oder per Mail. Ein kaputtes Backup ändert beim Einlesen nichts an deinen Daten.','Neue Version da? Oben erscheint „Neu laden“.'])}`}}
 
 /* ================= Formulare: Auto ================= */
@@ -2885,7 +2915,7 @@ async function importJSON(files){const file=files[0];if(!file)return;let d;
  const data={};let skip=0;
  for(const s of STORES){if(s==='photos')continue;const a=Array.isArray(d.data[s])?d.data[s]:[];data[s]=a.filter(x=>x&&typeof x==='object'&&x.id!=null&&x.id!=='');skip+=a.length-data[s].length}
  const photos=(Array.isArray(d.photos)?d.photos:[]).filter(p=>p&&p.id!=null&&typeof p.data==='string');skip+=(Array.isArray(d.photos)?d.photos.length:0)-photos.length;
- if(!await askConfirm(`Backup vom ${fmtD((d.exported||'').slice(0,10))} mit ${data.cars.length} Autos und ${data.entries.length} Einträgen wiederherstellen?${skip?`\n\n${skip} beschädigte${skip>1?'':'r'} Datensatz${skip>1?'e werden':' wird'} übersprungen.`:''}\n\nAlle aktuellen Daten werden ERSETZT.`,'Wiederherstellen',true,'Backup einspielen'))return;
+ const diff=backupDiff(data);if(!await dialog({title:'Backup einspielen – das ändert sich',html:backupDiffHTML(d,diff,skip)+'<p class="sub" style="margin:0">Deine aktuellen Daten werden durch das Backup <b>ersetzt</b>.</p>',ok:'Wiederherstellen',danger:!diff.same}))return;
  try{if(!memOnly){const t=db.transaction(STORES,'readwrite');STORES.forEach(s=>t.objectStore(s).clear());
    for(const s of STORES){if(s==='photos')continue;for(const x of data[s])t.objectStore(s).put(x)}for(const p of photos)t.objectStore('photos').put({id:p.id,data:p.data});await txDone(t)}}
  catch(e){console.error(e);toast(e?.name==='QuotaExceededError'?'Nicht genug Speicher am Handy – Backup wurde nicht eingelesen, deine Daten sind unverändert.':'Backup konnte nicht eingelesen werden – deine Daten sind unverändert.');return}
@@ -3030,12 +3060,12 @@ async function tyreUnmount(id){const t=S.tyres.find(x=>x.id===id);const loc=awai
 
 /* ================= Fehler & Symptome ================= */
 const issueHTML=x=>{const fix=x.solvedEntryId&&S.entries.find(e=>e.id===x.solvedEntryId);return`<div class="item ${x.status!=='solved'?'st-soon':''}" data-a="issueForm" data-id="${x.id}"><span class="cat" style="--c:${x.status==='solved'?'var(--green)':'var(--yellow)'}">${x.status==='solved'?'✓':'!'}</span>
- <div class="grow"><b>${esc(x.title)}</b><div class="sub">${fmtD(x.date)}${x.odo!=null?' · '+kmT(x.odo):''}${x.codes?' · <b>'+esc(x.codes)+'</b>':''}</div>${x.status==='solved'?`<div class="sub">gelöst${x.solvedDate?' am '+fmtD(x.solvedDate):''}${fix?': '+esc(fix.title):''}</div>`:''}</div><span class="muted">›</span></div>`};
+ <div class="grow"><b>${esc(x.title)}</b><div class="sub">${fmtD(x.date)}${x.odo!=null?' · '+kmT(x.odo):''}${x.codes?' · <b>'+esc(x.codes)+'</b>':''}</div>${x.status==='solved'?`<div class="sub">gelöst${x.solvedDate?' am '+fmtD(x.solvedDate):''}${fix?': '+esc(fix.title):''}</div>`:''}${(()=>{const h=codeHist(codeList(x.codes),x.id,x.date);return h.length?`<div class="sub" style="color:var(--accent)">↺ ${esc(h.map(y=>y.k).join(', '))} gab es schon (zuletzt ${fmtD(h[0].prev[0].date)})</div>`:''})()}</div><span class="muted">›</span></div>`};
 function issueForm(carId,id){const x=id?S.issues.find(i=>i.id===id):{carId,date:today(),odo:carOdo(carId),status:'open'};draft={kind:'issue',id:id||null,carId:x.carId};
  const ents=carEntries(x.carId);
  const body=`<form id="fIssue" data-form="issue"><label class="f"><span>Auto</span><select name="carId" data-change="issueCar">${carOptions(x.carId)}</select></label><div class="grid2"><label class="f"><span>Datum</span><input type="date" name="date" value="${esc(x.date)}"></label><label class="f"><span>km-Stand</span><input name="odo" inputmode="numeric" value="${valN(x.odo)}"></label></div>
  <label class="f"><span>Symptom / Problem</span><input name="title" required value="${esc(x.title)}" placeholder="z. B. Knacken vorne beim Anfahren"></label>
- <label class="f"><span>Fehlercodes (OBD)</span><input name="codes" value="${esc(x.codes)}" autocapitalize="characters" placeholder="z. B. P0301, P0420"></label>
+ <label class="f"><span>Fehlercodes (OBD)</span><input name="codes" value="${esc(x.codes)}" autocapitalize="characters" placeholder="z. B. P0301, P0420"></label><div id="codeHist">${codeHistHTML(codeHist(codeList(x.codes),id))}</div>
  <label class="f"><span>Beschreibung – wann, wie, wo?</span><textarea name="desc" placeholder="kalt/warm, Geschwindigkeit, Geräusch, Warnleuchte …">${esc(x.desc)}</textarea></label>
  <div class="seg"><label><input type="radio" name="status" value="open" ${x.status!=='solved'?'checked':''}><span>Offen</span></label><label><input type="radio" name="status" value="solved" ${x.status==='solved'?'checked':''}><span>Gelöst</span></label></div>
  <label class="f"><span>Gelöst durch Eintrag</span><select name="solvedEntryId" id="issueFixSel"><option value="">—</option>${ents.map(e=>`<option value="${e.id}" ${x.solvedEntryId===e.id?'selected':''}>${fmtD(e.date)} · ${esc(e.title)}</option>`).join('')}</select></label>
@@ -3233,6 +3263,112 @@ async function saveRestock(f){const fd=Object.fromEntries(new FormData(f));const
  (it.buys=it.buys||[]).push({id:uid(),date:fd.date||today(),qty:q,unit:fd.unit,price:paid,shop:fd.shop.trim()});
  await put('inventory',it);closeSheet();toast(`+${fmtQ(q)} ${fd.unit} · Bestand ${fmtQ(it.qty)} ${it.unit}`);render()}
 
+/* ================= Batterie ================= */
+// car.battery = {date, brand, ah, cca, checks:[{id,date,volt}]} – alles optional. Ohne Datum wird der letzte Eintrag mit „Batterie“ genommen.
+const batVolt=v=>v>=12.6?['voll','ok']:v>=12.4?['gut (ca. 75 %)','ok']:v>=12.2?['halb voll – nachladen','soon']:v>=12.0?['schwach – laden','soon']:['tiefentladen – laden oder tauschen','over'];
+const ageTxt=y=>y<1?`${Math.max(1,Math.round(y*12))} Monat${Math.round(y*12)>1?'e':''}`:`${Math.floor(y)} Jahr${Math.floor(y)>1?'e':''}`;
+function batInfo(c){const b=c.battery||{};let date=b.date||null,src=date?'manual':null,ent=null;
+ if(!date){ent=S.entries.filter(e=>e.carId===c.id&&!isPk(e)&&/batterie/i.test([e.title,...(e.parts||[]).map(p=>p.name)].join(' '))).sort((a,b)=>b.date.localeCompare(a.date))[0];if(ent){date=ent.date;src='entry'}}
+ const checks=(b.checks||[]).filter(x=>x&&x.volt!=null).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+ return{b,date,src,ent,checks,last:checks[0]||null,age:date?-daysUntil(date)/365.25:null}}
+function batDue(c){const I=batInfo(c),L=I.last;
+ if(L&&daysUntil(L.date)>=-60&&L.volt<12.4){const v=batVolt(L.volt);return{st:v[1]==='over'?'over':'soon',text:`zuletzt ${fmtN(L.volt,2)} V – ${v[0]}`}}
+ if(I.age==null)return null;const m=+today().slice(5,7),okRecent=L&&L.volt>=12.4;
+ if(m>=10&&I.age>=3&&!(okRecent&&L.date>=today().slice(0,4)+'-09-01'))return{st:'soon',text:`${ageTxt(I.age)} alt – vor dem Winter Ruhespannung messen`};
+ if(I.age>=5&&!(okRecent&&daysUntil(L.date)>=-90))return{st:'soon',text:`${ageTxt(I.age)} alt – messen, Tausch einplanen`};
+ return null}
+function batRowHTML(c){const I=batInfo(c),L=I.last;const t=[I.age!=null?ageTxt(I.age)+' alt':'Einbaudatum eintragen',L?`${fmtN(L.volt,2)} V am ${fmtD(L.date)}`:''].filter(Boolean).join(' · ');
+ return`<div class="item" data-a="batOpen" data-car="${c.id}"><span class="cat" style="--c:var(--green)">🔋</span><div class="grow"><b>Batterie</b><div class="sub">${esc(t)}</div></div><span class="muted">›</span></div>`}
+function batSheet(carId){const c=car(carId);if(!c)return;const I=batInfo(c),b=I.b;
+ const rows=I.checks.slice(0,12).map(x=>{const v=batVolt(x.volt);return`<div class="item" style="cursor:default"><span class="cat" style="--c:${v[1]==='ok'?'var(--green)':v[1]==='soon'?'var(--yellow)':'var(--red)'}">${fmtN(x.volt,1)}</span><div class="grow"><b>${fmtN(x.volt,2)} V</b><div class="sub">${fmtD(x.date)} · ${v[0]}</div></div><button type="button" class="iconbtn sm" data-a="batCheckDel" data-car="${carId}" data-id="${x.id}" aria-label="Messung löschen">✕</button></div>`}).join('');
+ openSheet(`Batterie · ${dispName(c)}`,`${I.date?`<dl class="kv card"><dt>Eingebaut</dt><dd>${fmtD(I.date)}${I.src==='entry'?`<div class="sub">aus Eintrag „${esc(I.ent.title||I.ent.category)}“</div>`:''}</dd><dt>Alter</dt><dd>${ageTxt(I.age)}</dd>${b.brand?`<dt>Marke / Typ</dt><dd>${esc(b.brand)}</dd>`:''}${b.ah?`<dt>Kapazität</dt><dd>${fmtN(b.ah)} Ah${b.cca?` · ${fmtN(b.cca)} A Kaltstart`:''}</dd>`:''}</dl>`:`<div class="note">Einbaudatum unbekannt – unter „Bearbeiten“ eintragen. Dann erinnert dich die App vor dem Winter und ab 5 Jahren ans Messen.</div>`}
+ <h4>Messungen</h4>${rows||'<p class="muted">Noch keine Messung.</p>'}
+ <p class="sub">So misst du die <b>Ruhespannung</b>: Motor aus, Auto mind. 2 Stunden gestanden (am besten über Nacht), Multimeter direkt an die Pole. 12,6 V = voll · 12,4 V ≈ 75 % · 12,2 V ≈ 50 % (laden!) · unter 12,0 V tiefentladen.</p>`,
+ `<button class="btn" data-a="batForm" data-car="${carId}">Bearbeiten</button><button class="btn primary grow" data-a="batMeasure" data-car="${carId}">⚡ Spannung eintragen</button>`)}
+function batForm(carId){const c=car(carId),b=c.battery||{},I=batInfo(c);draft={kind:'bat',carId};
+ openSheet('Batterie bearbeiten',`<form id="fBat" data-form="bat"><label class="f"><span>Eingebaut am</span><input type="date" name="date" value="${esc(b.date||'')}">${!b.date&&I.src==='entry'?`<span class="sub">leer = aus Eintrag (${fmtD(I.date)})</span>`:''}</label>
+ <label class="f"><span>Marke / Typ</span><input name="brand" value="${esc(b.brand||'')}" placeholder="z. B. Varta Blue Dynamic E11"></label>
+ <div class="grid2"><label class="f"><span>Kapazität (Ah)</span><input name="ah" inputmode="numeric" value="${valN(b.ah)}"></label><label class="f"><span>Kaltstartstrom (A)</span><input name="cca" inputmode="numeric" value="${valN(b.cca)}"></label></div></form>`,
+ `<button class="btn primary grow" type="submit" form="fBat">Speichern</button>`)}
+async function saveBat(f){const fd=Object.fromEntries(new FormData(f));const c=car(draft.carId);if(!c)return;
+ c.battery={...(c.battery||{}),date:fd.date||null,brand:fd.brand.trim(),ah:num(fd.ah),cca:num(fd.cca)};await put('cars',c);batSheet(c.id);toast('Gespeichert')}
+async function batMeasure(carId){const c=car(carId);const v=await askText('Ruhespannung','Volt am Multimeter (z. B. 12,58)','',{mode:'decimal',ok:'Speichern'});if(v===null)return;const n=num(v);
+ if(n==null||n<8||n>16){toast('Bitte einen Wert zwischen 8 und 16 V eingeben');return}
+ c.battery={...(c.battery||{})};c.battery.checks=[...(c.battery.checks||[]),{id:uid(),date:today(),volt:Math.round(n*100)/100}];await put('cars',c);
+ toast(`${fmtN(n,2)} V – ${batVolt(n)[0]}`);batSheet(carId);render()}
+
+/* ================= Fehlercodes: schon einmal aufgetreten? ================= */
+const codeList=s=>[...new Set((String(s||'').toUpperCase().match(/\b[PCBU][0-9A-F]{4}\b/g)||[]))];
+function codeHist(codes,exceptId,before){const out=[];for(const k of codes){const prev=S.issues.filter(i=>i.id!==exceptId&&codeList(i.codes).includes(k)&&(!before||i.date<=before)).sort((a,b)=>b.date.localeCompare(a.date));if(prev.length)out.push({k,prev})}return out}
+function codeHistHTML(list){if(!list.length)return'';return`<div class="note" style="margin:-4px 0 12px">${list.map(({k,prev})=>`<div style="margin-bottom:6px"><b>${esc(k)}</b> gab es schon ${prev.length===1?'einmal':prev.length+'-mal'}:</div>${prev.slice(0,3).map(i=>{const fix=i.solvedEntryId&&S.entries.find(e=>e.id===i.solvedEntryId);
+ return`<div class="sub" style="margin:0 0 6px 10px">• ${fmtD(i.date)} · ${esc(carName(i.carId))} · „${esc(i.title)}“<br>${i.status==='solved'?`✓ gelöst${fix?` mit „${esc(fix.title)}“`:''}${i.solution?`: ${esc(i.solution)}`:''}`:'⏳ damals nicht gelöst'}</div>`}).join('')}`).join('')}</div>`}
+
+/* ================= km-Meilensteine ================= */
+const MS_REP=[111111,222222,333333,444444,555555,666666,777777,888888,999999];
+const msNext=o=>{const m=(Math.floor(o/50000)+1)*50000,r=MS_REP.find(x=>x>o);return r&&r<m?r:m};
+const msLabel=m=>MS_REP.includes(m)?`${fmtN(m)} km – Schnapszahl`:`${fmtN(m)} km`;
+function odoPts(id){const c=car(id),p=[...S.entries.filter(e=>e.carId===id&&e.odo!=null).map(e=>[e.date,e.odo]),...S.fuel.filter(f=>f.carId===id&&f.odo!=null).map(f=>[f.date,f.odo]),...S.odo.filter(o=>o.carId===id&&o.odo!=null).map(o=>[o.date,o.odo])];
+ if(c?.purchaseOdo!=null&&c.purchase)p.push([c.purchase,c.purchaseOdo]);return p.filter(x=>x[0]).sort((a,b)=>a[0].localeCompare(b[0])||a[1]-b[1])}
+// Meilensteine, die in deiner Besitzzeit erreicht wurden, mit Datum der ersten Messung darüber
+function msCrossed(c){const pts=odoPts(c.id);if(!pts.length)return[];const start=c.purchaseOdo??Math.min(...pts.map(p=>p[1])),cur=carOdo(c.id)||0,out=[];
+ for(let m=msNext(start);m<=cur;m=msNext(m)){const hit=pts.find(p=>p[1]>=m);out.push({m,date:hit?hit[0]:null})}return out}
+function msHintHTML(c){const o=carOdo(c.id);if(o==null||c.archived)return'';const n=msNext(o),d=n-o;if(d>1500)return'';return`<div class="ms-hint">🏁 Noch ${fmtN(d)} km bis ${msLabel(n)}</div>`}
+let msFx={};
+function msCheck(){let seen;try{seen=JSON.parse(lsGet('garage.msSeen')||'null')}catch(e){seen=null}const first=!seen;seen=seen||{};let ch=false;
+ for(const c of myCars().filter(c=>!c.archived)){const x=msCrossed(c).pop();if(!x)continue;
+  if(first||seen[c.id]==null){seen[c.id]=x.m;ch=true;continue}
+  if(x.m>seen[c.id]){seen[c.id]=x.m;ch=true;msFx[c.id]=x.m;toast(`🏁 ${msLabel(x.m)} – Glückwunsch, ${dispName(c)}!`);const r=parseHash();if(r.v==='car'&&r.id===c.id&&(r.tab||'ov')==='ov')msPlay(c.id)}}
+ if(ch)lsSet('garage.msSeen',JSON.stringify(seen))}
+function msPlay(id){const m=msFx[id];if(!m)return;delete msFx[id];const card=$('#view .km-card');if(!card)return;card.classList.add('ms-hit');
+ const cf=document.createElement('div');cf.className='ms-conf';cf.innerHTML=Array.from({length:26},(_,i)=>`<i style="--x:${(Math.random()*100).toFixed(0)}%;--r:${(Math.random()*720-360).toFixed(0)}deg;--d:${(.9+Math.random()*1.2).toFixed(2)}s;--dl:${(Math.random()*.4).toFixed(2)}s;background:${['#f0b43c','#e0601f','#f3eee2','#4a9a52','#3a72c9'][i%5]}"></i>`).join('');card.appendChild(cf);
+ const rb=document.createElement('div');rb.className='ms-ribbon';rb.textContent=`🏁 ${msLabel(m)} geschafft!`;card.appendChild(rb);setTimeout(()=>{cf.remove();card.classList.remove('ms-hit')},3200)}
+
+/* ================= Auto-Chronik ================= */
+let chronAll=false;
+function chronEvents(c){const id=c.id,ev=[],cur=carOdo(id);
+ if(c.firstReg&&(!c.purchase||c.firstReg<c.purchase))ev.push({date:c.firstReg,ico:'🏭',t:'Erstzulassung',s:[c.make,c.model].filter(Boolean).join(' ')});
+ if(c.purchase)ev.push({date:c.purchase,ico:'🔑',t:'Gekauft',s:[c.purchaseOdo!=null?'bei '+kmT(c.purchaseOdo):'',c.purchasePrice!=null?'für '+eur(c.purchasePrice):''].filter(Boolean).join(' '),cls:'key'});
+ for(const e of S.entries.filter(e=>e.carId===id)){const cost=entryCost(e),ph=(e.photos||[]).find(p=>p.type!=='pdf'),pk=isPk(e);
+  const key=pk||cost>=150||ph||/zahnriemen|kupplung|getriebe|turbo|motor(?!öl)|steuerkette|auspuff|umbau|restaur/i.test(e.title||'');if(!key&&!chronAll)continue;
+  ev.push({date:e.date,ico:pk?'✅':e.diy?'🔧':'🏭',t:pk?`Pickerl – ${pkRes(e).l.split(' – ')[0]}`:(e.title||catLabel(e.category)),s:[e.odo!=null?kmT(e.odo):'',pk?'':e.diy?'selbst gemacht':(e.workshop||'Werkstatt')].filter(Boolean).join(' · '),amt:cost||null,ph:ph?.id,act:`data-a="entryView" data-id="${e.id}"`,cls:key?'':'small'})}
+ for(const x of msCrossed(c))if(x.date)ev.push({date:x.date,ico:'🏁',t:msLabel(x.m),s:'Meilenstein',cls:'ms'});
+ if(c.sold)ev.push({date:c.sold.date,ico:'🤝',t:'Verkauft',s:[c.sold.odo!=null?'bei '+kmT(c.sold.odo):'',c.sold.price!=null?'für '+eur(c.sold.price):''].filter(Boolean).join(' '),cls:'key'});
+ else ev.push({date:today(),ico:'📍',t:'Heute',s:cur!=null?kmT(cur):'',cls:'key'});
+ return ev.sort((a,b)=>a.date.localeCompare(b.date))}
+function viewChronik(id){const c=car(id),oc=ownCost(c),ev=chronEvents(c);let h='',yr='';
+ h+=`<div class="card ch-head">${c.photoId?`<div class="ph stretch" style="border-radius:10px;margin-bottom:10px"><img data-photo="${c.photoId}" alt="" style="${ppos(c)}"></div>`:''}<b style="font-size:19px">${esc(dispName(c))}</b><div class="sub">${esc([c.make,c.model,c.year].filter(Boolean).join(' · '))}</div>
+ <div class="grid3 ch-stats">${oc.months!=null?`<div><b>${fmtMonths(oc.months)}</b><span>Besitz</span></div>`:''}${oc.kmDriven>0?`<div><b>${kmT(oc.kmDriven)}</b><span>gefahren</span></div>`:''}<div><b>${eur(oc.maint+oc.fuel)}</b><span>Wartung + Sprit</span></div></div></div>
+ <div class="seg"><label><input type="radio" name="chr" ${chronAll?'':'checked'} data-change="chronAll" value="0"><span>Höhepunkte</span></label><label><input type="radio" name="chr" ${chronAll?'checked':''} data-change="chronAll" value="1"><span>Alles</span></label></div><div class="chron">`;
+ for(const e of ev){const y=e.date.slice(0,4);if(y!==yr){yr=y;const yc=S.entries.filter(x=>x.carId===id&&x.date.startsWith(y)).reduce((s,x)=>s+entryCost(x),0),yk=yearKm(id,y);
+   h+=`<div class="ch-year"><b>${y}</b><span>${[yk?kmT(yk):'',yc?eur(yc):''].filter(Boolean).join(' · ')}</span></div>`}
+  h+=`<div class="ch-ev ${e.cls||''}" ${e.act||''}><span class="ch-dot">${e.ico}</span><div class="grow"><div class="sub">${fmtD(e.date)}</div><b>${esc(e.t)}</b>${e.s?`<div class="sub">${esc(e.s)}</div>`:''}</div>${e.amt?`<span class="amt">${eur(e.amt)}</span>`:''}${e.ph?`<img data-photo="${e.ph}" alt="">`:''}</div>`}
+ h+=`</div><button class="btn block" data-a="chronPrint" data-car="${id}">🖨️ Als PDF speichern / drucken</button>`;
+ return{title:'Chronik',back:`#/car/${id}`,html:h}}
+async function chronPrint(id){const c=car(id),oc=ownCost(c),ev=chronEvents(c);const imgs={};for(const e of ev.filter(e=>e.ph).slice(0,40)){try{imgs[e.ph]=await getPhoto(e.ph)}catch(x){}}
+ $('#print').innerHTML=`<h1>Chronik – ${esc(dispName(c))}</h1><p>${esc([c.make,c.model,c.year,c.plate].filter(Boolean).join(' · '))}${oc.months!=null?` · Besitz ${fmtMonths(oc.months)}`:''}${oc.kmDriven>0?` · ${kmT(oc.kmDriven)} gefahren`:''} · Wartung + Sprit ${eur(oc.maint+oc.fuel)}</p>
+ <table><tr><th style="width:16%">Datum</th><th>Ereignis</th><th style="width:14%">Kosten</th></tr>${ev.map(e=>`<tr><td>${fmtD(e.date)}</td><td><b>${e.ico} ${esc(e.t)}</b>${e.s?'<br>'+esc(e.s):''}${imgs[e.ph]?`<br><img src="${imgs[e.ph]}" style="max-height:4.5cm;max-width:8cm;margin-top:4pt;border-radius:3pt">`:''}</td><td>${e.amt?eur(e.amt):''}</td></tr>`).join('')}</table>
+ <p style="color:#666;font-size:9pt">Erstellt am ${fmtD(today())} mit Garage & Wartungsmanager.</p>`;setTimeout(()=>window.print(),350)}
+
+/* ================= Backup-Vergleich ================= */
+const STORE_LBL={cars:['Auto','Autos'],entries:['Eintrag','Einträge'],intervals:['Intervall','Intervalle'],todos:['To-do','To-dos'],inventory:['Lagerartikel','Lagerartikel'],fuel:['Tankung','Tankungen'],odo:['km-Stand','km-Stände'],tyres:['Reifensatz','Reifensätze'],issues:['Fehler','Fehler'],guides:['Anleitung','Anleitungen'],tools:['Werkzeug','Werkzeuge'],shop:['Einkauf','Einkäufe']};
+const lblN=(s,n)=>`${fmtN(n)} ${STORE_LBL[s]?.[n===1?0:1]||s}`;
+const itemName=(s,x)=>s==='entries'?`${fmtD(x.date)} ${x.title||x.category||''}`:s==='fuel'?`Tankung ${fmtD(x.date)}`:s==='odo'?`km-Stand ${fmtD(x.date)}`:(x.name||x.title||x.label||[x.make,x.model].filter(Boolean).join(' ')||'');
+function backupDiff(data){const r={add:[],lose:[],chg:[],same:true,loseEx:[]};
+ for(const s of STORES){if(s==='photos'||!STORE_LBL[s])continue;const cur=new Map(S[s].map(x=>[x.id,x])),nw=new Map(data[s].map(x=>[x.id,x]));let a=0,l=0,c=0;
+  for(const [id,x] of nw){const o=cur.get(id);if(!o)a++;else if(JSON.stringify(o)!==JSON.stringify(x))c++}
+  for(const [id,x] of cur)if(!nw.has(id)){l++;if(r.loseEx.length<4)r.loseEx.push(itemName(s,x))}
+  if(a)r.add.push(lblN(s,a));if(l)r.lose.push(lblN(s,l));if(c)r.chg.push(lblN(s,c));if(a||l||c)r.same=false}
+ return r}
+function backupDiffHTML(d,r,skip){const exp=(d.exported||'').slice(0,10);const newest=[...S.entries,...S.fuel,...S.odo].map(x=>x.date||'').sort().pop()||'';
+ const older=exp&&newest>exp;const li=a=>a.map(x=>`<li>${esc(x)}</li>`).join('');
+ return`<p class="sub" style="margin:0 0 10px">Backup vom <b>${exp?fmtD(exp):'unbekannt'}</b> · ${lblN('cars',d.data.cars?.length||0)} · ${lblN('entries',d.data.entries?.length||0)}</p>
+ ${r.same?'<div class="note">✓ Das Backup entspricht genau deinen aktuellen Daten.</div>':`
+ ${older?`<div class="note warn"><b>⚠ Das Backup ist älter</b> als deine neuesten Daten (zuletzt eingetragen am ${fmtD(newest)}).</div>`:''}
+ ${r.lose.length?`<div class="bd bd-lose"><b>Geht verloren</b> (nur in der App, nicht im Backup)<ul>${li(r.lose)}</ul>${r.loseEx.length?`<div class="sub">z. B. ${esc(r.loseEx.filter(Boolean).join(' · '))}</div>`:''}</div>`:''}
+ ${r.chg.length?`<div class="bd bd-chg"><b>Wird auf den Stand im Backup zurückgesetzt</b><ul>${li(r.chg)}</ul></div>`:''}
+ ${r.add.length?`<div class="bd bd-add"><b>Kommt dazu</b> (nur im Backup)<ul>${li(r.add)}</ul></div>`:''}`}
+ ${skip?`<p class="sub">${skip} beschädigte${skip>1?'':'r'} Datensatz${skip>1?'e werden':' wird'} übersprungen.</p>`:''}`}
+
 /* ================= Werkstatt als Raum ================= */
 // Gezeichnete Garage (SVG mit Fluchtpunkt). Antippen: Werkzeugwagen → Werkzeug, Regal → Teilelager, Zettel → Einkaufsliste,
 // Lagerbuch → Lager-Verlauf, Uhr → Kalender, Reifen → Reifen. Handy neigen verschiebt die Ebenen (Tiefe). Abschaltbar in den Einstellungen.
@@ -3403,9 +3539,9 @@ async function scanPart(row){const c=await openScanner();if(!c)return;const it=i
  const sel=$('[data-k=invId]',row);if(sel){sel.value=it.id;CHANGES.partInv(sel)}else{const g=k=>$(`[data-k="${k}"]`,row);g('name').value=it.name;g('maker').value=it.maker||'';g('spec').value=it.spec||''}toast(it.name+' übernommen')}
 
 /* ================= Eigene Dialoge (statt Browser-Popups) ================= */
-function dialog({title='',text='',input=null,ok='OK',cancel='Abbrechen',danger=false}){return new Promise(res=>{
+function dialog({title='',text='',html='',input=null,ok='OK',cancel='Abbrechen',danger=false}){return new Promise(res=>{
  const ov=document.createElement('div');ov.className='dlg';
- ov.innerHTML=`<div class="dlg-box" role="dialog" aria-modal="true">${title?`<h3>${esc(title)}</h3>`:''}${text?`<p class="pre">${esc(text)}</p>`:''}${input?`<label class="f"><span>${esc(input.label||'')}</span><input ${input.mode?`inputmode="${input.mode}"`:''} value="${esc(input.value??'')}" placeholder="${esc(input.placeholder||'')}" autocomplete="off" enterkeyhint="done"></label>`:''}<div class="dlg-foot"><button type="button" class="btn" data-x="no">${esc(cancel)}</button><button type="button" class="btn ${danger?'danger-fill':'primary'}" data-x="ok">${esc(ok)}</button></div></div>`;
+ ov.innerHTML=`<div class="dlg-box" role="dialog" aria-modal="true">${title?`<h3>${esc(title)}</h3>`:''}${text?`<p class="pre">${esc(text)}</p>`:''}${html?`<div class="bd-wrap">${html}</div>`:''}${input?`<label class="f"><span>${esc(input.label||'')}</span><input ${input.mode?`inputmode="${input.mode}"`:''} value="${esc(input.value??'')}" placeholder="${esc(input.placeholder||'')}" autocomplete="off" enterkeyhint="done"></label>`:''}<div class="dlg-foot"><button type="button" class="btn" data-x="no">${esc(cancel)}</button><button type="button" class="btn ${danger?'danger-fill':'primary'}" data-x="ok">${esc(ok)}</button></div></div>`;
  document.body.appendChild(ov);const inp=ov.querySelector('input');let done=false;
  const fin=(v,back)=>{if(done)return;done=true;ov.remove();if(!back)unl();res(v)};const unl=pushLayer(()=>fin(input?null:false,true));
  ov.addEventListener('click',e=>{if(e.target===ov){fin(input?null:false);return}const b=e.target.closest('[data-x]');if(b)fin(b.dataset.x==='ok'?(input?inp.value:true):(input?null:false))});
@@ -3593,7 +3729,7 @@ function gaugeHTML(pct,st){const p=Math.max(0,Math.min(1,pct||0)),R=25,cx=35,cy=
 
 /* ================= Kompakte Auto-Karte ================= */
 function carCard(c){const d=dueItems(c.id);const over=d.filter(x=>x.st==='over').length,soon=d.filter(x=>x.st==='soon').length,pk=pickerlStatus(c),td=S.todos.filter(t=>t.carId===c.id&&!t.done).length,iss=S.issues.filter(x=>x.carId===c.id&&x.status!=='solved').length;
- const pills=[];if(over)pills.push(`<span class="pill ba">${ic('alert','ico s')}${over} überfällig</span>`);else if(soon)pills.push(`<span class="pill wa">${ic('alert','ico s')}${soon} bald</span>`);
+ const pills=[];if(over)pills.push(`<span class="pill ba">${ic('alert','ico s')}${over} überfällig</span>`);else if(soon)pills.push(`<span class="pill wa">${ic('alert','ico s')}${soon} bald</span>`);{const o=carOdo(c.id);if(o!=null&&!c.archived&&!c.foreign&&msNext(o)-o<=1500)pills.push(`<span class="pill">🏁 ${fmtN(msNext(o)-o)} km bis ${fmtN(msNext(o))}</span>`)}
  if(pk)pills.push(`<span class="pill ${pk.st==='over'?'ba':pk.st==='soon'?'wa':'ok'}">${ic('shield','ico s')}Pickerl ${pk.label.replace('Pickerl ','').replace(/\/20(\d\d)$/,'/$1')}</span>`);
  if(iss)pills.push(`<span class="pill wa">${ic('alert','ico s')}${iss} Fehler</span>`);if(td)pills.push(`<span class="pill">${ic('list','ico s')}${td}</span>`);
  if(!pills.length)pills.push(`<span class="pill ok">${ic('check','ico s')}alles ok</span>`);
@@ -3872,6 +4008,9 @@ const A={
  invLog:d=>invLogSheet(d.id),
  invShelf:d=>invShelfToggle(d.loc),
  wsGo:d=>wsGo(d.t),
+ batOpen:d=>batSheet(d.car),batForm:d=>batForm(d.car),batMeasure:d=>batMeasure(d.car),
+ batCheckDel:async d=>{const c=car(d.car);c.battery.checks=(c.battery.checks||[]).filter(x=>x.id!==d.id);await put('cars',c);batSheet(c.id);render()},
+ chronOpen:d=>nav(`#/chronik/${d.car}`),chronPrint:d=>chronPrint(d.car),
  invMoveUndo:async d=>{await invMoveUndo(d.it,d.m,true)},
  invQty:async d=>{const it=S.inventory.find(i=>i.id===d.id);it.qty=Math.max(0,r3((it.qty||0)+ +d.d*invStep(it.unit)));await put('inventory',it);if(d.close){closeSheet();toast(`${it.name}: ${fmtQ(it.qty)} ${it.unit}`)}renderInvList()},
  invSet:async d=>{const it=S.inventory.find(i=>i.id===d.id);const v=await askText(`${it.name} – Bestand korrigieren`,`Tatsächlicher Bestand in ${it.unit} (Neukäufe bitte über „📦 + Packung“ mit Preis)`,valN(it.qty||0),{mode:'decimal',ok:'Speichern'});if(v===null)return;const n=num(v);if(n==null||n<0){toast('Ungültige Zahl');return}
@@ -3899,7 +4038,7 @@ const A={
 };
 document.addEventListener('click',e=>{if(e.target.id==='sheet'){closeSheet();return}const el=e.target.closest('[data-a]');if(!el)return;const f=A[el.dataset.a];if(f){e.preventDefault();const n=el.dataset.a;
  try{const r=UNDO_LABEL[n]?withUndo(n,()=>f(el.dataset,el,e)):f(el.dataset,el,e);if(r&&r.catch)r.catch(err=>{console.error(err);toast('Fehler: '+errText(err))})}catch(err){console.error(err);toast('Fehler: '+errText(err))}}});
-const FORMS={rate:saveRate,dlNew:saveDlNew,carDoc:saveCarDoc,shopAdd,shopEdit:saveShopEdit,restock:saveRestock,pk:savePk,tool:saveTool,tyre:saveTyre,issue:saveIssue,guide:saveGuide,receipt:saveReceipt,expose:saveExpose,ivTpl:saveIvTpl,sell:saveSell,car:saveCar,entry:saveEntry,todo:saveTodo,inv:saveInv,fuel:saveFuel,odo:saveOdo,iv:saveIv,spec:saveSpecs,dl:saveDl};
+const FORMS={bat:saveBat,rate:saveRate,dlNew:saveDlNew,carDoc:saveCarDoc,shopAdd,shopEdit:saveShopEdit,restock:saveRestock,pk:savePk,tool:saveTool,tyre:saveTyre,issue:saveIssue,guide:saveGuide,receipt:saveReceipt,expose:saveExpose,ivTpl:saveIvTpl,sell:saveSell,car:saveCar,entry:saveEntry,todo:saveTodo,inv:saveInv,fuel:saveFuel,odo:saveOdo,iv:saveIv,spec:saveSpecs,dl:saveDl};
 let saving=false;
 const errText=err=>err?.name==='QuotaExceededError'||/quota/i.test(err?.message||'')?'Der Speicher am Handy ist voll – bitte Platz schaffen (z. B. alte Fotos löschen) und nochmal versuchen.':(err?.message||String(err));
 document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target;const fn=FORMS[f.dataset.form];if(!fn||saving)return;saving=true;try{await fn(f)}catch(err){console.error(err);toast('Nicht gespeichert: '+errText(err))}finally{saving=false}});
@@ -3907,6 +4046,7 @@ document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target
 addEventListener('unhandledrejection',e=>{console.error(e.reason);toast('Fehler: '+errText(e.reason))});
 addEventListener('error',e=>{if(e.message&&!/ResizeObserver|Script error/i.test(e.message))toast('Fehler: '+e.message)});
 const CHANGES={
+ chronAll:t=>{chronAll=t.value==='1';render()},
  entryCar:t=>{draft.intervalIds=checkedIv();draft.carId=t.value;draft.intervalIds=[...new Set([...draft.intervalIds.filter(id=>S.intervals.find(i=>i.id===id)?.carId===t.value),...autoIvIds(t.value,$('#fEntry [name=category]').value)])];
   const o=$('#fEntry [name=odo]');const cur=carOdo(t.value);o.value=valN(cur);renderIvChecks()},
  entryCat:t=>{if(t.value==='Pickerl'){const cid=$('#fEntry [name=carId]').value;closeSheet(false,true);setTimeout(()=>pkForm({carId:cid}),50);return}draft.intervalIds=[...new Set([...checkedIv(),...autoIvIds(draft.carId,t.value)])];renderIvChecks()},
@@ -3948,6 +4088,7 @@ document.addEventListener('change',async e=>{const t=e.target;
 document.addEventListener('input',e=>{const t=e.target;
  if(t.id==='histQ'){histQ=t.value;histLimit=50;renderHistList(parseHash().id)}
  else if(t.id==='invQ'){invQ=t.value;renderInvList()}
+ else if(t.name==='codes'&&t.closest('#fIssue')){const b=$('#codeHist');if(b)b.innerHTML=codeHistHTML(codeHist(codeList(t.value),draft.id))}
  else if(t.id==='gq'){gQ=t.value;renderSearch()}
  else if(t.id==='toolQ'){toolQ=t.value;renderToolList()}
  else if(t.id==='toolPickQ'){const q=t.value.toLowerCase();$$('#toolPick .chip').forEach(b=>b.hidden=!!q&&!b.textContent.toLowerCase().includes(q))}
@@ -4036,7 +4177,7 @@ async function seed(){const P=(name,maker,qty,unit,price,o={})=>({name,maker,par
 })();
 
 /* ================= Updates ================= */
-const APP_VER='garage-v56';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
+const APP_VER='garage-v57';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
 const verNum=v=>+(/(\d+)\s*$/.exec(v||'')||[0,0])[1];
 /* Neue Version erkennen: index.html vom Server holen und die Versionsnummer vergleichen.
    Der Hinweis kommt nur, wenn der Server wirklich eine NEUERE Version hat. */
