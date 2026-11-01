@@ -1984,7 +1984,10 @@ function ownCost(c){const ents=S.entries.filter(e=>e.carId===c.id),maint=ents.fi
  let months=null;if(c.purchase){const a=new Date(c.purchase+'T12:00:00'),b=new Date((c.sold?.date||today())+'T12:00:00');months=Math.max(0,(b.getFullYear()-a.getFullYear())*12+b.getMonth()-a.getMonth())}
  const endOdo=c.sold?.odo??carOdo(c.id);const kmDriven=endOdo!=null&&c.purchaseOdo!=null?endOdo-c.purchaseOdo:null;
  const ins=c.insYear&&months!=null?c.insYear*months/12:0;
- return{maint,pre,fuel,buy,sell,ins,total:(buy||0)-(sell||0)+maint+fuel+ins,run:maint+fuel+ins,months,kmDriven}}
+ const fc=fuelCalc(c.id),fk=fc.perKm,km=kmDriven>0?kmDriven:null;
+ const runKm=km?(fk!=null?(maint+ins)/km+fk:(maint+fuel+ins)/km):null,totalKm=km&&buy!=null?runKm+((buy||0)-(sell||0))/km:null;
+ return{maint,pre,fuel,buy,sell,ins,total:(buy||0)-(sell||0)+maint+fuel+ins,run:maint+fuel+ins,months,kmDriven,runKm,totalKm,fuelKm:fk,avg:fc.avg,ppl:fc.ppl}}
+const fuelKmSub=o=>o.fuelKm!=null?`<div class="sub">Sprit: Ø ${fmtN(o.avg,1)} l/100 km × Ø ${eur(o.ppl)}/l = ${fmtN(o.fuelKm,3)} €/km</div>`:'';
 const nextDue=id=>dueItems(id).find(d=>d.st!=='unknown');
 const sortTodos=a=>a.sort((x,y)=>(x.prio||2)-(y.prio||2)||(x.due||'9999').localeCompare(y.due||'9999')||(x.created||'').localeCompare(y.created||''));
 const openTodos=()=>sortTodos(S.todos.filter(t=>!t.done&&(!t.carId||!car(t.carId)?.archived)));
@@ -1997,7 +2000,9 @@ function fuelCalc(carId){const all=S.fuel.filter(f=>f.carId===carId);
  const cons={};let prev=null,acc=0,totL=0,totKm=0;
  for(const f of list){if(prev){acc+=f.liters||0;if(f.full&&f.odo!=null&&prev.odo!=null&&f.odo>prev.odo){const dist=f.odo-prev.odo;cons[f.id]=acc/dist*100;totL+=acc;totKm+=dist}}
   if(f.full){prev=f;acc=0}}
- return{list,cons,avg:totKm?totL/totKm*100:null,cost:list.reduce((s,f)=>s+(f.price||0),0),liters:list.reduce((s,f)=>s+(f.liters||0),0)}}
+ const avg=totKm?totL/totKm*100:null,pl=list.filter(f=>f.liters>0&&f.price>0),pL=pl.reduce((s,f)=>s+f.liters,0),ppl=pL?pl.reduce((s,f)=>s+f.price,0)/pL:null;
+ // Spritkosten pro km = Ø Verbrauch × Ø Literpreis (unabhängig davon, wie vollständig die Tankungen erfasst sind)
+ return{list,cons,avg,ppl,perKm:avg!=null&&ppl!=null?avg/100*ppl:null,cost:list.reduce((s,f)=>s+(f.price||0),0),liters:list.reduce((s,f)=>s+(f.liters||0),0)}}
 const guessCat=n=>/motoröl|ölwechsel/i.test(n)?'Ölwechsel':/brems/i.test(n)?'Bremsen':/reifen/i.test(n)?'Reifen':/inspektion/i.test(n)?'Inspektion':/filter/i.test(n)?'Filter':/öl|flüssigkeit|kühlmittel|atf|klima/i.test(n)?'Flüssigkeiten':'Wartung';
 const autoIvIds=(carId,cat)=>S.intervals.filter(i=>i.carId===carId&&i.category&&i.category===cat).map(i=>i.id);
 const stdIntervals=fuel=>IV_TPL.filter(t=>t.std&&(!t.fuel||(fuel||'').includes(t.fuel)));
@@ -2343,10 +2348,10 @@ function viewCar(id,tab){const c=car(id);const G0=CAR_GROUPS.find(g=>g.k===tab);
   <h2>Details</h2>
   <details class="fold"><summary><b>Fahrzeugdaten</b><span>${esc([c.model||c.make,c.year,c.power&&c.power.split('/').pop().trim()].filter(Boolean).join(' · '))}</span></summary><dl class="kv">${[['Marke / Modell',[c.make,c.model].filter(Boolean).join(' ')],['Baujahr',c.year],['Kennzeichen',c.plate],['FIN',c.vin],['Typenschein-Nr.',c.hsn],['Motorcode',c.engine],['Leistung',c.power],['Kraftstoff',c.fuel],['Erstzulassung',c.firstReg&&fmtD(c.firstReg)],['Pickerl-Monat (Lochung)',c.firstReg&&c.firstReg.slice(5,7)],['Kaufdatum',c.purchase&&fmtD(c.purchase)],['km beim Kauf',c.purchaseOdo!=null&&kmT(c.purchaseOdo)]].filter(x=>x[1]).map(([k,v])=>`<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl><button class="btn block" data-a="carForm" data-id="${id}">✎ Bearbeiten</button></details>
   ${c.foreign?'':batRowHTML(c)}
-  ${c.foreign?`<details class="fold"><summary><b>Arbeiten an diesem Auto</b><span>${ents.length} Einträge</span></summary><dl class="kv"><dt>Einträge</dt><dd>${ents.length}</dd><dt>Teile & Material</dt><dd>${eur(ents.reduce((s,e)=>s+partsCost(e),0))}</dd><dt>Arbeitszeit</dt><dd>${fmtN(ents.reduce((s,e)=>s+(e.hours||0),0),1)} h</dd>${ents[0]?`<dt>Zuletzt</dt><dd>${fmtD(ents[0].date)}</dd>`:''}</dl></details>`:`<details class="fold"><summary><b>Kosten & Bilanz</b><span>${oc.buy!=null&&oc.months>0?eur(oc.total/oc.months)+' / Monat':eur(oc.run)}${oc.kmDriven>0&&oc.buy!=null?' · '+eur(oc.total/oc.kmDriven)+'/km':''}</span></summary><dl class="kv">${oc.buy!=null?`<dt>Kaufpreis</dt><dd>${eur(oc.buy)}</dd>`:''}${oc.sell!=null?`<dt>Verkaufspreis</dt><dd>${eur(oc.sell)}</dd>`:''}${oc.buy!=null&&oc.sell!=null?`<dt>Wertverlust</dt><dd>${eur(oc.buy-oc.sell)}</dd>`:''}
+  ${c.foreign?`<details class="fold"><summary><b>Arbeiten an diesem Auto</b><span>${ents.length} Einträge</span></summary><dl class="kv"><dt>Einträge</dt><dd>${ents.length}</dd><dt>Teile & Material</dt><dd>${eur(ents.reduce((s,e)=>s+partsCost(e),0))}</dd><dt>Arbeitszeit</dt><dd>${fmtN(ents.reduce((s,e)=>s+(e.hours||0),0),1)} h</dd>${ents[0]?`<dt>Zuletzt</dt><dd>${fmtD(ents[0].date)}</dd>`:''}</dl></details>`:`<details class="fold"><summary><b>Kosten & Bilanz</b><span>${oc.buy!=null&&oc.months>0?eur(oc.total/oc.months)+' / Monat':eur(oc.run)}${oc.totalKm!=null?' · '+eur(oc.totalKm)+'/km':''}</span></summary><dl class="kv">${oc.buy!=null?`<dt>Kaufpreis</dt><dd>${eur(oc.buy)}</dd>`:''}${oc.sell!=null?`<dt>Verkaufspreis</dt><dd>${eur(oc.sell)}</dd>`:''}${oc.buy!=null&&oc.sell!=null?`<dt>Wertverlust</dt><dd>${eur(oc.buy-oc.sell)}</dd>`:''}
   <dt>Wartung & Reparatur</dt><dd>${eur(oc.maint)}${oc.pre?`<div class="sub">ohne ${eur(oc.pre)} vor dem Kauf</div>`:''}</dd>${c.archived?'':`<dt>davon ${y}</dt><dd>${eur(totY)}</dd>`}<dt>Kraftstoff</dt><dd>${eur(oc.fuel)}</dd>${oc.ins?`<dt>Versicherung & Steuer</dt><dd>${eur(oc.ins)}<div class="sub">${eur(c.insYear)} / Jahr anteilig</div></dd>`:''}
   ${oc.buy!=null?`<dt><b>Gesamtkosten${c.sold?'':' bisher'}</b></dt><dd><b>${eur(oc.total)}</b></dd>`:''}${oc.buy!=null&&oc.months>0?`<dt>pro Monat</dt><dd>${eur(oc.total/oc.months)}</dd>`:''}
-  ${oc.months!=null?`<dt>Besitzdauer</dt><dd>${fmtMonths(oc.months)}</dd>`:''}${oc.kmDriven>0?`<dt>Gefahren seit Kauf</dt><dd>${kmT(oc.kmDriven)}</dd>${oc.buy!=null?`<dt>pro km</dt><dd>${eur(oc.total/oc.kmDriven)}</dd>`:''}<dt>Laufende Kosten pro km</dt><dd>${eur(oc.run/oc.kmDriven)}<div class="sub">ohne Kaufpreis / Wertverlust</div></dd>`:''}</dl>
+  ${oc.months!=null?`<dt>Besitzdauer</dt><dd>${fmtMonths(oc.months)}</dd>`:''}${oc.kmDriven>0?`<dt>Gefahren seit Kauf</dt><dd>${kmT(oc.kmDriven)}</dd>${oc.totalKm!=null?`<dt>pro km</dt><dd>${eur(oc.totalKm)}<div class="sub">inkl. Kauf${c.sold?' und Verkauf':''}</div></dd>`:''}<dt>Laufende Kosten pro km</dt><dd>${eur(oc.runKm)}<div class="sub">ohne Kaufpreis / Wertverlust</div>${fuelKmSub(oc)}</dd>`:''}</dl>
   ${oc.buy==null?`<p class="sub">Tipp: Kaufpreis unter ✎ eintragen, dann siehst du die Gesamtbilanz.</p>`:!c.insYear&&!c.archived?`<p class="sub">Tipp: Versicherung + Steuer pro Jahr unter ✎ eintragen, dann ist die Rechnung vollständig.</p>`:''}</details>`}`;
   const td=sortTodos(S.todos.filter(t=>t.carId===id&&!t.done));if(!c.archived)h+=`<details class="fold"><summary><b>Offene To-dos</b><span>${td.length||'keine'}</span></summary>${td.map(t=>todoHTML(t,false)).join('')}<button class="btn block" data-a="todoForm" data-car="${id}">+ To-do</button></details>`;
   h+=`<button class="btn block" style="margin-top:6px" data-a="go" data-h="#/chronik/${id}">📜 Chronik – vom Kauf bis heute</button><button class="btn block" style="margin-top:6px" data-a="carMenu" data-car="${id}">⋯ Drucken, Export, Verkauf, Archiv …</button>`}
@@ -2377,7 +2382,7 @@ function viewCar(id,tab){const c=car(id);const G0=CAR_GROUPS.find(g=>g.k===tab);
  if(tab==='tech'){const sp=c.specs||[];
   h+=`<button class="btn block" data-a="torqueSheet" data-car="${id}">🔩 Drehmoment-Spickzettel</button>`+(c.demo?`<div class="note warn">Beispielwerte – bitte mit Handbuch, Reparaturleitfaden oder Teilekatalog abgleichen.</div>`:'')+(sp.length?`<div class="card"><dl class="kv">${sp.map(s=>`<dt>${esc(s.k)}</dt><dd>${esc(s.v)}</dd>`).join('')}</dl></div>`:empty('Noch keine technischen Daten.','',''))+`<button class="btn primary block" data-a="specForm" data-car="${id}">Technische Daten bearbeiten</button>`}
  if(tab==='fuel'){const fc=fuelCalc(id);
-  h+=`<div class="card"><dl class="kv"><dt>Ø Verbrauch</dt><dd><b>${fc.avg?fmtN(fc.avg,1)+' l/100 km':'–'}</b></dd><dt>Getankt gesamt</dt><dd>${fmtN(fc.liters,1)} l</dd><dt>Kosten gesamt</dt><dd>${eur(fc.cost)}</dd><dt>Ø Literpreis</dt><dd>${fc.liters?eur(fc.cost/fc.liters):'–'}</dd></dl></div>
+  h+=`<div class="card"><dl class="kv"><dt>Ø Verbrauch</dt><dd><b>${fc.avg?fmtN(fc.avg,1)+' l/100 km':'–'}</b></dd><dt>Getankt gesamt</dt><dd>${fmtN(fc.liters,1)} l</dd><dt>Kosten gesamt</dt><dd>${eur(fc.cost)}</dd><dt>Ø Literpreis</dt><dd>${fc.ppl!=null?eur(fc.ppl):'–'}</dd>${fc.perKm!=null?`<dt>Sprit pro km</dt><dd>${fmtN(fc.perKm,3)} €<div class="sub">Ø Verbrauch × Ø Literpreis</div></dd>`:''}</dl></div>
   ${consChart(id)||consHint(id)}<button class="btn primary block" data-a="fuelForm" data-car="${id}">+ Tankung</button>`+
   fc.list.slice().reverse().map(f=>`<div class="item" data-a="fuelForm" data-id="${f.id}">${ibox('fuel','#5aa9e6')}<div class="grow"><b>${fmtN(f.liters,2)} l${f.full?'':' (Teil)'}${ppl(f)?` <span class="sub" style="font-weight:600">· ${eur3(ppl(f))}/l</span>`:''}</b><div class="sub">${fmtD(f.date)} · ${kmT(f.odo)}${fc.cons[f.id]?` · <b style="color:var(--text)">${fmtN(fc.cons[f.id],1)} l/100</b>`:''}</div>${f.station||f.type?`<div class="sub">${esc([f.type,f.station].filter(Boolean).join(' · '))}${f.photoId?' · 🧾':''}</div>`:''}</div><span class="amt">${eur(f.price)}</span></div>`).join('')+
   (fc.list.length?'<p class="sub">Verbrauch wird zwischen zwei Volltankungen berechnet.</p>':'')}
@@ -2495,10 +2500,10 @@ function viewStats(){if(!S.entries.some(e=>!isForeign(e.carId))&&!S.fuel.some(f=
  const wr=['Wartung',...WARTUNG_SUB].map(k=>({l:k==='Wartung'?'Allgemein':k,v:ents.filter(e=>e.category===k).reduce((s,e)=>s+entryCost(e),0)})).filter(r=>r.v>0).sort((a,b)=>b.v-a.v);
  if(wr.length>1)h+=`<h2>Wartung im Detail</h2><div class="card">${barsHTML(wr)}</div>`;
  if(!statsYear){h+=`<h2>Pro Jahr (Wartung)</h2><div class="card">${barsHTML(years.slice().reverse().map(y=>({l:y,v:S.entries.filter(e=>e.date.startsWith(y)&&!isForeign(e.carId)).reduce((s,e)=>s+entryCost(e),0)})))}</div>`;
-  const kc=cars.map(c=>{const o=ownCost(c);if(o.kmDriven>0)return`<dt>${esc(dispName(c))}</dt><dd>${eur(o.run/o.kmDriven)} / km<div class="sub">${fmtN(o.kmDriven)} km seit Kauf</div></dd>`;
+  const kc=cars.map(c=>{const o=ownCost(c);if(o.kmDriven>0)return`<dt>${esc(dispName(c))}</dt><dd>${eur(o.runKm)} / km<div class="sub">${fmtN(o.kmDriven)} km seit Kauf</div>${fuelKmSub(o)}</dd>`;
    const od=[c.odo,...S.entries.filter(e=>e.carId===c.id).map(e=>e.odo),...S.fuel.filter(f=>f.carId===c.id).map(f=>f.odo),...S.odo.filter(o=>o.carId===c.id).map(o=>o.odo)].filter(v=>v!=null);
-   const dr=od.length?Math.max(...od)-Math.min(...od):0;return`<dt>${esc(dispName(c))}</dt><dd>${dr>0?eur((S.entries.filter(e=>e.carId===c.id).reduce((s,e)=>s+entryCost(e),0)+fuelCalc(c.id).cost)/dr)+' / km':'–'}<div class="sub">${dr>0?fmtN(dr)+' km erfasst (km beim Kauf fehlt)':'zu wenig km-Daten'}</div></dd>`}).join('');
-  if(kc)h+=`<h2>Laufende Kosten pro km</h2><div class="card"><dl class="kv">${kc}</dl><p class="sub" style="margin:8px 0 0">Wartung, Kraftstoff, Versicherung & Steuer seit dem Kauf – ohne Kaufpreis.</p></div>`}
+   const dr=od.length?Math.max(...od)-Math.min(...od):0;return`<dt>${esc(dispName(c))}</dt><dd>${dr>0?(()=>{const fc=fuelCalc(c.id),m=S.entries.filter(e=>e.carId===c.id).reduce((s,e)=>s+entryCost(e),0);return eur(m/dr+(fc.perKm??fc.cost/dr))+' / km'})():'–'}<div class="sub">${dr>0?fmtN(dr)+' km erfasst (km beim Kauf fehlt)':'zu wenig km-Daten'}</div></dd>`}).join('');
+  if(kc)h+=`<h2>Laufende Kosten pro km</h2><div class="card"><dl class="kv">${kc}</dl><p class="sub" style="margin:8px 0 0">Wartung, Versicherung & Steuer seit dem Kauf pro gefahrenem km, dazu Sprit aus Ø Verbrauch × Ø Literpreis – ohne Kaufpreis.</p></div>`}
  const mk={};ents.forEach(e=>(e.parts||[]).forEach(p=>{if(p.maker)mk[p.maker]=(mk[p.maker]||0)+1}));const top=Object.entries(mk).sort((a,b)=>b[1]-a[1]).slice(0,6);
  if(top.length)h+=`<h2>Meistverbaute Hersteller</h2><div class="card">${barsHTML(top.map(([l,v])=>({l,v})),v=>v+'×')}</div>`;
  if(fents.length){const fc=S.cars.filter(c=>c.foreign&&fents.some(e=>e.carId===c.id)).sort(byName);
@@ -4177,7 +4182,7 @@ async function seed(){const P=(name,maker,qty,unit,price,o={})=>({name,maker,par
 })();
 
 /* ================= Updates ================= */
-const APP_VER='garage-v57';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
+const APP_VER='garage-v58';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
 const verNum=v=>+(/(\d+)\s*$/.exec(v||'')||[0,0])[1];
 /* Neue Version erkennen: index.html vom Server holen und die Versionsnummer vergleichen.
    Der Hinweis kommt nur, wenn der Server wirklich eine NEUERE Version hat. */

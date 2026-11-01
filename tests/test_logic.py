@@ -181,6 +181,16 @@ async def main():
           const s=ivStatus(v);return{st:s.st,text:s.text,d:-s.daysLeft}})()""")
         c.ok(r['st'] == 'over' and r['text'].startswith('seit ') and f"({r['d']} Tag" in r['text'] and 'noch' not in r['text'], f"Datum überschritten: „seit … überfällig (n Tage)“ ({r['text']})")
 
+        # ---------- Kosten pro km: Sprit = Ø Verbrauch × Ø Literpreis ----------
+        await ev("T.reset()")
+        r = await ev("""(async()=>{const c=await T.car({purchase:'2026-01-01',purchaseOdo:100000});
+          await T.fuel({carId:c.id,date:'2026-02-01',odo:100000,liters:40,price:60});await T.fuel({carId:c.id,date:'2026-03-01',odo:100500,liters:30,price:48});
+          await T.entry({carId:c.id,date:'2026-02-10',odo:100200,parts:[{name:'Öl',price:100}]});await T.fuel({carId:c.id,date:'2026-04-01',odo:101000,liters:30,price:51,full:true});
+          const f=fuelCalc(c.id),o=ownCost(car(c.id));return{avg:f.avg,ppl:f.ppl,pk:f.perKm,run:o.runKm,km:o.kmDriven}})()""")
+        c.eq(round(r['avg'], 3), 6.0, 'Ø Verbrauch 6 l/100 km')
+        c.eq(round(r['ppl'], 4), round(159/100, 4), 'Ø Literpreis = Summe € / Summe Liter')
+        c.eq(round(r['run'], 5), round(100/1000 + 0.06*1.59, 5), 'Laufende Kosten/km = Wartung/km + Ø Verbrauch × Ø Literpreis')
+
         # ---------- Batterie ----------
         await ev("T.reset()")
         r = await ev("""(async()=>{const c=await T.car({});const a=batDue(c);
