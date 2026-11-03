@@ -187,6 +187,23 @@ async def main():
         await page.click('.dlg [data-x=no]'); await ev("closeSheet(false,true)"); await page.wait_for_timeout(300)
         c.eq(await ev("allPhotos().then(a=>a.length)"), ph0, 'Tacho-Foto wird nicht gespeichert')
 
+        # Tanken per Foto: Zapfsäule (Betrag = Liter × Literpreis) und danach Tacho
+        img = os.path.join(os.path.dirname(__file__), '..', 'icon-512.png')
+        last = await ev(f"carOdo('{cid}')")
+        await ev(f"window._ocrText='95 4\\n6543\\n3852\\n1699';fuelForm(null,'{cid}');1"); await page.wait_for_timeout(200)
+        await page.set_input_files('#sheet [data-file=fuelPump]', img); await page.wait_for_timeout(800)
+        r = await ev("['liters','ppl','price'].map(n=>num($('#fFuel [name='+n+']').value))")
+        c.eq(r, [38.52, 1.699, 65.43], 'Zapfsäule ohne Kommas: Liter, €/l, Betrag richtig zugeordnet')
+        c.ok(await ev("!!$('#ocrState [data-file=fuelOdo]')"), 'danach Knopf „Jetzt Tacho fotografieren“')
+        await ev(f"window._ocrText='120 140\\n{last + 610}\\n3852';1")
+        await page.set_input_files('#ocrState [data-file=fuelOdo]', img); await page.wait_for_timeout(800)
+        c.eq(await ev("num($('#fFuel [name=odo]').value)"), last + 610, 'Tacho nach der Zapfsäule: km-Stand übernommen')
+        await ev("closeSheet(false,true)"); await page.wait_for_timeout(300)
+        await ev("window._ocrText='12 34 56';fuelForm(null,'"+cid+"');1"); await page.wait_for_timeout(200)
+        await page.set_input_files('#sheet [data-file=fuelPump]', img); await page.wait_for_timeout(800)
+        c.ok(await ev("!$('#fFuel [name=liters]').value&&$('#ocrState').textContent.includes('passten nicht')"), 'Zapfsäule: nicht zusammenpassende Werte werden nicht übernommen')
+        await ev("closeSheet(false,true)"); await page.wait_for_timeout(300)
+
         # runder +-Knopf nicht auf Werkstatt/Lager
         await H.go(page, '#/tools')
         c.ok(await ev("getComputedStyle($('.fab')).display==='none'"), 'kein +-Knopf auf Werkstatt')

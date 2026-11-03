@@ -114,6 +114,7 @@ input[type=checkbox],input[type=radio]{width:auto;min-height:0}
 .qty span{min-width:62px;text-align:center;font-weight:700;font-size:14px}
 .item.empty-stock{opacity:.6}
 .sub.over-t{color:var(--red);font-weight:700}
+.scan2{gap:8px;margin-bottom:10px}.scan2 .scanbig{margin:0;font-size:15px;padding:0 8px;text-align:center;flex-direction:column;gap:4px;min-height:74px}
 /* Meilensteine */
 .km-card{position:relative;overflow:hidden}
 .ms-hint{margin-top:6px;font-size:13px;font-weight:700;color:var(--accent)}
@@ -2533,7 +2534,7 @@ function viewHelp(){const T=(t,items)=>`<details class="fold"><summary><b>${t}</
  return{title:'Hilfe',tab:'more',back:'#/more',html:`<div class="card"><b>App am Handy installieren</b><p class="sub" style="margin:6px 0 0">In Chrome rechts oben ⋮ → <b>App installieren</b>. Danach startet sie vom Startbildschirm und läuft komplett offline. Deine Daten bleiben auf diesem Handy – darum regelmäßig ein Backup machen.</p></div>
  ${T('Einträge & Intervalle',['Beim Speichern eines Eintrags passende Intervalle anhaken – dann springt die Fälligkeit automatisch weiter. Kommt ein passendes Teil im Eintrag vor, wird das Intervall von selbst angehakt.','„Kopieren“ in einem Eintrag spart Tipparbeit beim nächsten Ölwechsel.','In der Historie nach „Bremsflüssigkeit“ suchen zeigt sofort, wann es zuletzt war.','Beim Tippen eines Teilenamens erscheinen bereits verwendete Artikel mit Hersteller, Nummer und letztem Preis – antippen füllt alles aus.','Eigene Intervalle für jedes Bauteil: Auto › Wartung › Intervalle › „+ Eigenes Bauteil“.','Ein erledigtes To-do lässt sich mit „→ Eintrag“ direkt in die Historie übernehmen, inklusive Teile.'])}
  ${T('Pickerl, Fristen & Reifen',['Batterie: Auto › Übersicht › Batterie. Einbaudatum und gemessene Ruhespannung eintragen – vor dem Winter und ab 5 Jahren erinnert die App ans Messen.','Das Pickerl wird aus der Erstzulassung berechnet – bis 18.5.2027 nach 3-2-1 mit 4 Monaten Nachfrist, ab 19.5.2027 nach 4-2-2-2-1: bis 4 Monate vorher möglich, <b>keine Nachfrist mehr</b>.','Nach der Begutachtung über + › Pickerl eintragen – dann springt es auf den nächsten Termin. Mängel können gleich als To-dos angelegt werden.','Fristen wie Vignette, Versicherung oder Pannendienst: Auto › Übersicht › „+ Frist“.','Reifen mit DOT und Profiltiefe anlegen, mit „Montieren“ wechseln – die km werden mitgezählt. Winterreifenpflicht (situativ) 1.11.–15.4.'])}
- ${T('Tanken & Kosten',['km-Stand per Foto: + › km-Stand › „Tacho fotografieren“. Die App liest die Zahl und prüft sie gegen den bisherigen Verlauf (nicht kleiner, nicht unrealistisch viel). Das Foto wird nicht gespeichert.','„Tankbeleg fotografieren“ liest Liter, Literpreis, Betrag, Sorte, Datum und Tankstelle – du ergänzt nur den km-Stand.','Der Verbrauch wird zwischen zwei Volltankungen mit km-Stand berechnet.','Kaufpreis, km beim Kauf und Versicherung + Steuer eintragen – dann zeigt „Kosten & Bilanz“ deine Kosten pro Monat und pro km seit dem Kauf.'])}
+ ${T('Tanken & Kosten',['Tanken per Foto: „Zapfsäule + Tacho“ – erst die Anzeige der Zapfsäule fotografieren (Betrag, Liter, €/Liter), dann den Tacho. Die App übernimmt nur Werte, bei denen Betrag = Liter × Literpreis aufgeht, und prüft den km-Stand gegen den Verlauf. Die Fotos werden nicht gespeichert.','km-Stand per Foto: + › km-Stand › „Tacho fotografieren“. Die App liest die Zahl und prüft sie gegen den bisherigen Verlauf (nicht kleiner, nicht unrealistisch viel). Das Foto wird nicht gespeichert.','„Tankbeleg fotografieren“ liest Liter, Literpreis, Betrag, Sorte, Datum und Tankstelle – du ergänzt nur den km-Stand.','Der Verbrauch wird zwischen zwei Volltankungen mit km-Stand berechnet.','Kaufpreis, km beim Kauf und Versicherung + Steuer eintragen – dann zeigt „Kosten & Bilanz“ deine Kosten pro Monat und pro km seit dem Kauf.'])}
  ${T('Werkstatt, Lager & Einkauf',['Die Werkstatt ist ein Raum: Werkzeugwagen = Werkzeug, Regal = Teilelager, Zettel an der Lochwand = Einkaufsliste, Lagerbuch auf der Werkbank = Lager-Verlauf, Uhr = Kalender, Reifenstapel = Reifen. Handy leicht neigen bewegt den Raum mit. Lieber gleich die Liste? Einstellungen › Darstellung › „Werkstatt als Raum zeigen“ ausschalten.','Werkzeug mit Kaufpreis und „Leihen würde kosten“ anlegen und bei Wartungen auswählen – die App rechnet, ab wann es sich bezahlt macht.','Akkus und Ladegeräte als Zubehör mit Akku-System anlegen (z. B. Parkside Performance 20 V) – dann siehst du, was wozu passt. Bei Parkside werden 3 Jahre Garantie vorgeschlagen.','Rechnung als Foto oder PDF und „Garantie bis“ hinterlegen – unter Mehr › Garantien siehst du alles auf einen Blick.','Lager: Preis so eintragen wie bezahlt (z. B. 12 € für 250 g). Teile aus dem Lager werden beim Eintrag automatisch abgebucht. Mit Mindestbestand kommt der Artikel von selbst auf die Einkaufsliste.'])}
  ${T('Autos, Dokumente & Fremde Autos',['📜 Chronik (Auto › Übersicht, ganz unten): alles vom Kauf bis heute auf einer Zeitleiste – große Reparaturen, Pickerl, km-Meilensteine. Als PDF speicherbar.','Fehlercodes beim Fehler eintragen (z. B. P0401) – gab es den Code schon einmal, zeigt die App sofort, was damals die Lösung war.','Backup einspielen zeigt vorher, was dazukommt, was verloren geht und ob das Backup älter ist als deine Daten.','Dokumente (Kaufvertrag, Zulassungsschein, Versicherung …): Auto › Infos › Dokumente.','Verkaufte Autos landen im Archiv (Mehr › Archiv) – mit Bilanz aus Kauf, Verkauf und allen Kosten.','Fremde Autos (Freunde, Familie) unter Garage › Fremde Autos – sie erscheinen nicht auf deiner Startseite und nicht in deinen Statistiken.','QR-Aufkleber (Auto › ⋯) in den Motorraum kleben – Scannen öffnet direkt das Auto. 🔩 oben im Auto öffnet den Drehmoment-Spickzettel.'])}
  ${T('Sicherheit',['Versehentlich gelöscht? Unten erscheint 10 Sekunden lang „Rückgängig“.','Formular aus Versehen geschlossen? Oben erscheint „Eingaben verworfen – Rückgängig“.','„Backup teilen“ schickt die Sicherung direkt an Google Drive oder per Mail. Ein kaputtes Backup ändert beim Einlesen nichts an deinen Daten.','Neue Version da? Oben erscheint „Neu laden“.'])}`}}
@@ -2864,7 +2865,7 @@ async function saveInv(f){const fdo=new FormData(f);const fd=Object.fromEntries(
  await put('inventory',it);invPqTouched=false;closeSheet();toast('Gespeichert');render()}
 function fuelForm(id,carId){const f=id?S.fuel.find(x=>x.id===id):{carId:carId||defaultCarId(),date:today(),full:true};if(!S.cars.length){toast('Lege zuerst ein Auto an');return carForm()}
  draft={kind:'fuel',id:id||null,receipt:f.photoId?{id:f.photoId}:null};const type=f.type||defaultFuelType(f.carId);const pp=f.ppl??(f.price&&f.liters?Math.round(f.price/f.liters*1000)/1000:null);
- openSheet(id?'Tankung bearbeiten':'Tankung',`${id?'':`<label class="scanbig">${ic('receipt')} Tankbeleg fotografieren<input type="file" accept="image/*" capture="environment" hidden data-file="fuelReceipt"></label>`}<div id="ocrState" hidden></div>
+ openSheet(id?'Tankung bearbeiten':'Tankung',`${id?'':`<div class="grid2 scan2"><label class="scanbig">${ic('fuel')} Zapfsäule + Tacho<input type="file" accept="image/*" capture="environment" hidden data-file="fuelPump"></label><label class="scanbig">${ic('receipt')} Tankbeleg<input type="file" accept="image/*" capture="environment" hidden data-file="fuelReceipt"></label></div>`}<div id="ocrState" hidden></div>
  <form id="fFuel" data-form="fuel"><label class="f"><span>Auto</span><select name="carId" data-change="fuelCar">${carOptions(f.carId)}</select></label>
  <div class="grid2"><label class="f"><span>Datum</span><input type="date" name="date" value="${esc(f.date)}"></label><label class="f"><span>km-Stand</span><input name="odo" inputmode="numeric" value="${valN(f.odo)}" placeholder="${esc(fmtN(carOdo(f.carId)))}"></label></div>
  <div class="grid3"><label class="f"><span>Liter</span><input name="liters" inputmode="decimal" value="${valN(f.liters)}" data-fuel="l"></label><label class="f"><span>€ / Liter</span><input name="ppl" inputmode="decimal" value="${valN(pp)}" data-fuel="ppl"></label><label class="f"><span>Betrag €</span><input name="price" inputmode="decimal" value="${valN(f.price)}" data-fuel="p"></label></div>
@@ -2875,7 +2876,9 @@ function fuelForm(id,carId){const f=id?S.fuel.find(x=>x.id===id):{carId:carId||d
  `${id?`<button class="btn danger" data-a="fuelDelete" data-id="${id}">Löschen</button>`:''}<button class="btn primary grow" type="submit" form="fFuel">Speichern</button>`);renderFuelReceipt()}
 async function saveFuel(fm){const fd=Object.fromEntries(new FormData(fm));const old=draft.id?S.fuel.find(x=>x.id===draft.id):null;
  const f={...(old||{}),id:draft.id||uid(),carId:fd.carId,date:fd.date||today(),odo:num(fd.odo),liters:num(fd.liters),price:num(fd.price),ppl:num(fd.ppl),type:fd.type,station:fd.station.trim(),full:!!fd.full,note:fd.note.trim()};
- if(!f.liters){toast('Bitte Liter angeben');return}if(f.ppl==null&&f.price)f.ppl=Math.round(f.price/f.liters*1000)/1000;if(f.price==null&&f.ppl)f.price=Math.round(f.ppl*f.liters*100)/100;
+ if(!f.liters){toast('Bitte Liter angeben');return}
+ if(!old&&f.odo!=null){const pl=odoPlaus(f.carId,f.odo);if(pl&&pl.level==='bad'&&!await askConfirm(`${fmtN(f.odo)} km: ${pl.text}. Stimmt das?`,'Ja, speichern',false,'km-Stand prüfen'))return}
+ if(f.ppl==null&&f.price)f.ppl=Math.round(f.price/f.liters*1000)/1000;if(f.price==null&&f.ppl)f.price=Math.round(f.ppl*f.liters*100)/100;
  const noKm=!old&&f.odo==null;
  if(draft.receipt?.data){await put('photos',{id:draft.receipt.id,data:draft.receipt.data});if(old?.photoId&&old.photoId!==draft.receipt.id)await del('photos',old.photoId);f.photoId=draft.receipt.id}
  else if(!draft.receipt&&old?.photoId){await del('photos',old.photoId);f.photoId=null}
@@ -3294,15 +3297,24 @@ async function ocrWorkerGet(onProg){
  if(!ocrWorker)ocrWorker=await Tesseract.createWorker('deu',1,{logger:m=>{if(m.status&&ocrProg)ocrProg(m.status,m.progress||0)}});ocrProg=onProg;return ocrWorker}
 let ocrProg=null;
 // Vorbereitung für Ziffern: Graustufen, Kontrast, optional invertiert / harte Schwelle (LCD hell auf dunkel oder dunkel auf hell)
-async function prepOdo(dataUrl,mode){const im=await loadImg(dataUrl);const sc=Math.min(2.5,1600/Math.max(im.width,im.height))||1;const c=document.createElement('canvas');c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);
+async function prepOdo(dataUrl,mode,maxDim=1600){const im=await loadImg(dataUrl);const sc=Math.min(2.5,maxDim/Math.max(im.width,im.height))||1;const c=document.createElement('canvas');c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);
  const g=c.getContext('2d',{willReadFrequently:true});g.filter='grayscale(1) contrast(1.6)';g.drawImage(im,0,0,c.width,c.height);if(mode==='plain')return c;
- const d=g.getImageData(0,0,c.width,c.height),p=d.data,h=new Array(256).fill(0);for(let i=0;i<p.length;i+=4)h[p[i]]++;
+ const d=g.getImageData(0,0,c.width,c.height),p=d.data,h=new Array(256).fill(0),gray=new Uint8Array(c.width*c.height);for(let i=0,k=0;i<p.length;i+=4,k++){h[p[i]]++;gray[k]=p[i]}
  // Otsu-Schwelle
  let tot=c.width*c.height,sum=0;for(let i=0;i<256;i++)sum+=i*h[i];let sB=0,wB=0,best=0,th=128;for(let i=0;i<256;i++){wB+=h[i];if(!wB)continue;const wF=tot-wB;if(!wF)break;sB+=i*h[i];const mB=sB/wB,mF=(sum-sB)/wF,v=wB*wF*(mB-mF)**2;if(v>best){best=v;th=i}}
- const inv=mode==='inv';for(let i=0;i<p.length;i+=4){let v=p[i]>th?255:0;if(inv)v=255-v;p[i]=p[i+1]=p[i+2]=v}g.putImageData(d,0,0);return c}
+ const inv=mode==='inv',W=c.width,Hh=c.height;for(let i=0;i<p.length;i+=4){let v=p[i]>th?255:0;if(inv)v=255-v;p[i]=p[i+1]=p[i+2]=v}
+ if(mode==='norm'){// adaptive Schwelle + Polarität je Bereich: Ziffern immer dunkel auf hell, egal ob Anzeige hell auf dunkel oder umgekehrt
+  const r=Math.max(6,Math.round(Math.min(W,Hh)/28)),W1=W+1,Ig=new Float64Array(W1*(Hh+1)),Ib=new Float64Array(W1*(Hh+1)),b=new Uint8Array(W*Hh);
+  const sum=(I,x0,y0,x1,y1)=>I[y1*W1+x1]-I[y0*W1+x1]-I[y1*W1+x0]+I[y0*W1+x0];
+  for(let y=0;y<Hh;y++){let row=0;for(let x=0;x<W;x++){row+=gray[y*W+x];Ig[(y+1)*W1+x+1]=Ig[y*W1+x+1]+row}}
+  for(let y=0;y<Hh;y++)for(let x=0;x<W;x++){const x0=Math.max(0,x-r),x1=Math.min(W,x+r),y0=Math.max(0,y-r),y1=Math.min(Hh,y+r);const m=sum(Ig,x0,y0,x1,y1)/((x1-x0)*(y1-y0)),v=gray[y*W+x];b[y*W+x]=v>m+14?1:v<m-14?2:0}
+  for(let y=0;y<Hh;y++){let row=0;for(let x=0;x<W;x++){row+=b[y*W+x]===1?1:b[y*W+x]===2?-1:0;Ib[(y+1)*W1+x+1]=Ib[y*W1+x+1]+row}}
+  for(let y=0;y<Hh;y++)for(let x=0;x<W;x++){const k=y*W+x,i=k*4;let v=255;if(b[k]){const x0=Math.max(0,x-r),x1=Math.min(W,x+r),y0=Math.max(0,y-r),y1=Math.min(Hh,y+r);const bal=sum(Ib,x0,y0,x1,y1);// >0: mehr hell als dunkel → helle Pixel sind Hintergrund
+   v=(b[k]===1)===(bal<0)?0:255}p[i]=p[i+1]=p[i+2]=v}}
+ g.putImageData(d,0,0);return c}
 async function ocrOdo(dataUrl,cid,onProg){const w=await ocrWorkerGet(onProg);const seen=[],jn=[];
  try{await w.setParameters({tessedit_char_whitelist:'0123456789',tessedit_pageseg_mode:'11'});
-  for(const mode of['plain','inv','bin']){const {data}=await w.recognize(await prepOdo(dataUrl,mode));const n=odoNums(data.text);seen.push(...n.raw);jn.push(...n.joined);const v=odoPick(seen,jn,cid);if(v!=null&&odoPlaus(cid,v)?.level==='ok')return{v,seen}}
+  for(const [mode,dim] of[['norm',1200],['plain',1600],['inv',1600],['norm',700]]){const {data}=await w.recognize(await prepOdo(dataUrl,mode,dim));const n=odoNums(data.text);seen.push(...n.raw);jn.push(...n.joined);const v=odoPick(seen,jn,cid);if(v!=null&&odoPlaus(cid,v)?.level==='ok')return{v,seen}}
   return{v:odoPick(seen,jn,cid),seen}}
  finally{try{await w.setParameters({tessedit_char_whitelist:'',tessedit_pageseg_mode:'3'})}catch(e){}}}
 function odoPlausShow(){const f=$('#fOdo');if(!f)return;const v=num(f.elements.namedItem('odo').value),b=$('#odoPlaus');if(!b)return;const r=odoPlaus(f.elements.namedItem('carId').value,v);
@@ -3319,6 +3331,44 @@ async function odoScan(file,cropped){const f=$('#fOdo');if(!f)return;const st=$(
  else{inp.value='';inp.classList.remove('ocr-hit');odoPlausShow();const rd=[...new Set(r.seen)].filter(n=>n>=100).slice(0,4);
   st.innerHTML=`<span class="low">Kein passender km-Stand gefunden${rd.length?` (gelesen: ${rd.map(n=>fmtN(n)).join(', ')})`:''}. ${carOdo(cid)!=null?`Letzter Stand: ${kmT(carOdo(cid))}.`:''}</span>${crop}`}}
 async function odoCrop(){const img=draft.odoImg;if(!img)return;const d=await openCropper(img,3);if(!d)return;await odoScan(null,d)}
+
+/* ================= Tanken per Foto: Zapfsäule + Tacho ================= */
+// Zapfsäulen-Anzeigen (oft 7-Segment, Komma fehlt gern): jede gelesene Zahl wird mit allen Kommastellen probiert.
+// Gültig ist nur ein Trio, bei dem Betrag ≈ Liter × Literpreis (±0,6 %) – das ist die Plausibilitätsprüfung.
+function pumpCands(text){const out=[],src=String(text||'').replace(/[oO]/g,'0'),seen=new Set();
+ const lines=src.split('\n').flatMap(l=>[l,l.replace(/\s+/g,'').replace(/[.,]+/g,m=>m[0]).replace(/^[.,]+|[.,]+$/g,'')]);
+ for(const m of lines.join('\n').matchAll(/\d+(?:[.,]\d+)?/g)){if(seen.has(m[0]))continue;seen.add(m[0]);const s=m[0],dig=s.replace(/[.,]/g,'');if(dig.length<2||dig.length>7)continue;
+  const ex=/[.,]/.test(s)?+s.replace(',','.'):null,vals=new Set();if(ex!=null)vals.add(ex);for(let k=0;k<=3;k++)vals.add(+dig/10**k);out.push({s,dig,ex,vals:[...vals]})}return out}
+function pumpParse(text){const c=pumpCands(text);let best=null;
+ for(let i=0;i<c.length;i++)for(let j=0;j<c.length;j++)for(let k=0;k<c.length;k++){if(i===j||j===k||i===k)continue;
+  for(const p of c[i].vals){if(p<1||p>400)continue;for(const l of c[j].vals){if(l<1||l>200)continue;for(const u of c[k].vals){if(u<.7||u>4)continue;
+   const err=Math.abs(p-l*u)/p;if(err>.006)continue;
+   // Strafpunkte: Komma anders als abgelesen, unüblicher Literpreis, ungewohnte Reihenfolge (Säule: Betrag, Liter, €/l)
+   const pen=x=>c[x.i].ex!=null&&Math.abs(c[x.i].ex-x.v)>1e-9?.004:0;
+   const sc=err+pen({i,v:p})+pen({i:j,v:l})+pen({i:k,v:u})+(c[k].dig.length===4?0:.002)+(c[i].dig.length>=3?0:.004)+(u>2.6||u<1?.01:0)+(l<3?.004:0)+(i<j&&j<k?0:.001);
+   if(!best||sc<best.sc)best={sc,price:p,liters:l,ppl:u,ls:c[j].s}}}}}
+ if(!best)return null;const L=Math.round(best.price/best.ppl*100)/100;// Liter aus Betrag ÷ Literpreis (genauer, falls eine Ziffer fehlte)
+ return{price:Math.round(best.price*100)/100,liters:/[.,]\d?$/.test(best.ls)&&Math.abs(L-best.liters)<.15?L:Math.round(best.liters*100)/100,ppl:Math.round(best.ppl*1000)/1000}}
+async function ocrPump(dataUrl,onProg){const w=await ocrWorkerGet(onProg);let all='';
+ try{await w.setParameters({tessedit_char_whitelist:'0123456789.,',tessedit_pageseg_mode:'11'});
+  for(const [mode,dim] of[['norm',1000],['norm',600],['plain',1000],['inv',1000]]){const {data}=await w.recognize(await prepOdo(dataUrl,mode,dim));all+='\n'+data.text;const r=pumpParse(all);if(r)return{r,text:all}}return{r:null,text:all}}
+ finally{try{await w.setParameters({tessedit_char_whitelist:'',tessedit_pageseg_mode:'3'})}catch(e){}}}
+const ocrProgUI=(label)=>(s,p)=>{const el=$('#ocrState');if(!el)return;const b=el.querySelector('span');if(!b)return;b.textContent=(s==='recognizing text'?label:OCR_STEP[s]||'Bitte warten')+(s==='recognizing text'?` … ${Math.round(p*100)} %`:' …');const i=el.querySelector('i');if(i)i.style.width=(s==='recognizing text'?30+p*70:10+p*20)+'%'};
+const odoBtn=(t='Jetzt Tacho fotografieren')=>`<label class="scanbig" style="margin:10px 0 0">${ic('gauge')} ${t}<input type="file" accept="image/*" capture="environment" hidden data-file="fuelOdo"></label>`;
+async function scanPump(file){const f=$('#fFuel');if(!f)return;let data;try{data=await compressImage(file,1800,.88)}catch(e){toast('Bild konnte nicht gelesen werden');return}
+ const st=$('#ocrState');st.hidden=false;st.innerHTML=`<div class="ocr-bar"><i style="width:5%"></i></div><span>Zapfsäule wird vorbereitet …</span>`;let o;
+ try{o=await ocrPump(data,ocrProgUI('Zapfsäule wird gelesen'))}catch(e){console.warn(e);st.innerHTML=`<span class="low">${e.message==='offline'?'Für die erste Erkennung braucht die App einmal Internet – bitte Werte eintippen.':'Erkennung hat nicht geklappt – bitte Werte eintippen.'}</span>${odoBtn()}`;return}
+ if(!$('#fFuel'))return;const F=n=>f.elements.namedItem(n),r=o.r;
+ if(r){for(const[n,v]of[['liters',valN(r.liters)],['ppl',valN(r.ppl.toFixed(3))],['price',valN(r.price.toFixed(2))]]){F(n).value=v;F(n).classList.add('ocr-hit')}f.dataset.src='p';
+  st.innerHTML=`<span>✓ Zapfsäule: <b>${fmtN(r.liters,2)} l × ${fmtN(r.ppl,3)} €/l = ${eur(r.price)}</b> – passt zusammen.</span>${odoBtn()}`}
+ else{const rd=pumpCands(o.text).map(x=>x.s).slice(0,5);st.innerHTML=`<span class="low">Betrag, Liter und Literpreis passten nicht zusammen${rd.length?` (gelesen: ${esc(rd.join(' · '))})`:''} – bitte eintippen oder näher fotografieren.</span>${odoBtn()}`}}
+async function scanFuelOdo(file){const f=$('#fFuel');if(!f)return;let data;try{data=await compressImage(file,1800,.88)}catch(e){toast('Bild konnte nicht gelesen werden');return}
+ const st=$('#ocrState');const keep=st.querySelector('span')?.outerHTML||'';st.hidden=false;st.innerHTML=`${keep}<div class="ocr-bar" style="margin-top:8px"><i style="width:5%"></i></div><span>Tacho wird vorbereitet …</span>`;
+ const cid=f.elements.namedItem('carId').value;let r;
+ try{r=await ocrOdo(data,cid,ocrProgUI('Tacho wird gelesen'))}catch(e){st.innerHTML=`${keep}<div class="low" style="margin-top:6px">Tacho konnte nicht gelesen werden – bitte km-Stand eintippen.</div>`;return}
+ if(!$('#fFuel'))return;const inp=f.elements.namedItem('odo');
+ if(r.v!=null){inp.value=fmtN(r.v);inp.classList.add('ocr-hit');const pl=odoPlaus(cid,r.v);st.innerHTML=`${keep}<div style="margin-top:6px">${pl.level==='ok'?'✓':'⚠'} Tacho: <b>${kmT(r.v)}</b>${pl.text?` · ${esc(pl.text)}`:''}</div><div class="sub" style="margin-top:4px">Bitte kurz prüfen, dann Speichern.</div>`}
+ else st.innerHTML=`${keep}<div class="low" style="margin-top:6px">Kein passender km-Stand gefunden${carOdo(cid)!=null?` (letzter Stand ${kmT(carOdo(cid))})`:''} – bitte eintippen.</div>${odoBtn('Tacho nochmal fotografieren')}`}
 
 /* ================= Batterie ================= */
 // car.battery = {date, brand, ah, cca, checks:[{id,date,volt}]} – alles optional. Ohne Datum wird der letzte Eintrag mit „Batterie“ genommen.
@@ -4132,6 +4182,7 @@ const FILES={
  toolDocs:addToolDocs,
  carDocFiles:addDocFiles,
  fuelReceipt:async fl=>{if(fl[0])await scanFuelReceipt(fl[0])},
+ fuelPump:async fl=>{if(fl[0])await scanPump(fl[0])},fuelOdo:async fl=>{if(fl[0])await scanFuelOdo(fl[0])},
  odoPhoto:async fl=>{if(fl[0])await odoScan(fl[0])},
  fuelReceiptOnly:async fl=>{if(!fl[0])return;try{draft.receipt={id:uid(),data:await compressImage(fl[0],2000,.85)};renderFuelReceipt()}catch(e){toast('Bild konnte nicht gelesen werden')}},
  toolPhoto:async fl=>{if(!fl[0])return;let big;try{big=await compressImage(fl[0],2000,.9)}catch(e){toast('Bild konnte nicht gelesen werden');return}const d=await openCropper(big);if(!d)return;draft.photoSrc=big;draft.photoData=d;draft.photoChanged=true;draft.photoPos=null;$('#toolPh').innerHTML=`<img src="${d}" alt="">`;$('#toolPhCtl')?.classList.add('has')},
@@ -4237,7 +4288,7 @@ async function seed(){const P=(name,maker,qty,unit,price,o={})=>({name,maker,par
 })();
 
 /* ================= Updates ================= */
-const APP_VER='garage-v59';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
+const APP_VER='garage-v60';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
 const verNum=v=>+(/(\d+)\s*$/.exec(v||'')||[0,0])[1];
 /* Neue Version erkennen: index.html vom Server holen und die Versionsnummer vergleichen.
    Der Hinweis kommt nur, wenn der Server wirklich eine NEUERE Version hat. */
