@@ -171,6 +171,22 @@ async def main():
         c.ok(await ev("$$('#view .ch-ev').length") > n0, 'Chronik „Alles“ zeigt mehr Einträge')
         await ev("chronAll=false;1")
 
+        # km-Stand vom Tacho-Foto (Texterkennung nachgestellt): plausibelste Zahl, Foto wird nicht gespeichert
+        ph0 = await ev("allPhotos().then(a=>a.length)")
+        last = await ev(f"carOdo('{cid}')")
+        await ev(f"""window._ocrText='20 40 60\\n{last + 432}\\nTRIP 1234\\n15 07';ocrWorkerGet=async()=>({{setParameters:async()=>{{}},recognize:async()=>({{data:{{text:window._ocrText}}}})}});odoForm('{cid}');1""")
+        await page.wait_for_timeout(200)
+        await page.set_input_files('#sheet [data-file=odoPhoto]', os.path.join(os.path.dirname(__file__), '..', 'icon-512.png')); await page.wait_for_timeout(800)
+        c.eq(await ev("num($('#fOdo [name=odo]').value)"), last + 432, 'Tacho-Foto: km-Stand erkannt (Skala, Tageskilometer, Uhr ignoriert)')
+        c.ok('Gelesen' in await ev("$('#ocrState').textContent") and '+432 km' in await ev("$('#odoPlaus').textContent"), 'Hinweis mit Plausibilität (+432 km seit …)')
+        await ev(f"window._ocrText='{last - 5000}\\n12';1")
+        await page.set_input_files('#sheet [data-file=odoPhoto]', os.path.join(os.path.dirname(__file__), '..', 'icon-512.png')); await page.wait_for_timeout(800)
+        c.ok('Kein passender' in await ev("$('#ocrState').textContent") and await ev("!!$('#ocrState [data-a=odoCrop]')"), 'unplausible Zahl wird nicht übernommen, Angebot zum Markieren')
+        await page.fill('#fOdo [name=odo]', str(last + 90000)); await page.click('#sheet .sheet-foot .btn.primary'); await page.wait_for_timeout(300)
+        c.ok(await ev("!!document.querySelector('.dlg')"), 'unrealistisch hoher km-Stand: Rückfrage vor dem Speichern')
+        await page.click('.dlg [data-x=no]'); await ev("closeSheet(false,true)"); await page.wait_for_timeout(300)
+        c.eq(await ev("allPhotos().then(a=>a.length)"), ph0, 'Tacho-Foto wird nicht gespeichert')
+
         # runder +-Knopf nicht auf Werkstatt/Lager
         await H.go(page, '#/tools')
         c.ok(await ev("getComputedStyle($('.fab')).display==='none'"), 'kein +-Knopf auf Werkstatt')
