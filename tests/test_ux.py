@@ -119,7 +119,8 @@ async def main():
         await ev("closeSheet(false,true)"); await page.wait_for_timeout(200)
         # Neu-Menü: Tanken zuerst
         await ev("quick()"); await page.wait_for_timeout(200)
-        c.eq(await ev("$('#sheet .qbig .qbtn').textContent.trim()"), 'Tanken', 'Neu-Menü beginnt mit Tanken')
+        c.eq(await ev("[...$$('#sheet .qbig .qbtn')].map(b=>b.textContent.trim())"), ['Wartung / Reparatur', 'Tanken', 'To-do', 'km-Stand'], 'Neu-Menü: Wartung, Tanken, To-do, km-Stand')
+        c.ok(await ev("!!$('#sheet [data-file=quickPump]')&&!!$('#sheet [data-file=quickOdo]')&&!$('#sheet [data-a=pkDone]')"), 'Neu-Menü: Foto-Knöpfe Zapfsäule und km-Stand, ohne Pickerl/Beleg')
         await ev("closeSheet(false,true)"); await page.wait_for_timeout(200)
 
         # Backup teilen: wird beim Öffnen der Seite vorbereitet, Tippen teilt sofort (Chrome braucht frischen Fingertipp)
@@ -202,6 +203,19 @@ async def main():
         await ev("window._ocrText='12 34 56';fuelForm(null,'"+cid+"');1"); await page.wait_for_timeout(200)
         await page.set_input_files('#sheet [data-file=fuelPump]', img); await page.wait_for_timeout(800)
         c.ok(await ev("!$('#fFuel [name=liters]').value&&$('#ocrState').textContent.includes('passten nicht')"), 'Zapfsäule: nicht zusammenpassende Werte werden nicht übernommen')
+        await ev("closeSheet(false,true)"); await page.wait_for_timeout(300)
+
+        # Neu-Menü: ein Tipp → Zapfsäulen-Foto bzw. km-Stand-Foto
+        img = os.path.join(os.path.dirname(__file__), '..', 'icon-512.png')
+        await H.go(page, f'#/car/{cid}')
+        await ev("window._ocrText='6543\\n3852\\n1699';quick();1"); await page.wait_for_timeout(200)
+        await page.set_input_files('#sheet [data-file=quickPump]', img); await page.wait_for_timeout(900)
+        c.ok(await ev("!!$('#fFuel')&&num($('#fFuel [name=price]').value)===65.43&&$('#fFuel [name=carId]').value===%r" % cid), 'Neu › Zapfsäule-Foto: Tankung mit Werten, richtiges Auto')
+        await ev("closeSheet(false,true)"); await page.wait_for_timeout(300)
+        last = await ev(f"carOdo('{cid}')")
+        await ev(f"window._ocrText='{last + 77}';quick();1"); await page.wait_for_timeout(200)
+        await page.set_input_files('#sheet [data-file=quickOdo]', img); await page.wait_for_timeout(900)
+        c.eq(await ev("$('#fOdo')&&num($('#fOdo [name=odo]').value)"), last + 77, 'Neu › km-Stand-Foto: km-Stand-Fenster mit gelesenem Wert')
         await ev("closeSheet(false,true)"); await page.wait_for_timeout(300)
 
         # runder +-Knopf nicht auf Werkstatt/Lager

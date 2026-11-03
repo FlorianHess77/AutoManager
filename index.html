@@ -321,6 +321,7 @@ details.fold[open]{padding-bottom:12px}details.fold .kv{margin-bottom:10px}
 .qbtn .ico{width:28px;height:28px;color:var(--accent)}
 .qbig .qbtn{min-height:108px;font-size:16.5px}.qbig .qbtn .ico{width:34px;height:34px}
 .qgrid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.qgrid3 .qbtn{min-height:78px;font-size:13.5px;gap:4px;padding:6px 4px;text-align:center}.qgrid3 .qbtn .ico{width:22px;height:22px}
+.qphoto{position:relative;border-color:color-mix(in srgb,var(--accent) 55%,var(--line))!important}.qphoto .qcam{position:absolute;top:7px;right:8px;width:18px;height:18px;color:var(--accent)}
 .chart{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 12px 8px;margin-bottom:12px}
 .chart-head{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
 .legend{display:flex;align-items:center;gap:5px;text-transform:none;letter-spacing:0;font-weight:600;flex-wrap:wrap;justify-content:flex-end}
@@ -2895,10 +2896,11 @@ async function saveOdo(f){const fd=Object.fromEntries(new FormData(f));const v=n
 /* ================= Schnelleingabe, Export, Druck ================= */
 function quick(){const r=parseHash();const cid=r.v==='car'?r.id:'';
  if(!activeCars().length)return carForm();draft={kind:'quick',carId:cid};
- openSheet('Neu …',`<div class="qgrid qbig"><button class="qbtn" data-a="fuelForm" data-car="${cid}">${ic('fuel')}Tanken</button><button class="qbtn" data-a="entryForm" data-car="${cid}">${ic('wrench')}Wartung / Reparatur</button>
- <button class="qbtn" data-a="odoForm" data-car="${cid}">${ic('gauge')}km-Stand</button><button class="qbtn" data-a="todoForm" data-car="${cid}">${ic('list')}To-do</button></div>
- <div class="qgrid3"><button class="qbtn" data-a="pkDone" data-car="${cid||defaultCarId()}">${ic('shield')}Pickerl</button><button class="qbtn" data-a="issueForm" data-car="${cid||defaultCarId()}">${ic('alert')}Fehler</button><label class="qbtn">${ic('receipt')}Beleg<input type="file" accept="image/*" capture="environment" hidden data-file="receipt"></label>
- <button class="qbtn" data-a="guideForm" data-car="${cid}">${ic('book')}Anleitung</button><button class="qbtn" data-a="quickWs">${ic('toolbox')}Werkzeug / Lager</button><button class="qbtn" data-a="carForm">${ic('car')}Neues Auto</button></div>`)}
+ const cam=`<svg class="qcam" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-2.5h6L17 8h3v11H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.4" fill="none" stroke="currentColor" stroke-width="2"/></svg>`;
+ openSheet('Neu …',`<div class="qgrid qbig"><button class="qbtn" data-a="entryForm" data-car="${cid}">${ic('wrench')}Wartung / Reparatur</button><button class="qbtn" data-a="fuelForm" data-car="${cid}">${ic('fuel')}Tanken</button>
+ <button class="qbtn" data-a="todoForm" data-car="${cid}">${ic('list')}To-do</button><button class="qbtn" data-a="odoForm" data-car="${cid}">${ic('gauge')}km-Stand</button></div>
+ <div class="qgrid3"><button class="qbtn" data-a="carForm">${ic('car')}Neues Auto</button><button class="qbtn" data-a="issueForm" data-car="${cid||defaultCarId()}">${ic('alert')}Fehler</button><label class="qbtn qphoto">${ic('fuel')}${cam}Zapfsäule + Tacho<input type="file" accept="image/*" capture="environment" hidden data-file="quickPump"></label>
+ <button class="qbtn" data-a="guideForm" data-car="${cid}">${ic('book')}Anleitung</button><button class="qbtn" data-a="quickWs">${ic('toolbox')}Werkzeug / Lager</button><label class="qbtn qphoto">${ic('gauge')}${cam}km-Stand-Foto<input type="file" accept="image/*" capture="environment" hidden data-file="quickOdo"></label></div>`)}
 function download(name,content,type){const b=new Blob([content],{type});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
 const fileSafe=s=>String(s).replace(/[^\wäöüÄÖÜß-]+/g,'_');
 function exportCSV(carId){const c=car(carId);const q=v=>{const s=String(v??'');return /[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};const n=v=>v==null?'':String(v).replace('.',',');
@@ -4182,7 +4184,9 @@ const FILES={
  toolDocs:addToolDocs,
  carDocFiles:addDocFiles,
  fuelReceipt:async fl=>{if(fl[0])await scanFuelReceipt(fl[0])},
- fuelPump:async fl=>{if(fl[0])await scanPump(fl[0])},fuelOdo:async fl=>{if(fl[0])await scanFuelOdo(fl[0])},
+ fuelPump:async fl=>{if(fl[0])await scanPump(fl[0])},
+ quickPump:async fl=>{if(!fl[0])return;const cid=draft.carId;fuelForm(null,cid||undefined);await scanPump(fl[0])},
+ quickOdo:async fl=>{if(!fl[0])return;const cid=draft.carId;odoForm(cid||undefined);document.activeElement?.blur();await odoScan(fl[0])},fuelOdo:async fl=>{if(fl[0])await scanFuelOdo(fl[0])},
  odoPhoto:async fl=>{if(fl[0])await odoScan(fl[0])},
  fuelReceiptOnly:async fl=>{if(!fl[0])return;try{draft.receipt={id:uid(),data:await compressImage(fl[0],2000,.85)};renderFuelReceipt()}catch(e){toast('Bild konnte nicht gelesen werden')}},
  toolPhoto:async fl=>{if(!fl[0])return;let big;try{big=await compressImage(fl[0],2000,.9)}catch(e){toast('Bild konnte nicht gelesen werden');return}const d=await openCropper(big);if(!d)return;draft.photoSrc=big;draft.photoData=d;draft.photoChanged=true;draft.photoPos=null;$('#toolPh').innerHTML=`<img src="${d}" alt="">`;$('#toolPhCtl')?.classList.add('has')},
@@ -4288,7 +4292,7 @@ async function seed(){const P=(name,maker,qty,unit,price,o={})=>({name,maker,par
 })();
 
 /* ================= Updates ================= */
-const APP_VER='garage-v60';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
+const APP_VER='garage-v61';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
 const verNum=v=>+(/(\d+)\s*$/.exec(v||'')||[0,0])[1];
 /* Neue Version erkennen: index.html vom Server holen und die Versionsnummer vergleichen.
    Der Hinweis kommt nur, wenn der Server wirklich eine NEUERE Version hat. */
