@@ -114,6 +114,7 @@ input[type=checkbox],input[type=radio]{width:auto;min-height:0}
 .qty span{min-width:62px;text-align:center;font-weight:700;font-size:14px}
 .item.empty-stock{opacity:.6}
 .sub.over-t{color:var(--red);font-weight:700}
+.odo-rng{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr;gap:4px;margin:-2px 0 12px;background:var(--surface2);border-radius:12px;padding:3px}.odo-rng button{min-height:40px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 13px system-ui,sans-serif;cursor:pointer;padding:0 2px}.odo-rng button.on{background:var(--accent);color:var(--on-accent)}
 .scan2{gap:8px;margin-bottom:2px}
 .gallink{display:flex;align-items:center;justify-content:center;gap:6px;min-height:40px;color:var(--accent);font-size:14px;font-weight:600;cursor:pointer;margin-bottom:6px}.gal2{gap:8px}.gal2 .gallink{font-size:13px}.scan2 .scanbig{margin:0;font-size:15px;padding:0 8px;text-align:center;flex-direction:column;gap:4px;min-height:74px}
 /* Meilensteine */
@@ -3912,18 +3913,27 @@ function consHint(carId,short){const fc=fuelCalc(carId);const full=fc.list.filte
 function viewPrices(){const h=fuelPriceStats();return{title:'Spritpreise',tab:'more',back:'#/more',html:h?h.replace('<h2>Spritpreise</h2>',''):empty('Noch keine Tankungen mit Preis.<br><span class="sub">Trag beim Tanken Liter und Betrag ein – oder fotografier einfach den Tankbeleg. Ab der zweiten Tankung siehst du hier den Preisverlauf für Benzin und Diesel.</span>','⛽ Tankung eintragen','fuelForm')}}
 function odoChart(c,rows){const by={};rows.forEach(r=>{if(!r.date)return;by[r.date]=Math.max(by[r.date]||0,r.odo)});
  const pts=Object.entries(by).map(([d,v])=>({d,t:new Date(d).getTime(),v})).filter(p=>!isNaN(p.t)).sort((a,b)=>a.t-b.t);
- const hasBuy=!!(c.purchase&&c.purchaseOdo!=null),start=hasBuy?new Date(c.purchase).getTime():pts[0]?.t;const P=pts.filter(p=>p.t>=start);if(P.length<2)return'';
- for(let i=1;i<P.length;i++)if(P[i].v<P[i-1].v)P[i].v=P[i-1].v;
+ const hasBuy=!!(c.purchase&&c.purchaseOdo!=null),own=hasBuy?new Date(c.purchase).getTime():pts[0]?.t;const all=pts.filter(p=>p.t>=own);if(all.length<2)return'';
+ for(let i=1;i<all.length;i++)if(all[i].v<all[i-1].v)all[i].v=all[i-1].v;
+ // Zeitraum: seit Kauf oder die letzten n Monate (Startwert dazwischen interpoliert)
+ const R=ODO_RANGES.find(r=>r.k===odoRange)||ODO_RANGES[0],now=Date.now();let start=own,P=all;
+ if(R.m){const t0=Math.max(own,new Date(addMonths(today(),-R.m)+'T12:00:00').getTime());if(t0>own){const a=[...all].reverse().find(p=>p.t<=t0),b=all.find(p=>p.t>t0);start=t0;
+  P=[...(a&&b?[{d:isoD(new Date(t0)),t:t0,v:a.v+(b.v-a.v)*(t0-a.t)/(b.t-a.t),ip:true}]:a?[{d:isoD(new Date(t0)),t:t0,v:a.v,ip:true}]:[]),...all.filter(p=>p.t>t0)]}}
+ const chips=`<div class="odo-rng">${ODO_RANGES.map(r=>`<button class="${r===R?'on':''}" data-a="odoRange" data-r="${r.k}">${r.k==='all'?(hasBuy?'Seit Kauf':'Alles'):r.s}</button>`).join('')}</div>`;
+ if(P.length<2||P[P.length-1].v===P[0].v&&P.length<2)return`<div class="chart" style="margin-top:12px"><div class="chart-head"><span>km-Stand</span></div>${chips}<p class="muted" style="margin:6px 0">${R.m?`Im Zeitraum kein neuer km-Stand – zuletzt am ${fmtD(all[all.length-1].d)}.`:'Zu wenige km-Stände.'}</p><button class="btn block" data-a="odoForm" data-car="${c.id}">+ km-Stand eintragen</button></div>`;
+ const isAll=!R.m||start===own;
  const t1=P[P.length-1].t,span=t1-start||1,W=300,H=110,mo=t=>(t-start)/(30.4375*864e5);
  const vs=P.map(p=>p.v),pad=Math.max((Math.max(...vs)-Math.min(...vs))*.08,200),lo=Math.min(...vs)-pad,hi=Math.max(...vs)+pad,rng=hi-lo;
  const x=t=>(t-start)/span*W,y=v=>H-(v-lo)/rng*H,col=carColor(c.id);
  const dur=m=>m<.5?'0':m<12?Math.round(m)+' Mon.':fmtN(m/12,m/12<10?1:0)+' J.';
  const driven=P[P.length-1].v-P[0].v,yrs=mo(t1)/12;
- return`<div class="chart" style="margin-top:12px"><div class="chart-head"><span>km-Stand</span><span class="legend"><i style="background:${col}"></i>Tsd. km</span></div>
+ return`<div class="chart" style="margin-top:12px"><div class="chart-head"><span>km-Stand</span><span class="legend"><i style="background:${col}"></i>Tsd. km</span></div>${chips}
  <div class="plot"><div class="yax">${[hi,(hi+lo)/2,lo].map((v,i)=>`<span style="bottom:${(1-i/2)*100}%">${fmtN(v/1000,1)}</span>`).join('')}</div><div class="grid-l">${[1,.5,0].map(f=>`<i style="bottom:${f*100}%"></i>`).join('')}</div>
- <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="lsvg"><polyline fill="none" stroke="${col}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" points="${P.map(p=>x(p.t)+','+y(p.v)).join(' ')}"/>${P.map(p=>`<circle cx="${x(p.t)}" cy="${y(p.v)}" r="3" fill="${col}" vector-effect="non-scaling-stroke"/>`).join('')}</svg></div>
- <div class="xax"><span style="text-align:left">${hasBuy?'Kauf':fmtD(P[0].d)}</span><span>${hasBuy?dur(mo(start+span/2)):''}</span><span style="text-align:right">${hasBuy?dur(mo(t1)):fmtD(P[P.length-1].d)}</span></div>
- <p class="sub" style="margin:8px 0 0">${hasBuy?'Seit Kauf':'Seit erstem Eintrag'}: <b style="color:var(--text)">${fmtN(driven)} km</b>${yrs>=.25?` · Ø <b style="color:var(--text)">${fmtN(Math.round(driven/yrs/100)*100)} km/Jahr</b>`:''}</p></div>`}
+ <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="lsvg"><polyline fill="none" stroke="${col}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" points="${P.map(p=>x(p.t)+','+y(p.v)).join(' ')}"/>${P.filter(p=>!p.ip).map(p=>`<circle cx="${x(p.t)}" cy="${y(p.v)}" r="3" fill="${col}" vector-effect="non-scaling-stroke"/>`).join('')}</svg></div>
+ <div class="xax">${isAll&&hasBuy?`<span style="text-align:left">Kauf</span><span>${dur(mo(start+span/2))}</span><span style="text-align:right">${dur(mo(t1))}</span>`:`<span style="text-align:left">${fmtD(P[0].d)}</span><span>${fmtD(isoD(new Date(start+span/2)))}</span><span style="text-align:right">${fmtD(P[P.length-1].d)}</span>`}</div>
+ <p class="sub" style="margin:8px 0 0">${isAll?(hasBuy?'Seit Kauf':'Seit erstem Eintrag'):R.t}: <b style="color:var(--text)">${fmtN(Math.round(driven))} km</b>${yrs>=.25?` · Ø <b style="color:var(--text)">${fmtN(Math.round(driven/yrs/100)*100)} km/Jahr</b>`:mo(t1)>=.5?` · Ø <b style="color:var(--text)">${fmtN(Math.round(driven/mo(t1)))} km/Monat</b>`:''}</p></div>`}
+const ODO_RANGES=[{k:'all',s:'Seit Kauf'},{k:'24',m:24,s:'2 J.',t:'Letzte 2 Jahre'},{k:'12',m:12,s:'1 J.',t:'Letztes Jahr'},{k:'6',m:6,s:'6 Mon.',t:'Letzte 6 Monate'},{k:'1',m:1,s:'1 Mon.',t:'Letzter Monat'}];
+let odoRange=(()=>{try{return localStorage.getItem('garage.odoRange')||'all'}catch(e){return'all'}})();
 function consChart(carId){const fc=fuelCalc(carId);const pts=fc.list.filter(f=>fc.cons[f.id]).map(f=>({d:f.date,v:fc.cons[f.id]}));if(pts.length<2)return'';
  const vs=pts.map(p=>p.v),lo=Math.floor(Math.min(...vs)-.5),hi=Math.ceil(Math.max(...vs)+.5),rng=hi-lo||1,W=300,H=100,col=carColor(carId);
  const x=i=>pts.length===1?W/2:i/(pts.length-1)*W,y=v=>H-(v-lo)/rng*H;const avg=fc.avg;
@@ -4166,6 +4176,7 @@ const A={
  invLog:d=>invLogSheet(d.id),
  invShelf:d=>invShelfToggle(d.loc),
  wsGo:d=>wsGo(d.t),
+ odoRange:d=>{odoRange=d.r;try{localStorage.setItem('garage.odoRange',d.r)}catch(e){}render()},
  odoCrop:()=>odoCrop(),
  batOpen:d=>batSheet(d.car),batForm:d=>batForm(d.car),batMeasure:d=>batMeasure(d.car),
  batCheckDel:async d=>{const c=car(d.car);c.battery.checks=(c.battery.checks||[]).filter(x=>x.id!==d.id);await put('cars',c);batSheet(c.id);render()},
@@ -4342,7 +4353,7 @@ async function seed(){const P=(name,maker,qty,unit,price,o={})=>({name,maker,par
 })();
 
 /* ================= Updates ================= */
-const APP_VER='garage-v62';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
+const APP_VER='garage-v63';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
 const verNum=v=>+(/(\d+)\s*$/.exec(v||'')||[0,0])[1];
 /* Neue Version erkennen: index.html vom Server holen und die Versionsnummer vergleichen.
    Der Hinweis kommt nur, wenn der Server wirklich eine NEUERE Version hat. */

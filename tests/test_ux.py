@@ -220,6 +220,15 @@ async def main():
         c.eq(await ev("$('#fOdo')&&num($('#fOdo [name=odo]').value)"), last + 77, 'Neu › km-Stand-Foto: km-Stand-Fenster mit gelesenem Wert')
         await ev("closeSheet(false,true)"); await page.wait_for_timeout(300)
 
+        # km-Verlauf: Zeitraum wählbar, bleibt gemerkt
+        await H.go(page, f'#/car/{cid}/odo')
+        a = await ev("$('.chart .sub').textContent")
+        await page.click('[data-a=odoRange][data-r="12"]'); await page.wait_for_timeout(300)
+        b = await ev("$('.chart .sub').textContent")
+        c.ok(a.startswith('Seit Kauf') and b.startswith('Letztes Jahr'), f'km-Graph: Zeitraum umschaltbar ({b})')
+        c.eq(await ev("localStorage.getItem('garage.odoRange')"), '12', 'Zeitraum wird gemerkt')
+        await page.click('[data-a=odoRange][data-r="all"]'); await page.wait_for_timeout(300)
+
         # runder +-Knopf nicht auf Werkstatt/Lager
         await H.go(page, '#/tools')
         c.ok(await ev("getComputedStyle($('.fab')).display==='none'"), 'kein +-Knopf auf Werkstatt')
