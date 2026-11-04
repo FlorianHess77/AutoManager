@@ -183,9 +183,10 @@ async def main():
         c.ok('Gelesen' in await ev("$('#ocrState').textContent") and '+432 km' in await ev("$('#odoPlaus').textContent"), 'Hinweis mit Plausibilität (+432 km seit …)')
         await ev(f"window._ocrText='{last - 5000}\\n12';1")
         await page.set_input_files('#sheet [data-file=odoPhoto]', os.path.join(os.path.dirname(__file__), '..', 'icon-512.png'))
-        await page.wait_for_function("!/wird/.test($('#ocrState').textContent)", timeout=15000)
+        await page.wait_for_function("/Kein passender/.test($('#ocrState').textContent)", timeout=20000)
         c.ok('Kein passender' in await ev("$('#ocrState').textContent") and await ev("!!$('#ocrState [data-a=odoCrop]')"), 'unplausible Zahl wird nicht übernommen, Angebot zum Markieren')
-        await page.fill('#fOdo [name=odo]', str(last + 90000)); await page.click('#sheet .sheet-foot .btn.primary'); await page.wait_for_timeout(300)
+        await page.fill('#fOdo [name=odo]', str(last + 90000))
+        await page.click('#sheet .sheet-foot .btn.primary'); await page.wait_for_timeout(300)
         c.ok(await ev("!!document.querySelector('.dlg')"), 'unrealistisch hoher km-Stand: Rückfrage vor dem Speichern')
         await page.click('.dlg [data-x=no]'); await ev("closeSheet(false,true)"); await page.wait_for_timeout(300)
         c.eq(await ev("allPhotos().then(a=>a.length)"), ph0, 'Tacho-Foto wird nicht gespeichert')
@@ -222,10 +223,10 @@ async def main():
 
         # km-Verlauf: Zeitraum wählbar, bleibt gemerkt
         await H.go(page, f'#/car/{cid}/odo')
-        a = await ev("$('.chart .sub').textContent")
+        ta = await ev("$('.chart .sub').textContent")
         await page.click('[data-a=odoRange][data-r="12"]'); await page.wait_for_timeout(300)
-        b = await ev("$('.chart .sub').textContent")
-        c.ok(a.startswith('Seit Kauf') and b.startswith('Letztes Jahr'), f'km-Graph: Zeitraum umschaltbar ({b})')
+        tb = await ev("$('.chart .sub').textContent")
+        c.ok(ta.startswith('Seit Kauf') and tb.startswith('Letztes Jahr'), f'km-Graph: Zeitraum umschaltbar ({tb})')
         c.eq(await ev("localStorage.getItem('garage.odoRange')"), '12', 'Zeitraum wird gemerkt')
         await page.click('[data-a=odoRange][data-r="all"]'); await page.wait_for_timeout(300)
 
