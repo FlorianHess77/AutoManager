@@ -3273,7 +3273,7 @@ async function prepOdo(dataUrl,mode,maxDim=1600){const im=await loadImg(dataUrl)
 // jede Zeile einzeln ausschneiden, vergrößern, Segmentlücken schließen (7-Segment) und als eine Zeile lesen.
 async function digitLines(dataUrl,S,DX,mode,maxH){const im=await loadImg(dataUrl);const sc=S/Math.max(im.width,im.height);const W=Math.round(im.width*sc),H=Math.round(im.height*sc);
  const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0,W,H);const px=g.getImageData(0,0,W,H).data;
- const v=new Float32Array(W*H);for(let i=0,k=0;k<W*H;i+=4,k++)v[k]=mode==='max'?Math.max(px[i],px[i+1],px[i+2]):(px[i]+px[i+1]+px[i+2])/3;
+ const v=new Float32Array(W*H);for(let i=0,k=0;k<W*H;i+=4,k++)v[k]=mode==='max'?Math.max(px[i],px[i+1],px[i+2]):mode==='inv'?255-(px[i]+px[i+1]+px[i+2])/3:(px[i]+px[i+1]+px[i+2])/3;// inv: dunkle Ziffern auf hellem LCD
  const W1=W+1,I=new Float64Array(W1*(H+1));for(let y=0;y<H;y++){let row=0;for(let x=0;x<W;x++){row+=v[y*W+x];I[(y+1)*W1+x+1]=I[y*W1+x+1]+row}}
  const r=Math.round(30*S/1600),m=new Uint8Array(W*H);
  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const x0=Math.max(0,x-r),x1=Math.min(W,x+r),y0=Math.max(0,y-r),y1=Math.min(H,y+r);const loc=(I[y1*W1+x1]-I[y0*W1+x1]-I[y1*W1+x0]+I[y0*W1+x0])/((x1-x0)*(y1-y0));const q=v[y*W+x];m[y*W+x]=q>loc+32&&q>80?1:0}
@@ -3316,13 +3316,6 @@ async function ocrOdo(dataUrl,cid,onProg){const w=await ocrWorkerGet(onProg);con
   await w.setParameters({tessedit_pageseg_mode:'11'});for(const [mode,dim] of[['norm',1200],['plain',1600]]){const {data}=await w.recognize(await prepOdo(dataUrl,mode,dim));const n=odoNums(data.text);seen.push(...n.raw);jn.push(...n.joined)}
   return{v:odoPick(seen,jn,cid),seen}}
  finally{try{await w.setParameters({tessedit_char_whitelist:'',tessedit_pageseg_mode:'3'})}catch(e){}}}
-async function ocrPump(dataUrl,onProg){const w=await ocrWorkerGet(onProg);let all='';let done=0;
- try{await w.setParameters({tessedit_char_whitelist:'0123456789.,',tessedit_pageseg_mode:'7'});
-  for(const [S,DX,mode] of[[1200,25,'mean'],[1600,31,'mean'],[1200,25,'max'],[900,19,'mean']]){const lines=(await digitLines(dataUrl,S,DX,mode,.34)).sort((a,b)=>a.y-b.y);let txt='';
-   for(const l of lines){const {data}=await w.recognize(l.c);onProg&&onProg('recognizing text',Math.min(.98,++done/40));txt+='\n'+data.text}all+=txt;const r=pumpParse(txt)||pumpParse(all);if(r)return{r,text:all}}
-  await w.setParameters({tessedit_pageseg_mode:'11'});
-  for(const [mode,dim] of[['norm',1000],['norm',600],['plain',1000]]){const {data}=await w.recognize(await prepOdo(dataUrl,mode,dim));all+='\n'+data.text;const r=pumpParse(all);if(r)return{r,text:all}}return{r:null,text:all}}
- finally{try{await w.setParameters({tessedit_char_whitelist:'',tessedit_pageseg_mode:'3'})}catch(e){}}}
 function odoPlausShow(){const f=$('#fOdo');if(!f)return;const v=num(f.elements.namedItem('odo').value),b=$('#odoPlaus');if(!b)return;const r=odoPlaus(f.elements.namedItem('carId').value,v);
  b.className='sub'+(r&&r.level!=='ok'?' over-t':'');b.textContent=r&&r.text?(r.level==='ok'?'✓ ':'⚠ ')+r.text:''}
 async function odoScan(file,cropped){const f=$('#fOdo');if(!f)return;const st=$('#ocrState');let data;
@@ -3341,30 +3334,87 @@ async function odoCrop(){const img=draft.odoImg;if(!img)return;const d=await ope
 /* ================= Tanken per Foto: Zapfsäule + Tacho ================= */
 // Zapfsäulen-Anzeigen (oft 7-Segment, Komma fehlt gern): jede gelesene Zahl wird mit allen Kommastellen probiert.
 // Gültig ist nur ein Trio, bei dem Betrag = Liter × Literpreis auf den Cent aufgeht – das ist die Plausibilitätsprüfung.
-function pumpCands(text){const out=[],src=String(text||'').replace(/[oO]/g,'0'),seen=new Set();
+function pumpCands(text,wild){const out=[],src=String(text||'').replace(/[oO]/g,'0'),seen=new Set();
  const lines=src.split('\n').flatMap(l=>[l,l.replace(/\s+/g,'').replace(/[.,]+/g,m=>m[0]).replace(/^[.,]+|[.,]+$/g,'')]);
- for(const m of lines.join('\n').matchAll(/\d+(?:[.,]\d+)?/g)){if(seen.has(m[0]))continue;seen.add(m[0]);const s=m[0],dig=s.replace(/[.,]/g,'');if(dig.length<2||dig.length>7)continue;
-  const ex=/[.,]/.test(s)?+s.replace(',','.'):null,vals=new Set();if(ex!=null)vals.add(ex);for(let k=0;k<=3;k++)vals.add(+dig/10**k);out.push({s,dig,ex,vals:[...vals]})}return out}
-function pumpParse(text){const c=pumpCands(text);let best=null;
- for(let i=0;i<c.length;i++)for(let j=0;j<c.length;j++)for(let k=0;k<c.length;k++){if(i===j||j===k||i===k)continue;
-  for(const p of c[i].vals){if(p<1||p>400||Math.abs(p*100-Math.round(p*100))>1e-6)continue;/* Betrag: max. 2 Nachkommastellen */for(const l of c[j].vals){if(l<1||l>200)continue;for(const u of c[k].vals){if(u<.7||u>4)continue;
-   const err=Math.abs(p-l*u);if(err>.006+.005*Math.min(u,2.5))continue;// Säule rechnet Betrag = Liter × Preis auf den Cent genau
-   // Strafpunkte: Komma anders als abgelesen, unüblicher Literpreis, ungewohnte Reihenfolge (Säule: Betrag, Liter, €/l)
-   const pen=x=>c[x.i].ex!=null&&Math.abs(c[x.i].ex-x.v)>1e-9?.004:0;
-   const sc=err+pen({i,v:p})+pen({i:j,v:l})+pen({i:k,v:u})+(c[k].dig.length===4?0:.002)+(c[i].dig.length>=3?0:.004)+(u>2.6||u<1?.01:0)+(l<3?.004:l<10?.003:0)+(i<j&&j<k?0:.001);
-   if(!best||sc<best.sc)best={sc,price:p,liters:l,ppl:u,ls:c[j].s}}}}}
+ const add=(s,w)=>{if(seen.has(s))return;seen.add(s);const dig=s.replace(/[.,]/g,'');if(dig.length<2||dig.length>7||/^\?|\?.*\?.*\?/.test(dig))return;
+  // „?“ = unleserliche Ziffer → alle 10 Möglichkeiten (höchstens 2 je Zahl)
+  const exp=d=>d.includes('?')?[...Array(10).keys()].flatMap(n=>exp(d.replace('?',n))):[d];
+  for(const v of exp(s)){const dg=v.replace(/[.,]/g,''),ex=/[.,]/.test(v)?+v.replace(',','.'):null,vals=new Set();if(ex!=null)vals.add(ex);for(let k=0;k<=3;k++)vals.add(+dg/10**k);
+   out.push({s,dig:dg,ex,wild:(s.match(/\?/g)||[]).length,vals:[...vals]})}};
+ for(const m of lines.join('\n').matchAll(/[\d?]+(?:[.,][\d?]+)?/g)){add(m[0]);if(wild)add(m[0]+'?')}// wild: letzte Ziffer fehlt oft (blasse Segmente)
+ return out}
+function pumpParse(text,wild){const c=pumpCands(text,wild);if(!c.length)return null;let best=null;const prices=new Map();
+ // Rückhalt: wie viele Lesungen (Segmente, 7-Segment-Modell, normales Modell, mehrere Größen) enthalten die Ziffernfolge?
+ const reads=(String(text||'').match(/[\d?]+(?:[.,][\d?]+)?/g)||[]).map(t=>t.replace(/[.,]/g,'').replace(/^0+/,'')),sup=d=>{const k=d.replace(/^0+/,'');return reads.filter(r=>r===k).length};
+ c.forEach(e=>{e.sup=sup(e.s.replace(/[.,]/g,'').replace(/\?/g,''))});
+ c.forEach((e,i)=>{if(e.dig.length<3)return;for(const p of e.vals)if(p>=3&&p<=400&&Math.abs(p*100-Math.round(p*100))<1e-6){const k=Math.round(p*100);if(!prices.has(k))prices.set(k,[]);prices.get(k).push({i,p})}});
+ for(let j=0;j<c.length;j++){if(c[j].dig.length<3)continue;for(const l of c[j].vals){if(l<2||l>200)continue;for(let k=0;k<c.length;k++){if(k===j||c[k].s===c[j].s||c[k].dig.length!==4)continue;for(const u of c[k].vals){if(u<.9||u>2.8)continue;// Literpreis immer 4 Stellen (1,699 € oder 169,9 ct)
+  const t=l*u,tc=Math.round(t*100);for(let q=tc-2;q<=tc+2;q++)for(const P of prices.get(q)||[]){const i=P.i,p=P.p;if(c[i].s===c[j].s||c[i].s===c[k].s)continue;if(Math.min(c[i].sup,c[j].sup,c[k].sup)<2)continue;// zufällige Treffer aus Fehllesungen ausschließen
+   const err=Math.abs(p-t);if(err>.006+.005*Math.min(u,2.5))continue;// Säule rechnet Betrag = Liter × Preis auf den Cent genau
+   // Strafpunkte: Komma anders als abgelesen, unleserliche Ziffern, unüblicher Literpreis, ungewohnte Reihenfolge (Säule: Betrag, Liter, €/l)
+   const pen=(x,v)=>c[x].ex!=null&&Math.abs(c[x].ex-v)>1e-9?.004:0;
+   const sc=err+pen(i,p)+pen(j,l)+pen(k,u)+.004*(c[i].wild+c[j].wild+c[k].wild)+(c[k].dig.length===4?0:.002)+(c[i].dig.length>=3?0:.004)+(u>2.6||u<1?.01:0)+(l<3?.004:l<10?.003:0)+(i<j&&j<k?0:.001);
+   if(!best||sc<best.sc)best={sc,price:p,liters:l,ppl:u,ls:c[j].s}}}}}}
  if(!best)return null;const L=Math.round(best.price/best.ppl*100)/100;// Liter aus Betrag ÷ Literpreis (genauer, falls eine Ziffer fehlte)
  return{price:Math.round(best.price*100)/100,liters:/[.,]\d?$/.test(best.ls)&&Math.abs(L-best.liters)<.15?L:Math.round(best.liters*100)/100,ppl:Math.round(best.ppl*1000)/1000}}
+// Anzeigen mit 7-Segment-Ziffern: Ziffern als Flächen finden, zu Zeilen gruppieren, jede Ziffer über ihre 7 Segmente bestimmen
+// (eigene Erkennung, kein Modell nötig) und die Zeile zusätzlich gerade gerichtet für die Texterkennung ausschneiden.
+const SEG7={'1111110':'0','0110000':'1','1101101':'2','1111001':'3','0110011':'4','1011011':'5','1011111':'6','1110000':'7','1111111':'8','1111011':'9','0011111':'6','1110011':'9','1110010':'7'};
+const SEG7P=[[.5,.08],[.82,.28],[.82,.72],[.5,.92],[.18,.72],[.18,.28],[.5,.5]];
+function morph(m,W,H,rx,ry,dil){const t=new Uint8Array(W*H),o=new Uint8Array(W*H);// trennbarer Max/Min-Filter
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){let v=dil?0:1;for(let d=-rx;d<=rx;d++){const xx=x+d;const q=xx<0||xx>=W?(dil?0:1):m[y*W+xx];if(dil?q:!q){v=dil?1:0;break}}t[y*W+x]=v}
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){let v=dil?0:1;for(let d=-ry;d<=ry;d++){const yy=y+d;const q=yy<0||yy>=H?(dil?0:1):t[yy*W+x];if(dil?q:!q){v=dil?1:0;break}}o[y*W+x]=v}return o}
+async function displayRows(dataUrl,S){const im=await loadImg(dataUrl);const sc=S/Math.max(im.width,im.height),W=Math.round(im.width*sc),H=Math.round(im.height*sc);
+ const cv=document.createElement('canvas');cv.width=W;cv.height=H;const g0=cv.getContext('2d',{willReadFrequently:true});g0.drawImage(im,0,0,W,H);const px=g0.getImageData(0,0,W,H).data;
+ const g=new Float32Array(W*H);for(let i=0,k=0;k<W*H;i+=4,k++)g[k]=(px[i]+px[i+1]+px[i+2])/3;
+ const W1=W+1,I=new Float64Array(W1*(H+1));for(let y=0;y<H;y++){let row=0;for(let x=0;x<W;x++){row+=g[y*W+x];I[(y+1)*W1+x+1]=I[y*W1+x+1]+row}}
+ const r=Math.max(4,Math.round(W/30)),loc=new Float32Array(W*H);for(let y=0;y<H;y++)for(let x=0;x<W;x++){const x0=Math.max(0,x-r),x1=Math.min(W,x+r),y0=Math.max(0,y-r),y1=Math.min(H,y+r);loc[y*W+x]=(I[y1*W1+x1]-I[y0*W1+x1]-I[y1*W1+x0]+I[y0*W1+x0])/((x1-x0)*(y1-y0))}
+ const rows=[];
+ for(const pol of['dark','bright']){const mask=new Uint8Array(W*H);for(let k=0;k<W*H;k++)mask[k]=pol==='dark'?(g[k]<loc[k]-12?1:0):(g[k]>loc[k]+12?1:0);
+  let m=morph(mask,W,H,1,2,true);m=morph(m,W,H,1,2,false);m=morph(m,W,H,1,1,true);
+  const lab=new Int32Array(W*H),comps=[],st=[];let n=0;
+  for(let k=0;k<W*H;k++){if(!m[k]||lab[k])continue;n++;let x0=1e9,y0=1e9,x1=-1,y1=-1;st.push(k);lab[k]=n;
+   while(st.length){const p=st.pop(),x=p%W,y=(p/W)|0;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;for(const q of[x>0?p-1:-1,x<W-1?p+1:-1,p-W,p+W]){if(q<0||q>=W*H||lab[q]||!m[q])continue;lab[q]=n;st.push(q)}}
+   const w=x1-x0+1,h=y1-y0+1;if(h>=H*.03&&h<=H*.5&&w<=h*1.1&&w>=h*.08)comps.push({id:n,x0,y0,x1:x1+1,y1:y1+1,w,h,cy:(y0+y1)/2})}
+  comps.sort((a,b)=>a.x0-b.x0);const used=new Set();
+  for(let i=0;i<comps.length;i++){if(used.has(i))continue;const row=[comps[i]];used.add(i);let last=comps[i];
+   for(let j=i+1;j<comps.length;j++){if(used.has(j))continue;const d=comps[j];if(Math.abs(d.cy-last.cy)<last.h*.35&&d.h/last.h>.6&&d.h/last.h<1.6&&d.x0-last.x1<last.h*1.2){row.push(d);used.add(j);last=d}}
+   if(row.length<3)continue;
+   // Ziffern über ihre Segmente lesen, Schrägschrift mit mehreren Neigungen probieren
+   let best=null;for(const sh of[0,.1,.18,.25]){let s='',q=0;for(const d of row){let ch;if(d.w<d.h*.38)ch='1';else{let bits='';for(const[sx,sy]of SEG7P){const cx=d.x0+sx*(d.w-sh*d.h)+sh*d.h*(1-sy),cy=d.y0+sy*d.h,rw=Math.max(1,Math.round(d.w*.12)),rh=Math.max(1,Math.round(d.h*.07));let on=0,tot=0;
+      for(let yy=Math.round(cy)-rh;yy<=Math.round(cy)+rh;yy++)for(let xx=Math.round(cx)-rw;xx<=Math.round(cx)+rw;xx++){if(xx<0||yy<0||xx>=W||yy>=H)continue;tot++;on+=mask[yy*W+xx]}bits+=tot&&on/tot>.25?'1':'0'}ch=SEG7[bits]||'?'}s+=ch;if(ch!=='?')q++}
+    if(!best||q>best.q)best={q,s}}
+   // Zeile ausschneiden: nur die Pixel dieser Ziffern, gerade gerichtet, auf 64 px Höhe
+   const ids=new Set(row.map(d=>d.id)),n2=row.length,mx=row.reduce((s,d)=>s+(d.x0+d.x1)/2,0)/n2,my=row.reduce((s,d)=>s+d.cy,0)/n2;let sxy=0,sxx=0;for(const d of row){const dx=(d.x0+d.x1)/2-mx;sxy+=dx*(d.cy-my);sxx+=dx*dx}const ang=sxx?Math.atan(sxy/sxx):0;
+   const hm=row.map(d=>d.h).sort((a,b)=>a-b)[n2>>1],bx0=Math.max(0,Math.min(...row.map(d=>d.x0))-Math.round(hm*.4)),bx1=Math.min(W,Math.max(...row.map(d=>d.x1))+Math.round(hm*.4)),by0=Math.max(0,Math.min(...row.map(d=>d.y0))-Math.round(hm*.3)),by1=Math.min(H,Math.max(...row.map(d=>d.y1))+Math.round(hm*.3));
+   const bw=bx1-bx0,bh=by1-by0,t=document.createElement('canvas');t.width=bw;t.height=bh;const tg=t.getContext('2d'),id=tg.createImageData(bw,bh);
+   for(let y=0;y<bh;y++)for(let x=0;x<bw;x++){const k=(by0+y)*W+bx0+x,o=(y*bw+x)*4,on=mask[k]&&ids.has(lab[k]);id.data[o]=id.data[o+1]=id.data[o+2]=on?0:255;id.data[o+3]=255}tg.putImageData(id,0,0);
+   const f=64/(hm*1.0),ow=Math.round(bw*f)+40,oh=Math.round(bh*f)+40,o=document.createElement('canvas');o.width=ow;o.height=oh;const og=o.getContext('2d',{willReadFrequently:true});og.fillStyle='#fff';og.fillRect(0,0,ow,oh);
+   og.translate(ow/2,oh/2);og.rotate(-ang);og.filter='blur(1.2px)';og.drawImage(t,-bw*f/2,-bh*f/2,bw*f,bh*f);og.setTransform(1,0,0,1,0,0);og.filter='none';
+   const od=og.getImageData(0,0,ow,oh);for(let i=0;i<od.data.length;i+=4){const q=od.data[i]>150?255:0;od.data[i]=od.data[i+1]=od.data[i+2]=q}og.putImageData(od,0,0);
+   rows.push({y:by0,seg:best.s,c:o})}}
+ return rows.sort((a,b)=>a.y-b.y)}
+async function ocrPump(dataUrl,onProg){const w=await ocrWorkerGet(onProg);const ssd=await ssdWorkerGet();let all='';let done=0;
+ try{await w.setParameters({tessedit_char_whitelist:'0123456789.,',tessedit_pageseg_mode:'7'});if(ssd)await ssd.setParameters({tessedit_char_whitelist:'0123456789.,',tessedit_pageseg_mode:'7'});
+  for(const S of[1000,1400,700]){const rows=await displayRows(dataUrl,S);let txt='';
+   for(const r of rows){txt+='\n'+r.seg;if(ssd){txt+='\n'+(await ssd.recognize(r.c)).data.text;onProg&&onProg('recognizing text',Math.min(.98,++done/40))}
+    txt+='\n'+(await w.recognize(r.c)).data.text;onProg&&onProg('recognizing text',Math.min(.98,++done/40))}
+   all+=txt;const r=pumpParse(all);if(r)return{r,text:all}}
+  const r=pumpParse(all,true);if(r)return{r,text:all,guess:true};
+  for(const [S,DX,mode] of[[1200,25,'mean'],[1200,25,'inv']]){const lines=(await digitLines(dataUrl,S,DX,mode,.34)).sort((a,b)=>a.y-b.y);for(const l of lines){all+='\n'+(await w.recognize(l.c)).data.text;onProg&&onProg('recognizing text',Math.min(.98,++done/40))}const r=pumpParse(all);if(r)return{r,text:all}}
+  return{r:null,text:all}}
+ finally{try{await w.setParameters({tessedit_char_whitelist:'',tessedit_pageseg_mode:'3'});if(ssd)await ssd.setParameters({tessedit_char_whitelist:'0123456789',tessedit_pageseg_mode:'7'})}catch(e){}}}
 const ocrProgUI=(label)=>(s,p)=>{const el=$('#ocrState');if(!el)return;const b=el.querySelector('span');if(!b)return;b.textContent=(s==='recognizing text'?label:OCR_STEP[s]||'Bitte warten')+(s==='recognizing text'?` … ${Math.round(p*100)} %`:' …');const i=el.querySelector('i');if(i)i.style.width=(s==='recognizing text'?30+p*70:10+p*20)+'%'};
 const galLink=(f,t='oder Foto aus der Galerie wählen')=>`<label class="gallink">🖼️ ${t}<input type="file" accept="image/*" hidden data-file="${f}"></label>`;
 const odoBtn=(t='Jetzt Tacho fotografieren')=>`<label class="scanbig" style="margin:10px 0 0">${ic('gauge')} ${t}<input type="file" accept="image/*" capture="environment" hidden data-file="fuelOdo"></label>${galLink('fuelOdo')}`;
-async function scanPump(file){const f=$('#fFuel');if(!f)return;let data;try{data=await compressImage(file,1800,.88)}catch(e){toast('Bild konnte nicht gelesen werden');return}
+async function scanPump(file,cropped){const f=$('#fFuel');if(!f)return;let data;try{data=cropped||await compressImage(file,1800,.88)}catch(e){toast('Bild konnte nicht gelesen werden');return}if(!cropped)draft.pumpImg=data;
  const st=$('#ocrState');st.hidden=false;st.innerHTML=`<div class="ocr-bar"><i style="width:5%"></i></div><span>Zapfsäule wird vorbereitet …</span>`;let o;
  try{o=await ocrPump(data,ocrProgUI('Zapfsäule wird gelesen'))}catch(e){console.warn(e);st.innerHTML=`<span class="low">${e.message==='offline'?'Für die erste Erkennung braucht die App einmal Internet – bitte Werte eintippen.':'Erkennung hat nicht geklappt – bitte Werte eintippen.'}</span>${odoBtn()}`;return}
  if(!$('#fFuel'))return;const F=n=>f.elements.namedItem(n),r=o.r;
  if(r){for(const[n,v]of[['liters',valN(r.liters)],['ppl',valN(r.ppl.toFixed(3))],['price',valN(r.price.toFixed(2))]]){F(n).value=v;F(n).classList.add('ocr-hit')}f.dataset.src='p';
-  st.innerHTML=`<span>✓ Zapfsäule: <b>${fmtN(r.liters,2)} l × ${fmtN(r.ppl,3)} €/l = ${eur(r.price)}</b> – passt zusammen.</span>${odoBtn()}`}
- else{const rd=pumpCands(o.text).map(x=>x.s).slice(0,5);st.innerHTML=`<span class="low">Betrag, Liter und Literpreis passten nicht zusammen${rd.length?` (gelesen: ${esc(rd.join(' · '))})`:''} – bitte eintippen oder näher fotografieren.</span>${odoBtn()}`}}
+  st.innerHTML=`<span>${o.guess?'⚠':'✓'} Zapfsäule: <b>${fmtN(r.liters,2)} l × ${fmtN(r.ppl,3)} €/l = ${eur(r.price)}</b> – ${o.guess?'eine Ziffer war schlecht lesbar, bitte genau prüfen.':'passt zusammen.'}</span>${odoBtn()}`}
+ else{const rd=[...new Set((o.text.match(/\d[\d.,]{2,}\d/g)||[]))].slice(0,5);st.innerHTML=`<span class="low">Betrag, Liter und Literpreis passten nicht zusammen${rd.length?` (gelesen: ${esc(rd.join(' · '))})`:''}. Am besten nur die Anzeige formatfüllend fotografieren – oder hier markieren:</span><button type="button" class="btn block" style="margin-top:8px" data-a="pumpCrop">✂️ Anzeige im Foto markieren und nochmal lesen</button>${odoBtn()}`}}
+async function pumpCrop(){const img=draft.pumpImg;if(!img)return;const d=await openCropper(img,1);if(!d)return;await scanPump(null,d)}
 async function scanFuelOdo(file){const f=$('#fFuel');if(!f)return;let data;try{data=await compressImage(file,1800,.88)}catch(e){toast('Bild konnte nicht gelesen werden');return}
  const st=$('#ocrState');const keep=st.querySelector('span')?.outerHTML||'';st.hidden=false;st.innerHTML=`${keep}<div class="ocr-bar" style="margin-top:8px"><i style="width:5%"></i></div><span>Tacho wird vorbereitet …</span>`;
  const cid=f.elements.namedItem('carId').value;let r;
@@ -4004,7 +4054,7 @@ const A={
  invLog:d=>invLogSheet(d.id),
  invShelf:d=>invShelfToggle(d.loc),
  odoRange:d=>{odoRange=d.r;try{localStorage.setItem('garage.odoRange',d.r)}catch(e){}render()},
- odoCrop:()=>odoCrop(),
+ odoCrop:()=>odoCrop(),pumpCrop:()=>pumpCrop(),
  batOpen:d=>batSheet(d.car),batForm:d=>batForm(d.car),batMeasure:d=>batMeasure(d.car),
  batCheckDel:async d=>{const c=car(d.car);c.battery.checks=(c.battery.checks||[]).filter(x=>x.id!==d.id);await put('cars',c);batSheet(c.id);render()},
  chronOpen:d=>nav(`#/chronik/${d.car}`),chronPrint:d=>chronPrint(d.car),
@@ -4178,7 +4228,7 @@ async function seed(){const P=(name,maker,qty,unit,price,o={})=>({name,maker,par
 })();
 
 /* ================= Updates ================= */
-const APP_VER='garage-v64';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
+const APP_VER='garage-v65';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
 const verNum=v=>+(/(\d+)\s*$/.exec(v||'')||[0,0])[1];
 /* Neue Version erkennen: index.html vom Server holen und die Versionsnummer vergleichen.
    Der Hinweis kommt nur, wenn der Server wirklich eine NEUERE Version hat. */
