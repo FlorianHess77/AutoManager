@@ -186,6 +186,8 @@ input[type=checkbox],input[type=radio]{width:auto;min-height:0}
 .sheet-foot{position:sticky;bottom:calc(-16px - env(safe-area-inset-bottom));background:var(--bg);padding:12px 0 calc(16px + env(safe-area-inset-bottom));margin-bottom:calc(-16px - env(safe-area-inset-bottom));display:flex;gap:8px;border-top:1px solid var(--line);margin-top:12px}
 #lightbox{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.92);display:grid;place-items:center}
 #lightbox img{max-width:100%;max-height:100%}
+.calc-plus{position:fixed;z-index:60;width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface2);color:var(--accent);font:700 24px/1 system-ui,sans-serif;padding:0;display:grid;place-items:center;touch-action:manipulation}.calc-plus[hidden]{display:none}
+input.calc-on{padding-right:46px}
 #toast{position:fixed;left:16px;right:16px;top:calc(68px + env(safe-area-inset-top));z-index:50;background:#2c313a;color:#fff;border-radius:12px;padding:12px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;transform:translateY(-12px);opacity:0;pointer-events:none;transition:.2s;box-shadow:0 6px 20px rgba(0,0,0,.4);max-width:600px;margin:0 auto}
 #toast.show{transform:none;opacity:1;pointer-events:auto}
 #toast .tbtn{background:none;border:0;color:var(--accent);font-weight:800;font-size:15px;min-height:44px;padding:0 6px;font-family:inherit}
@@ -1981,9 +1983,9 @@ let sheetOpen=false,ignorePop=false,pendingNav=null,draft=null;
  const visible=()=>{const sh=$('#sheet');const root=sh&&!sh.classList.contains('hidden')?sh:$('#view');return root?.querySelector('.ph.stretch')};
  addEventListener('touchstart',e=>{const ph=visible();if(!ph||e.touches.length>1||e.target.closest?.('.sheet-head')){st=null;return}const sc=scroller(ph);if(sc.scrollTop>2){st=null;return}
   const base=ph.dataset.base?+ph.dataset.base:ph.getBoundingClientRect().height;if(!ph.dataset.base)ph.dataset.base=base;
-  st={ph,sc,y0:e.touches[0].clientY,h0:ph.getBoundingClientRect().height,base,max:fullH(ph),moved:false};ph.classList.remove('anim')},{passive:true});
+  st={ph,sc,x0:e.touches[0].clientX,y0:e.touches[0].clientY,h0:ph.getBoundingClientRect().height,base,max:fullH(ph),moved:false};ph.classList.remove('anim')},{passive:true});
  addEventListener('touchmove',e=>{if(!st)return;const dy=e.touches[0].clientY-st.y0;
-  if(!st.moved){if(Math.abs(dy)<6)return;if(dy<0&&st.h0<=st.base+1){st=null;return}if(st.sc.scrollTop>2){st=null;return}st.moved=true}
+  if(!st.moved){if(Math.abs(dy)<6)return;if(Math.abs(e.touches[0].clientX-st.x0)>Math.abs(dy)){st=null;return}if(dy<0&&st.h0<=st.base+1){st=null;return}if(st.sc.scrollTop>2){st=null;return}st.moved=true}
   let h=st.h0+dy*.7;if(h>st.max)h=st.max+(h-st.max)*.25;h=Math.max(st.base,h);
   st.ph.style.aspectRatio='auto';st.ph.style.height=h+'px';if(e.cancelable)e.preventDefault()},{passive:false});
  const end=()=>{if(!st)return;const {ph,base,max,moved,h0}=st;st=null;if(!moved)return;const h=ph.getBoundingClientRect().height;
@@ -1998,6 +2000,51 @@ let sheetOpen=false,ignorePop=false,pendingNav=null,draft=null;
  addEventListener('resize',upd);addEventListener('orientationchange',()=>{maxH=0;setTimeout(()=>{maxH=innerHeight;upd()},500)});
  document.addEventListener('focusin',()=>setTimeout(upd,350));document.addEventListener('focusout',()=>setTimeout(upd,150))})();
 
+/* ===== Rechnen im Betragsfeld: „45,20+12,90“ wird beim Verlassen des Felds zu 58,10 ===== */
+function calcEval(v){let s=String(v??'').replace(/[\s€]/g,'').replace(/[×xX]/g,'*').replace(/÷/g,'/').replace(/−/g,'-');
+ if(!/^-?[\d.,]+([-+*/][\d.,]+)+[-+*/]?$/.test(s))return null;s=s.replace(/[-+*/]$/,'');
+ const tk=s.match(/^-?[\d.,]+|[-+*/][\d.,]+/g);let dec=0,mul=false;const terms=[];
+ for(let k=0;k<tk.length;k++){let t=tk[k],op='+';if(k>0||/^[+*/]/.test(t)){op=t[0];t=t.slice(1)}else if(t[0]==='-'){op='-';t=t.slice(1)}
+  const n=num(t);if(n==null)return null;const m=t.includes(',')?/,(\d*)$/.exec(t):/^\d{1,3}(\.\d{3})+$/.test(t)?null:/\.(\d*)$/.exec(t);dec=Math.max(dec,m?m[1].length:0);
+  if(op==='*'||op==='/'){mul=true;if(!terms.length)return null;const a=terms.pop();if(op==='/'&&!n)return null;terms.push(op==='*'?a*n:a/n)}else terms.push(op==='-'?-n:n)}
+ const r=terms.reduce((a,b)=>a+b,0);if(!isFinite(r))return null;const d=Math.min(3,mul?Math.max(dec,2):dec);return{r:+r.toFixed(d),txt:r.toFixed(d).replace('.',',')}}
+function calcFix(el){const c=calcEval(el.value);if(!c)return false;el.value=c.txt;el.dispatchEvent(new Event('input',{bubbles:true}));if(el.closest('#sheet form')){sheetDirty=true;draftSoon()}return true}
+/* Die Zahlentastatur am Handy hat kein „+“ – solange ein Betragsfeld aktiv ist, steht rechts im Feld ein kleines „+“. */
+(()=>{const b=document.createElement('button');b.type='button';b.id='calcPlus';b.className='calc-plus';b.hidden=true;b.tabIndex=-1;b.textContent='+';b.setAttribute('aria-label','Plus (zum Zusammenrechnen)');document.body.appendChild(b);
+ let cur=null;const place=()=>{if(!cur||!cur.isConnected||document.activeElement!==cur){hide();return}const r=cur.getBoundingClientRect();if(r.bottom<0||r.top>innerHeight){b.hidden=true;return}b.hidden=false;b.style.top=(r.top+(r.height-38)/2)+'px';b.style.left=(r.right-43)+'px'};
+ const hide=()=>{b.hidden=true;cur?.classList.remove('calc-on');cur=null};
+ document.addEventListener('focusin',e=>{const t=e.target;if(t.matches?.('input[inputmode=decimal]')&&!t.readOnly&&!t.disabled){cur?.classList.remove('calc-on');cur=t;t.classList.add('calc-on');place()}else if(t!==b)hide()});
+ document.addEventListener('focusout',e=>{const t=e.target;if(t.matches?.('input[inputmode=decimal]')){calcFix(t);setTimeout(()=>{if(document.activeElement!==cur)hide()},0)}});
+ addEventListener('scroll',()=>cur&&place(),true);addEventListener('resize',()=>cur&&setTimeout(place,60));
+ b.addEventListener('pointerdown',e=>{e.preventDefault()});b.addEventListener('mousedown',e=>e.preventDefault());
+ b.addEventListener('click',e=>{e.preventDefault();const t=cur;if(!t)return;const a=t.selectionStart??t.value.length,z=t.selectionEnd??a;let v=t.value;
+  // kein doppeltes Rechenzeichen
+  const pre=v.slice(0,a).replace(/[-+*/×÷]$/,''),cut=pre.length;t.value=pre+'+'+v.slice(z);try{t.setSelectionRange(cut+1,cut+1)}catch(e){}t.focus();
+  t.dispatchEvent(new Event('input',{bubbles:true}));if(t.closest('#sheet form')){sheetDirty=true;draftSoon()}})})();
+
+/* ===== Bildschirm bleibt an: Anleitung, Drehmoment-Spickzettel, Foto groß ===== */
+(()=>{if(!('wakeLock' in navigator))return;let lock=null,busy=false;
+ const want=()=>document.visibilityState==='visible'&&(!$('#lightbox').classList.contains('hidden')||!!document.querySelector('#sheet:not(.hidden) [data-wake]'));
+ const sync=async()=>{if(busy)return;busy=true;try{if(want()){if(!lock){lock=await navigator.wakeLock.request('screen');lock.addEventListener('release',()=>{lock=null})}}else if(lock){const l=lock;lock=null;await l.release()}}catch(e){}busy=false;if(want()!==!!lock&&document.visibilityState==='visible')setTimeout(sync,300)};
+ const mo=new MutationObserver(sync);mo.observe($('#sheet'),{childList:true,attributes:true,attributeFilter:['class']});mo.observe($('#lightbox'),{attributes:true,attributeFilter:['class']});
+ document.addEventListener('visibilitychange',sync);window.wakeState=()=>!!lock})();
+
+/* ===== Auto-Seite: seitlich wischen = nächstes/voriges Auto, der Reiter bleibt ===== */
+(()=>{let w=null;
+ const sibs=()=>{const r=parseHash();if(r.v!=='car')return null;const c=car(r.id);if(!c||c.archived)return null;const L=c.foreign?foreignCars():myCars();const i=L.findIndex(x=>x.id===c.id);return i<0||L.length<2?null:{L,i,tab:r.tab}};
+ const hscroll=el=>{const V=$('#view');for(;el&&el!==V;el=el.parentElement){if(el.scrollWidth>el.clientWidth+2){const o=getComputedStyle(el).overflowX;if(o==='auto'||o==='scroll')return true}}return false};
+ addEventListener('touchstart',e=>{w=null;if(sheetOpen||layers.length||e.touches.length>1||!$('#lightbox').classList.contains('hidden'))return;const t=e.target;if(!t.closest?.('#view')||t.closest('input,textarea,select,svg,canvas,.chart,[data-noswipe]')||hscroll(t))return;
+  const x=e.touches[0].clientX;if(x<18||x>innerWidth-18)return;const S0=sibs();if(!S0)return;w={...S0,x0:x,y0:e.touches[0].clientY,t0:Date.now(),dx:0,on:false}},{passive:true});
+ addEventListener('touchmove',e=>{if(!w)return;const dx=e.touches[0].clientX-w.x0,dy=e.touches[0].clientY-w.y0;
+  if(!w.on){if(Math.abs(dy)>12&&Math.abs(dy)>Math.abs(dx)){w=null;return}if(Math.abs(dx)<14||Math.abs(dx)<Math.abs(dy)*1.5)return;w.on=true;$('#view').style.transition='none'}
+  w.dx=dx;const v=$('#view');v.style.transform=`translateX(${dx*.45}px)`;v.style.opacity=String(Math.max(.4,1-Math.abs(dx)/innerWidth));if(e.cancelable)e.preventDefault()},{passive:false});
+ const end=()=>{if(!w)return;const {on,dx,t0,L,i,tab}=w;w=null;if(!on)return;const v=$('#view');const fast=Math.abs(dx)/Math.max(1,Date.now()-t0)>.45&&Math.abs(dx)>40;
+  if(Math.abs(dx)<Math.min(110,innerWidth*.28)&&!fast){v.style.transition='transform .18s ease-out,opacity .18s';v.style.transform='';v.style.opacity='';setTimeout(()=>{v.style.transition=''},200);return}
+  const dir=dx<0?1:-1,nx=L[(i+dir+L.length)%L.length];v.style.transition='transform .12s ease-in,opacity .12s';v.style.transform=`translateX(${-dir*45}%)`;v.style.opacity='0';
+  setTimeout(()=>{history.replaceState(history.state,'',`#/car/${nx.id}${tab?'/'+tab:''}`);render();window.scrollTo(0,0);v.style.transition='none';v.style.transform=`translateX(${dir*35}%)`;v.offsetWidth;
+   v.style.transition='transform .2s ease-out,opacity .2s';v.style.transform='';v.style.opacity='';setTimeout(()=>{v.style.transition=''},220)},120)};
+ addEventListener('touchend',end);addEventListener('touchcancel',end)})();
+
 /* ===== Fenster am Titel nach unten wegziehen ===== */
 (()=>{let d=null;
  addEventListener('touchstart',e=>{const hd=e.target.closest?.('.sheet-head');if(!hd||e.touches.length>1){d=null;return}const pn=hd.closest('.sheet-panel');d={pn,y0:e.touches[0].clientY,t0:Date.now(),dy:0,on:false};pn.style.transition='none'},{passive:true});
@@ -2011,20 +2058,45 @@ let sheetOpen=false,ignorePop=false,pendingNav=null,draft=null;
 /* Eingaben im Formular merken: wird ein geändertes Formular geschlossen (daneben tippen, Zurück, Wischen),
    bleibt es kurz aufgehoben und lässt sich mit „Rückgängig“ wiederherstellen. */
 let sheetDirty=false,parked=null;
-['input','change'].forEach(t=>document.addEventListener(t,e=>{if(e.isTrusted&&e.target.closest?.('#sheet form'))sheetDirty=true},true));
-function openSheet(title,body,foot=''){const s=$('#sheet');parked=null;sheetDirty=false;
+['input','change'].forEach(t=>document.addEventListener(t,e=>{if(e.isTrusted&&e.target.closest?.('#sheet form')){sheetDirty=true;draftSoon()}},true));
+function openSheet(title,body,foot=''){const s=$('#sheet');parked=null;sheetDirty=false;draftClear();
  s.innerHTML=`<div class="sheet-panel" role="dialog" aria-modal="true"><div class="sheet-head"><h3>${esc(title)}</h3><button type="button" class="iconbtn" data-a="closeSheet" aria-label="Schließen">✕</button></div><div class="sheet-body">${body}</div>${foot?`<div class="sheet-foot">${foot}</div>`:''}</div>`;
  s.classList.remove('hidden');document.body.classList.add('noscroll');
  if(!sheetOpen){sheetOpen=true;history.pushState({sheet:1},'')}
  s.querySelector('.sheet-panel').scrollTop=0;hydratePhotos(s)}
 function closeSheet(fromPop,quiet){if(!sheetOpen)return;sheetOpen=false;const s=$('#sheet'),pn=s.querySelector('.sheet-panel');
  const keep=!quiet&&!saving&&!undoActive&&sheetDirty&&pn&&pn.querySelector('form');
- s.classList.add('hidden');if(keep){parked={pn,draft,top:pn.scrollTop};pn.remove()}s.innerHTML='';document.body.classList.remove('noscroll');sheetDirty=false;
+ s.classList.add('hidden');if(keep){parked={pn,draft,top:pn.scrollTop};pn.remove()}s.innerHTML='';document.body.classList.remove('noscroll');sheetDirty=false;draftClear();
  if(!fromPop){ignorePop=true;history.back()}
  if(keep)toast('Eingaben verworfen','Rückgängig',restoreSheet)}
 function restoreSheet(){const p=parked;parked=null;if(!p||sheetOpen)return;const s=$('#sheet');s.innerHTML='';s.appendChild(p.pn);
  p.pn.style.transform='';p.pn.style.transition='';s.style.background='';s.classList.remove('hidden');document.body.classList.add('noscroll');
- sheetOpen=true;sheetDirty=true;draft=p.draft;history.pushState({sheet:1},'');p.pn.scrollTop=p.top}
+ sheetOpen=true;sheetDirty=true;draft=p.draft;history.pushState({sheet:1},'');p.pn.scrollTop=p.top;draftSoon()}
+/* ===== Entwürfe sichern: ein angefangenes Formular überlebt, wenn das Handy die App beendet (Anruf, Kamera, Akku).
+   Gespeichert wird nur lokal (localStorage) und nur solange das Formular offen und geändert ist. ===== */
+const DRAFT_KEY='garage.draft';let draftT=0;
+function draftClear(){clearTimeout(draftT);draftT=0;try{localStorage.removeItem(DRAFT_KEY)}catch(e){}}
+function draftSoon(){clearTimeout(draftT);draftT=setTimeout(draftSave,600)}
+function draftSave(){clearTimeout(draftT);draftT=0;if(!sheetOpen||!sheetDirty)return;const pn=$('#sheet .sheet-panel');if(!pn||!pn.querySelector('form'))return;
+ const vals=$$('input,select,textarea',pn).map(el=>el.type==='file'?null:(el.type==='checkbox'||el.type==='radio')?el.checked:el.value);
+ const bd=pn.querySelector('.sheet-body').cloneNode(true);$$('img',bd).forEach(i=>{const v=i.getAttribute('src')||'';if(i.dataset.photo||v.startsWith('blob:'))i.removeAttribute('src')});
+ const rec={v:1,ts:Date.now(),hash:location.hash,title:pn.querySelector('.sheet-head h3')?.textContent||'',body:bd.innerHTML,foot:pn.querySelector('.sheet-foot')?.innerHTML||'',vals,draft,top:pn.scrollTop};
+ try{localStorage.setItem(DRAFT_KEY,JSON.stringify(rec));return}catch(e){}
+ // zu groß für den Speicher: ohne neue Fotos sichern (die Eingaben sind wichtiger)
+ try{const big=v=>typeof v==='string'&&v.startsWith('data:')&&v.length>4000;const d=rec.draft&&typeof rec.draft==='object'?{...rec.draft}:rec.draft;
+  if(d){for(const k of Object.keys(d)){if(Array.isArray(d[k]))d[k]=d[k].filter(x=>!(x&&big(x.data)));else if(big(d[k]))d[k]=null}if('photoChanged'in d&&!d.photoData)d.photoChanged=false;if(d.receipt&&big(d.receipt.data))d.receipt=null}
+  rec.draft=d;rec.body=rec.body.replace(/src="data:[^"]{4000,}"/g,'');rec.noPhotos=true;localStorage.setItem(DRAFT_KEY,JSON.stringify(rec))}catch(e){}}
+addEventListener('pagehide',draftSave);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')draftSave()});
+function draftRestore(rec){if(rec.hash&&rec.hash!==location.hash){history.replaceState(null,'',rec.hash);render()}
+ openSheet(rec.title,rec.body,rec.foot);const pn=$('#sheet .sheet-panel');const els=$$('input,select,textarea',pn);
+ if(els.length===(rec.vals||[]).length)els.forEach((el,i)=>{const v=rec.vals[i];if(v==null||el.type==='file')return;if(el.type==='checkbox'||el.type==='radio')el.checked=!!v;else el.value=v});
+ draft=rec.draft;sheetDirty=true;if($('#photos')&&draft?.photos)try{renderPhotos()}catch(e){}hydratePhotos(pn);pn.scrollTop=rec.top||0;draftSave();
+ if(rec.noPhotos)toast('Neue Fotos waren zu groß zum Sichern – bitte nochmal hinzufügen')}
+async function draftOffer(){let rec=null;try{rec=JSON.parse(localStorage.getItem(DRAFT_KEY)||'null')}catch(e){}if(!rec)return;
+ if(!rec.body||Date.now()-rec.ts>14*864e5){draftClear();return}
+ const d=new Date(rec.ts),hm=d.toTimeString().slice(0,5),day=d.toDateString()===new Date().toDateString()?'heute':d.toDateString()===new Date(Date.now()-864e5).toDateString()?'gestern':fmtD(isoD(d));
+ const ok=await dialog({title:'Entwurf fortsetzen?',text:`„${rec.title}“ von ${day}, ${hm} Uhr wurde nicht gespeichert.`,ok:'Fortsetzen',cancel:'Verwerfen'});
+ if(ok){draftRestore(rec);return}draftClear();toast('Entwurf verworfen','Rückgängig',()=>draftRestore(rec))}
 /* Vollbild-Ebenen (Bild, Zuschneiden, Beschriften, Anzeigebereich, Scanner) bekommen einen eigenen Verlaufseintrag:
    die Zurück-Taste schließt dann nur die oberste Ebene, nicht das Formular darunter. */
 const layers=[];let swallowPop=0;
@@ -2487,10 +2559,10 @@ function viewHelp(){const T=(t,items)=>`<details class="fold"><summary><b>${t}</
  return{title:'Hilfe',tab:'more',back:'#/more',html:`<div class="card"><b>App am Handy installieren</b><p class="sub" style="margin:6px 0 0">In Chrome rechts oben ⋮ → <b>App installieren</b>. Danach startet sie vom Startbildschirm und läuft komplett offline. Deine Daten bleiben auf diesem Handy – darum regelmäßig ein Backup machen.</p></div>
  ${T('Einträge & Intervalle',['Beim Speichern eines Eintrags passende Intervalle anhaken – dann springt die Fälligkeit automatisch weiter. Kommt ein passendes Teil im Eintrag vor, wird das Intervall von selbst angehakt.','„Kopieren“ in einem Eintrag spart Tipparbeit beim nächsten Ölwechsel.','In der Historie nach „Bremsflüssigkeit“ suchen zeigt sofort, wann es zuletzt war.','Beim Tippen eines Teilenamens erscheinen bereits verwendete Artikel mit Hersteller, Nummer und letztem Preis – antippen füllt alles aus.','Eigene Intervalle für jedes Bauteil: Auto › Wartung › Intervalle › „+ Eigenes Bauteil“.','Ein erledigtes To-do lässt sich mit „→ Eintrag“ direkt in die Historie übernehmen, inklusive Teile.'])}
  ${T('Pickerl, Fristen & Reifen',['Batterie: Auto › Übersicht › Batterie. Einbaudatum und gemessene Ruhespannung eintragen – vor dem Winter und ab 5 Jahren erinnert die App ans Messen.','Das Pickerl wird aus der Erstzulassung berechnet – bis 18.5.2027 nach 3-2-1 mit 4 Monaten Nachfrist, ab 19.5.2027 nach 4-2-2-2-1: bis 4 Monate vorher möglich, <b>keine Nachfrist mehr</b>.','Nach der Begutachtung über + › Pickerl eintragen – dann springt es auf den nächsten Termin. Mängel können gleich als To-dos angelegt werden.','Fristen wie Vignette, Versicherung oder Pannendienst: Auto › Übersicht › „+ Frist“.','Reifen mit DOT und Profiltiefe anlegen, mit „Montieren“ wechseln – die km werden mitgezählt. Winterreifenpflicht (situativ) 1.11.–15.4.'])}
- ${T('Tanken & Kosten',['Tanken per Foto: „Zapfsäule + Tacho“ – erst die Anzeige der Zapfsäule fotografieren (Betrag, Liter, €/Liter), dann den Tacho. Die App übernimmt nur Werte, bei denen Betrag = Liter × Literpreis aufgeht, und prüft den km-Stand gegen den Verlauf. Die Fotos werden nicht gespeichert.','km-Stand per Foto: + › km-Stand › „Tacho fotografieren“. Die App liest die Zahl und prüft sie gegen den bisherigen Verlauf (nicht kleiner, nicht unrealistisch viel). Das Foto wird nicht gespeichert.','„Tankbeleg fotografieren“ liest Liter, Literpreis, Betrag, Sorte, Datum und Tankstelle – du ergänzt nur den km-Stand.','Der Verbrauch wird zwischen zwei Volltankungen mit km-Stand berechnet.','Kaufpreis, km beim Kauf und Versicherung + Steuer eintragen – dann zeigt „Kosten & Bilanz“ deine Kosten pro Monat und pro km seit dem Kauf.'])}
+ ${T('Tanken & Kosten',['Betragsfelder rechnen mit: „45,20+12,90“ tippen (das + steht rechts im Feld) – beim Verlassen wird daraus 58,10. Auch × und / gehen.','Tanken per Foto: „Zapfsäule + Tacho“ – erst die Anzeige der Zapfsäule fotografieren (Betrag, Liter, €/Liter), dann den Tacho. Die App übernimmt nur Werte, bei denen Betrag = Liter × Literpreis aufgeht, und prüft den km-Stand gegen den Verlauf. Die Fotos werden nicht gespeichert.','km-Stand per Foto: + › km-Stand › „Tacho fotografieren“. Die App liest die Zahl und prüft sie gegen den bisherigen Verlauf (nicht kleiner, nicht unrealistisch viel). Das Foto wird nicht gespeichert.','„Tankbeleg fotografieren“ liest Liter, Literpreis, Betrag, Sorte, Datum und Tankstelle – du ergänzt nur den km-Stand.','Der Verbrauch wird zwischen zwei Volltankungen mit km-Stand berechnet.','Kaufpreis, km beim Kauf und Versicherung + Steuer eintragen – dann zeigt „Kosten & Bilanz“ deine Kosten pro Monat und pro km seit dem Kauf.'])}
  ${T('Werkstatt, Lager & Einkauf',['Werkzeug mit Kaufpreis und „Leihen würde kosten“ anlegen und bei Wartungen auswählen – die App rechnet, ab wann es sich bezahlt macht.','Akkus und Ladegeräte als Zubehör mit Akku-System anlegen (z. B. Parkside Performance 20 V) – dann siehst du, was wozu passt. Bei Parkside werden 3 Jahre Garantie vorgeschlagen.','Rechnung als Foto oder PDF und „Garantie bis“ hinterlegen – unter Mehr › Garantien siehst du alles auf einen Blick.','Lager: Preis so eintragen wie bezahlt (z. B. 12 € für 250 g). Teile aus dem Lager werden beim Eintrag automatisch abgebucht. Mit Mindestbestand kommt der Artikel von selbst auf die Einkaufsliste.'])}
- ${T('Autos, Dokumente & Fremde Autos',['📜 Chronik (Auto › Übersicht, ganz unten): alles vom Kauf bis heute auf einer Zeitleiste – große Reparaturen, Pickerl, km-Meilensteine. Als PDF speicherbar.','Fehlercodes beim Fehler eintragen (z. B. P0401) – gab es den Code schon einmal, zeigt die App sofort, was damals die Lösung war.','Backup einspielen zeigt vorher, was dazukommt, was verloren geht und ob das Backup älter ist als deine Daten.','Dokumente (Kaufvertrag, Zulassungsschein, Versicherung …): Auto › Infos › Dokumente.','Verkaufte Autos landen im Archiv (Mehr › Archiv) – mit Bilanz aus Kauf, Verkauf und allen Kosten.','Fremde Autos (Freunde, Familie) unter Garage › Fremde Autos – sie erscheinen nicht auf deiner Startseite und nicht in deinen Statistiken.','QR-Aufkleber (Auto › ⋯) in den Motorraum kleben – Scannen öffnet direkt das Auto. 🔩 oben im Auto öffnet den Drehmoment-Spickzettel.'])}
- ${T('Sicherheit',['Versehentlich gelöscht? Unten erscheint 10 Sekunden lang „Rückgängig“.','Formular aus Versehen geschlossen? Oben erscheint „Eingaben verworfen – Rückgängig“.','„Backup teilen“ schickt die Sicherung direkt an Google Drive oder per Mail. Ein kaputtes Backup ändert beim Einlesen nichts an deinen Daten.','Neue Version da? Oben erscheint „Neu laden“.'])}`}}
+ ${T('Autos, Dokumente & Fremde Autos',['Auf der Auto-Seite seitlich wischen: nächstes bzw. voriges Auto – der gewählte Reiter bleibt.','📜 Chronik (Auto › Übersicht, ganz unten): alles vom Kauf bis heute auf einer Zeitleiste – große Reparaturen, Pickerl, km-Meilensteine. Als PDF speicherbar.','Fehlercodes beim Fehler eintragen (z. B. P0401) – gab es den Code schon einmal, zeigt die App sofort, was damals die Lösung war.','Backup einspielen zeigt vorher, was dazukommt, was verloren geht und ob das Backup älter ist als deine Daten.','Dokumente (Kaufvertrag, Zulassungsschein, Versicherung …): Auto › Infos › Dokumente.','Verkaufte Autos landen im Archiv (Mehr › Archiv) – mit Bilanz aus Kauf, Verkauf und allen Kosten.','Fremde Autos (Freunde, Familie) unter Garage › Fremde Autos – sie erscheinen nicht auf deiner Startseite und nicht in deinen Statistiken.','QR-Aufkleber (Auto › ⋯) in den Motorraum kleben – Scannen öffnet direkt das Auto. 🔩 oben im Auto öffnet den Drehmoment-Spickzettel.'])}
+ ${T('Sicherheit',['Wird die App mitten im Eintragen beendet (Anruf, Kamera, Akku), fragt sie beim nächsten Öffnen „Entwurf fortsetzen?“.','Bei Anleitung, Drehmoment-Spickzettel und Foto in groß bleibt der Bildschirm an.','Versehentlich gelöscht? Unten erscheint 10 Sekunden lang „Rückgängig“.','Formular aus Versehen geschlossen? Oben erscheint „Eingaben verworfen – Rückgängig“.','„Backup teilen“ schickt die Sicherung direkt an Google Drive oder per Mail. Ein kaputtes Backup ändert beim Einlesen nichts an deinen Daten.','Neue Version da? Oben erscheint „Neu laden“.'])}`}}
 
 /* ================= Formulare: Auto ================= */
 function carForm(id,foreign){const isF=id?!!car(id)?.foreign:!!foreign;const c=id?car(id):{fuel:'Benzin',deadlines:isF?[]:['Versicherung','Reifenwechsel Winter','Reifenwechsel Sommer'].map(l=>({id:uid(),label:l,date:''}))};
@@ -2673,7 +2745,7 @@ function ivAutoMatch(silent){if(!$('#ivChecks')||draft?.kind!=='entry')return;co
   if(cb&&!cb.checked&&ivKeywords(iv).some(k=>txt.includes(k))){cb.checked=true;n.push(iv.name)}}
  if(n.length&&!silent)toast('Intervall angehakt: '+n.join(', '));updSecs()}
 const checkedIv=()=>$$('#ivChecks input:checked').map(i=>i.value);
-function renderPhotos(){const box=$('#photos');if(!box)return;box.innerHTML=draft.photos.map((p,i)=>p.type==='pdf'?`<div class="thumb thumb-pdf" data-a="photoPdf" data-i="${i}"><span class="pdf-ic">${ic('receipt','ico')}<b>PDF</b><small>${esc((p.name||'Rechnung.pdf').replace(/\.pdf$/i,''))}</small></span><button type="button" class="tag" data-a="photoTag" data-i="${i}">${esc(p.tag||'Beleg')}</button><button type="button" class="x" data-a="photoDel" data-i="${i}" aria-label="Entfernen">✕</button></div>`:`<div class="thumb"><img ${p.data?`src="${p.data}"`:`data-photo="${p.id}"`} alt="" data-a="photoView"><button type="button" class="pen" data-a="photoAnno" data-i="${i}" aria-label="Beschriften">✏️</button><button type="button" class="tag" data-a="photoTag" data-i="${i}">${esc(p.tag||'Foto')}</button><button type="button" class="x" data-a="photoDel" data-i="${i}" aria-label="Entfernen">✕</button></div>`).join('');hydratePhotos(box);updSecs()}
+function renderPhotos(){const box=$('#photos');if(!box)return;box.innerHTML=draft.photos.map((p,i)=>p.type==='pdf'?`<div class="thumb thumb-pdf" data-a="photoPdf" data-i="${i}"><span class="pdf-ic">${ic('receipt','ico')}<b>PDF</b><small>${esc((p.name||'Rechnung.pdf').replace(/\.pdf$/i,''))}</small></span><button type="button" class="tag" data-a="photoTag" data-i="${i}">${esc(p.tag||'Beleg')}</button><button type="button" class="x" data-a="photoDel" data-i="${i}" aria-label="Entfernen">✕</button></div>`:`<div class="thumb"><img ${p.data?`src="${p.data}"`:`data-photo="${p.id}"`} alt="" data-a="photoView"><button type="button" class="pen" data-a="photoAnno" data-i="${i}" aria-label="Beschriften">✏️</button><button type="button" class="tag" data-a="photoTag" data-i="${i}">${esc(p.tag||'Foto')}</button><button type="button" class="x" data-a="photoDel" data-i="${i}" aria-label="Entfernen">✕</button></div>`).join('');hydratePhotos(box);updSecs();if(sheetDirty)draftSoon()}
 async function saveEntry(f){const fd=Object.fromEntries(new FormData(f));const old=draft.id?S.entries.find(e=>e.id===draft.id):null;
  {const bad=readParts().find(p=>{const it=p.invId&&S.inventory.find(i=>i.id===p.invId);return it&&!sameDim(p.unit,it.unit)});if(bad){toast(`„${bad.name}“: Einheit ${bad.unit} passt nicht zum Lager (${S.inventory.find(i=>i.id===bad.invId).unit})`);return}}
  if(!fd.carId){toast('Bitte ein Auto wählen');return}if(!fd.date){toast('Bitte ein Datum angeben');return}
@@ -3057,7 +3129,7 @@ async function saveGuide(f){const fd=Object.fromEntries(new FormData(f));const o
  for(const p of draft.photos)if(p.data)await put('photos',{id:p.id,data:p.data});for(const p of old?.photos||[])if(!g.photos.some(x=>x.id===p.id))await del('photos',p.id);
  await put('guides',g);closeSheet();toast('Gespeichert')}
 function guideView(id){const g=S.guides.find(x=>x.id===id);if(!g)return;const steps=(g.steps||'').split('\n').map(s=>s.trim()).filter(Boolean);
- openSheet(g.title,`<p class="sub" style="margin-top:0">${esc(g.carId?carName(g.carId):'Allgemein')}</p>
+ openSheet(g.title,`<p class="sub" style="margin-top:0" data-wake>${esc(g.carId?carName(g.carId):'Allgemein')}</p>
  ${g.tools?`<div class="note">🔧 <b>Werkzeug:</b> ${esc(g.tools)}</div>`:''}${g.parts?`<div class="note">📦 <b>Teile:</b> ${esc(g.parts)}</div>`:''}${g.torque?`<div class="note">🔩 <b>Drehmomente:</b><div class="pre">${esc(g.torque)}</div></div>`:''}
  ${steps.length?`<h4>Arbeitsschritte</h4><ol class="steps">${steps.map(s=>`<li><span>${esc(s)}</span></li>`).join('')}</ol>`:''}
  ${g.tips?`<h4>Tipps</h4><p class="pre">${esc(g.tips)}</p>`:''}
@@ -3067,7 +3139,7 @@ function guideView(id){const g=S.guides.find(x=>x.id===id);if(!g)return;const st
 /* ================= Drehmoment-Spickzettel ================= */
 const torqueList=c=>(c.specs||[]).filter(s=>/drehmoment|anzug/i.test(s.k)||/\d\s*nm\b/i.test(s.v));
 function torqueSheet(id){const c=car(id);const l=torqueList(c);
- openSheet('🔩 Drehmomente',`<p class="sub" style="margin-top:0">${esc(dispName(c))}</p>`+(l.length?l.map(s=>`<div class="tq-row"><span>${esc(s.k.replace(/^drehmoment\s*/i,''))}</span><b>${esc(s.v)}</b></div>`).join(''):`<p class="muted">Noch keine Drehmomente hinterlegt. Trag sie unter Technik ein, z. B. „Drehmoment Radschrauben – 110 Nm“.</p>`),
+ openSheet('🔩 Drehmomente',`<p class="sub" style="margin-top:0" data-wake>${esc(dispName(c))}</p>`+(l.length?l.map(s=>`<div class="tq-row"><span>${esc(s.k.replace(/^drehmoment\s*/i,''))}</span><b>${esc(s.v)}</b></div>`).join(''):`<p class="muted">Noch keine Drehmomente hinterlegt. Trag sie unter Technik ein, z. B. „Drehmoment Radschrauben – 110 Nm“.</p>`),
  `<button class="btn grow" data-a="specForm" data-car="${id}">Werte bearbeiten</button>`)}
 
 /* ================= Garantie ================= */
@@ -4088,7 +4160,7 @@ document.addEventListener('click',e=>{if(e.target.id==='sheet'){closeSheet();ret
 const FORMS={bat:saveBat,rate:saveRate,dlNew:saveDlNew,carDoc:saveCarDoc,shopAdd,shopEdit:saveShopEdit,restock:saveRestock,pk:savePk,tool:saveTool,tyre:saveTyre,issue:saveIssue,guide:saveGuide,receipt:saveReceipt,expose:saveExpose,ivTpl:saveIvTpl,sell:saveSell,car:saveCar,entry:saveEntry,todo:saveTodo,inv:saveInv,fuel:saveFuel,odo:saveOdo,iv:saveIv,spec:saveSpecs,dl:saveDl};
 let saving=false;
 const errText=err=>err?.name==='QuotaExceededError'||/quota/i.test(err?.message||'')?'Der Speicher am Handy ist voll – bitte Platz schaffen (z. B. alte Fotos löschen) und nochmal versuchen.':(err?.message||String(err));
-document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target;const fn=FORMS[f.dataset.form];if(!fn||saving)return;saving=true;try{await fn(f)}catch(err){console.error(err);toast('Nicht gespeichert: '+errText(err))}finally{saving=false}});
+document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target;$$('input[inputmode=decimal]',f).forEach(calcFix);const fn=FORMS[f.dataset.form];if(!fn||saving)return;saving=true;try{await fn(f)}catch(err){console.error(err);toast('Nicht gespeichert: '+errText(err))}finally{saving=false}});
 // Unerwartete Fehler sichtbar machen statt still abzubrechen
 addEventListener('unhandledrejection',e=>{console.error(e.reason);toast('Fehler: '+errText(e.reason))});
 addEventListener('error',e=>{if(e.message&&!/ResizeObserver|Script error/i.test(e.message))toast('Fehler: '+e.message)});
@@ -4222,13 +4294,13 @@ async function seed(){const P=(name,maker,qty,unit,price,o={})=>({name,maker,par
  const empty=!S.cars.length&&!S.entries.length&&!S.todos.length&&!S.inventory.length;
  if(empty&&!lsGet('garage.seeded')){try{await seed()}catch(e){console.error(e)}lsSet('garage.seeded','1')}
  for(const c of S.cars.filter(c=>c.demo&&(c.deadlines||[]).some(d=>d.label==='HU/AU'))){c.deadlines=c.deadlines.filter(d=>!['HU/AU','Kfz-Steuer'].includes(d.label));if(!c.firstReg)c.firstReg=c.make==='Audi'?'2000-03-15':'1996-11-05';try{await put('cars',c)}catch(e){}}
- render();
+ render();draftOffer();
  ensureCarColors().then(()=>{if(S.cars.some(c=>c.colorAuto!==undefined))render()});
  if('serviceWorker' in navigator&&location.protocol.startsWith('http'))setupUpdates();
 })();
 
 /* ================= Updates ================= */
-const APP_VER='garage-v65';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
+const APP_VER='garage-v66';// EINZIGE Stelle für die Version – sw.js übernimmt sie beim Registrieren (sw.js?v=…)
 const verNum=v=>+(/(\d+)\s*$/.exec(v||'')||[0,0])[1];
 /* Neue Version erkennen: index.html vom Server holen und die Versionsnummer vergleichen.
    Der Hinweis kommt nur, wenn der Server wirklich eine NEUERE Version hat. */

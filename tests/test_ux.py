@@ -12,6 +12,13 @@ SMALL = """()=>[...document.querySelectorAll('#view button,#view .btn,#view .chi
  .filter(x=>(x.h<40||x.w<40)&&!/linkbtn|h2a|ac-item|tag/.test(x.c))"""
 
 
+CARSWIPE = """(dx)=>{const el=document.querySelector('#view .card')||document.querySelector('#view');const r=el.getBoundingClientRect();const x=200,y=r.top+10;
+ const t=(xx)=>new Touch({identifier:1,target:el,clientX:xx,clientY:y});
+ el.dispatchEvent(new TouchEvent('touchstart',{touches:[t(x)],changedTouches:[t(x)],bubbles:true,cancelable:true}));
+ for(let i=1;i<=8;i++)el.dispatchEvent(new TouchEvent('touchmove',{touches:[t(x+dx*i/8)],changedTouches:[t(x+dx*i/8)],bubbles:true,cancelable:true}));
+ el.dispatchEvent(new TouchEvent('touchend',{touches:[],changedTouches:[t(x+dx)],bubbles:true,cancelable:true}));}"""
+
+
 async def main():
     c = H.Check('Bedienung')
     base, srv = H.serve()
@@ -214,6 +221,60 @@ async def main():
         c.ok(await ev("getComputedStyle($('.fab')).display==='none'"), 'kein +-Knopf auf Werkstatt')
         await H.go(page, '#/home')
         c.ok(await ev("getComputedStyle($('.fab')).display!=='none'"), '+-Knopf auf Start')
+
+        # v66: Rechnen im Betragsfeld
+        c.eq(await ev("calcEval('45,20+12,90').txt"), '58,10', 'Betragsfeld rechnet 45,20+12,90 = 58,10')
+        c.eq(await ev("calcEval('3x12,5').txt"), '37,50', 'mal rechnen')
+        c.eq(await ev("calcEval('12,5')"), None, 'einzelne Zahl bleibt unverändert')
+        await ev(f"fuelForm(null,'{cid}')"); await page.wait_for_timeout(250)
+        pr = page.locator('#sheet input[name=price]')
+        await pr.tap(); await pr.type('40'); await page.wait_for_timeout(80)
+        c.ok(await ev("!$('#calcPlus').hidden"), '+-Knopf erscheint im aktiven Betragsfeld')
+        await page.locator('#calcPlus').tap(); await pr.type('2,50')
+        c.eq(await pr.input_value(), '40+2,50', '+-Knopf fügt Plus ein, Feld bleibt aktiv')
+        await page.locator('#sheet input[name=station]').tap()
+        c.eq(await pr.input_value(), '42,50', 'beim Verlassen ausgerechnet')
+        c.ok(await ev("$('#calcPlus').hidden"), '+-Knopf verschwindet wieder')
+        # v66: Entwurf überlebt Neustart
+        await pr.fill('33,30'); await pr.dispatch_event('input'); await page.wait_for_timeout(800)
+        c.ok(await ev("!!localStorage.getItem('garage.draft')"), 'geändertes Formular wird als Entwurf gesichert')
+        await page.reload(); await H.ready(page); await page.wait_for_timeout(300)
+        c.ok('Entwurf fortsetzen' in await ev("document.querySelector('.dlg')?.textContent||''"), 'nach Neustart: Entwurf fortsetzen?')
+        await page.locator('.dlg [data-x=ok]').tap(); await page.wait_for_timeout(300)
+        c.eq((await ev("sheetOpen"), await ev("$('#sheet input[name=price]').value"), await ev("draft.kind")), (True, '33,30', 'fuel'), 'Entwurf wiederhergestellt')
+        n0 = await ev("S.fuel.length")
+        await ev("$('#sheet input[name=liters]').value='20'"); await page.locator('#sheet .sheet-foot .primary, #sheet button[type=submit]').first.tap(); await page.wait_for_timeout(400)
+        c.eq((await ev("S.fuel.length"), await ev("localStorage.getItem('garage.draft')")), (n0 + 1, None), 'gespeichert, Entwurf gelöscht')
+        await ev(f"fuelForm(null,'{cid}')"); await page.wait_for_timeout(200)
+        await page.locator('#sheet input[name=price]').fill('9'); await page.locator('#sheet input[name=price]').dispatch_event('input'); await page.wait_for_timeout(700)
+        await ev("closeSheet()"); await page.wait_for_timeout(100)
+        c.eq(await ev("localStorage.getItem('garage.draft')"), None, 'bewusst geschlossen: kein Entwurf beim Neustart')
+        # v66: Bildschirm bleibt an (Wake Lock, im Test simuliert)
+        await ev("window._wl=0;navigator.wakeLock.request=async()=>{_wl++;const l=new EventTarget();l.release=async()=>{_wl--};return l};0")
+        await ev(f"torqueSheet('{cid}')"); await page.wait_for_timeout(300)
+        c.eq(await ev("_wl"), 1, 'Drehmoment-Spickzettel hält Bildschirm an')
+        await ev("closeSheet()"); await page.wait_for_timeout(300)
+        c.eq(await ev("_wl"), 0, 'zu: Bildschirm darf wieder aus')
+        gid = await ev("S.guides[0]?.id")
+        if gid:
+            await ev(f"guideView('{gid}')"); await page.wait_for_timeout(300)
+            c.eq(await ev("_wl"), 1, 'Anleitung hält Bildschirm an')
+            await ev("closeSheet()"); await page.wait_for_timeout(300)
+        await ev("showLightbox('data:image/gif;base64,R0lGODlhAQABAAAAACw=')")
+        await page.wait_for_timeout(300)
+        c.eq(await ev("_wl"), 1, 'Foto groß hält Bildschirm an')
+        await ev("hideLightbox()"); await page.wait_for_timeout(300)
+        c.eq(await ev("_wl"), 0, 'Foto zu: wieder frei')
+        # v66: zwischen Autos wischen, Reiter bleibt
+        ids = await ev("myCars().map(c=>c.id)")
+        await H.go(page, f'#/car/{ids[0]}/fuel')
+        await ev(f"({CARSWIPE})(-200)"); await page.wait_for_timeout(500)
+        c.eq(await ev("location.hash"), f'#/car/{ids[1]}/fuel', 'nach links wischen: nächstes Auto, gleicher Reiter')
+        await ev(f"({CARSWIPE})(200)"); await page.wait_for_timeout(500)
+        c.eq(await ev("location.hash"), f'#/car/{ids[0]}/fuel', 'nach rechts wischen: voriges Auto')
+        await ev(f"({CARSWIPE})(40)"); await page.wait_for_timeout(400)
+        c.eq(await ev("location.hash"), f'#/car/{ids[0]}/fuel', 'kurzes Wischen bleibt beim Auto')
+        c.eq(await ev("$('#view').style.transform"), '', 'Ansicht springt zurück')
 
         # Tippflächen auf den wichtigsten Seiten
         small = []
